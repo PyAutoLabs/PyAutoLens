@@ -1,7 +1,7 @@
 import autofit as af
 import autolens as al
 
-from autogalaxy.analysis.model_util import mge_model_from
+from autogalaxy.analysis.model_util import mge_model_from, mge_model_V2_from
 
 
 def simulator_start_here_model_from(
