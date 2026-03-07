@@ -354,7 +354,11 @@ def time_delays_from(
     D_dt_m = (1.0 + z_l) * (Dd_kpc * Ds_kpc / Dds_kpc) * kpc_in_m
 
     # Fermat potential (should be in arcsec^2 for this formula)
-    fermat_potential = galaxies.fermat_potential_from(grid=grid, xp=xp)
+    import autogalaxy as ag
+
+    fermat_potential = ag.LensCalc.from_mass_obj(galaxies).fermat_potential_from(
+        grid=grid, xp=xp
+    )
 
     # Final time delay in days
     return (D_dt_m / c) * fermat_potential * factor

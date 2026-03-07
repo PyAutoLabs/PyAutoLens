@@ -2,7 +2,8 @@ import autofit as af
 import autolens as al
 
 from autogalaxy.analysis.model_util import mge_model_from, mge_model_V2_from
-
+from autogalaxy.analysis.model_util import mge_point_model_from
+from autogalaxy.analysis.model_util import hilbert_pixels_from_pixel_scale
 
 def simulator_start_here_model_from(
     include_lens_light: bool = True, use_point_source: bool = False

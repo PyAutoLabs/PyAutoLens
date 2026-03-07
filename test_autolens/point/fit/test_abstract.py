@@ -1,6 +1,6 @@
-from functools import partial
 import pytest
 
+import autogalaxy as ag
 import autolens as al
 
 
@@ -23,13 +23,8 @@ def test__magnifications_at_positions__multi_plane_calculation(gal_x1_mp):
         tracer=tracer,
     )
 
-    deflections_func = partial(
-        tracer.deflections_between_planes_from, plane_i=0, plane_j=1
-    )
-
-    magnification_0 = tracer.magnification_2d_via_hessian_from(
-        grid=positions, deflections_func=deflections_func
-    )
+    od_0 = ag.LensCalc.from_tracer(tracer, use_multi_plane=True, plane_j=1)
+    magnification_0 = abs(od_0.magnification_2d_via_hessian_from(grid=positions))
 
     assert fit_0.magnifications_at_positions[0] == magnification_0
 
@@ -41,13 +36,8 @@ def test__magnifications_at_positions__multi_plane_calculation(gal_x1_mp):
         tracer=tracer,
     )
 
-    deflections_func = partial(
-        tracer.deflections_between_planes_from, plane_i=0, plane_j=2
-    )
-
-    magnification_1 = tracer.magnification_2d_via_hessian_from(
-        grid=positions, deflections_func=deflections_func
-    )
+    od_1 = ag.LensCalc.from_tracer(tracer, use_multi_plane=True, plane_j=2)
+    magnification_1 = abs(od_1.magnification_2d_via_hessian_from(grid=positions))
 
     assert fit_1.magnifications_at_positions[0] == magnification_1
 

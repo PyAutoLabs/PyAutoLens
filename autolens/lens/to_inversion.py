@@ -17,7 +17,6 @@ class TracerToInversion(ag.AbstractToInversion):
         tracer,
         adapt_images: Optional[ag.AdaptImages] = None,
         settings: aa.Settings = None,
-        preloads: aa.Preloads = None,
         xp=np,
     ):
         """
@@ -60,7 +59,6 @@ class TracerToInversion(ag.AbstractToInversion):
             dataset=dataset,
             adapt_images=adapt_images,
             settings=settings,
-            preloads=preloads,
             xp=xp,
         )
 
@@ -189,7 +187,6 @@ class TracerToInversion(ag.AbstractToInversion):
                 galaxies=galaxies,
                 settings=self.settings,
                 adapt_images=self.adapt_images,
-                preloads=self.preloads,
                 xp=self._xp,
             )
 
@@ -314,7 +311,6 @@ class TracerToInversion(ag.AbstractToInversion):
                 galaxies=galaxies,
                 adapt_images=self.adapt_images,
                 settings=self.settings,
-                preloads=self.preloads,
                 xp=self._xp,
             )
 
@@ -411,7 +407,6 @@ class TracerToInversion(ag.AbstractToInversion):
                     galaxies=galaxies,
                     adapt_images=self.adapt_images,
                     settings=self.settings,
-                    preloads=self.preloads,
                     xp=self._xp,
                 )
 
@@ -476,7 +471,6 @@ class TracerToInversion(ag.AbstractToInversion):
             dataset=self.dataset,
             linear_obj_list=self.linear_obj_list,
             settings=self.settings,
-            preloads=self.preloads,
             xp=self._xp,
         )
 

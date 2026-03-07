@@ -13,7 +13,7 @@ from autogalaxy.profiles.light.snr import LightProfileSNR
 from autolens.lens import tracer_util
 
 
-class Tracer(ABC, ag.OperateImageGalaxies, ag.OperateDeflections):
+class Tracer(ABC, ag.OperateImageGalaxies):
     def __init__(
         self,
         galaxies: Union[List[ag.Galaxy], af.ModelInstance],

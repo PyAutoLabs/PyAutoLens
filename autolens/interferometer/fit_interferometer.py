@@ -20,7 +20,6 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
         dataset_model: Optional[aa.DatasetModel] = None,
         adapt_images: Optional[ag.AdaptImages] = None,
         settings: aa.Settings = None,
-        preloads: aa.Preloads = None,
         xp=np,
     ):
         """
@@ -78,8 +77,6 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
             self=self, model_obj=tracer, settings=settings, xp=xp
         )
 
-        self.preloads = preloads
-
         self.use_jax = xp is not np
 
     @property
@@ -123,7 +120,6 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
             tracer=self.tracer,
             adapt_images=self.adapt_images,
             settings=self.settings,
-            preloads=self.preloads,
             xp=self._xp,
         )
 
@@ -182,6 +178,29 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
         )
 
         return {**galaxy_image_dict, **galaxy_linear_obj_image_dict}
+
+    @property
+    def galaxy_signal_to_noise_map_dict(self) -> Dict[ag.Galaxy, np.ndarray]:
+        """
+        A dictionary which associates every galaxy in the tracer with its signal-to-noise map.
+
+        This signal-to-noise map is the signal-to-noise map of the sum of:
+
+        - The images of all ordinary light profiles in that tracer summed.
+        - The images of all linear objects (e.g. linear light profiles / pixelizations), where the images are solved
+          for first via the inversion.
+
+        For modeling, this dictionary is used to set up the `adapt_images` that adapt certain pixelizations to the
+        data being fitted.
+        """
+        galaxy_image_dict = self.galaxy_image_dict
+
+        galaxy_signal_to_noise_map_dict = {}
+
+        for galaxy, image in galaxy_image_dict.items():
+            galaxy_signal_to_noise_map_dict[galaxy] = image / self.dirty_noise_map
+
+        return galaxy_signal_to_noise_map_dict
 
     @property
     def galaxy_model_visibilities_dict(self) -> Dict[ag.Galaxy, np.ndarray]:

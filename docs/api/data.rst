@@ -34,7 +34,7 @@ For datasets taken with a CCD (or similar imaging device), including objects whi
 
    Imaging
    SimulatorImaging
-   Kernel2D
+   Convolver
    Convolver
 
 

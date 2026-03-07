@@ -31,4 +31,4 @@ Operators
    :recursive:
 
    OperateImage
-   OperateDeflections
+   LensCalc

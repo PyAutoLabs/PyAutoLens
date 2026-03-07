@@ -30,7 +30,6 @@ class AnalysisInterferometer(AnalysisDataset):
         adapt_images: Optional[ag.AdaptImages] = None,
         cosmology: ag.cosmo.LensingCosmology = None,
         settings: aa.Settings = None,
-        preloads: aa.Preloads = None,
         raise_inversion_positions_likelihood_exception: bool = True,
         title_prefix: str = None,
         use_jax: bool = True,
@@ -82,7 +81,6 @@ class AnalysisInterferometer(AnalysisDataset):
             adapt_images=adapt_images,
             cosmology=cosmology,
             settings=settings,
-            preloads=preloads,
             raise_inversion_positions_likelihood_exception=raise_inversion_positions_likelihood_exception,
             title_prefix=title_prefix,
             use_jax=use_jax,
@@ -172,7 +170,6 @@ class AnalysisInterferometer(AnalysisDataset):
             tracer=tracer,
             adapt_images=adapt_images,
             settings=self.settings,
-            preloads=self.preloads,
             xp=self._xp,
         )
 

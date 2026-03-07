@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 from os import path
 
+import autogalaxy as ag
 import autolens as al
 
 test_path = path.join("{}".format(path.dirname(path.realpath(__file__))), "files")
@@ -193,6 +194,8 @@ def test__operate_lens__sums_individual_quantities():
         cosmology=al.cosmo.Planck15(),
     )
 
-    einstein_mass = tracer.einstein_mass_angular_from(grid=grid)
+    einstein_mass = ag.LensCalc.from_mass_obj(
+        tracer
+    ).einstein_mass_angular_from(grid=grid)
 
     assert einstein_mass == pytest.approx(np.pi * 2.0**2.0, 1.0e-1)

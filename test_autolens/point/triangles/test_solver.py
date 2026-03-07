@@ -22,8 +22,7 @@ def register(tracer):
 @pytest.fixture
 def solver(grid):
     return PointSolver.for_grid(
-        grid=grid,
-        pixel_scale_precision=0.01,
+        grid=grid, pixel_scale_precision=0.01, magnification_threshold=1e-8
     )
 
 
@@ -35,10 +34,7 @@ def test_solver(solver):
     tracer = Tracer(
         galaxies=[ag.Galaxy(redshift=0.5, mass=mass_profile)],
     )
-    result = solver.solve(
-        tracer,
-        source_plane_coordinate=(0.0, 0.0),
-    )
+    result = solver.solve(tracer, source_plane_coordinate=(0.0, 0.0))
     assert result
 
 
@@ -71,7 +67,9 @@ def test_real_example_jax(grid, tracer):
 
     import jax.numpy as jnp
 
-    jax_solver = PointSolver.for_grid(grid=grid, pixel_scale_precision=0.001, xp=jnp)
+    jax_solver = PointSolver.for_grid(
+        grid=grid, pixel_scale_precision=0.001, xp=jnp, magnification_threshold=1e-8
+    )
 
     result = jax_solver.solve(
         tracer=tracer, source_plane_coordinate=(0.07, 0.07), remove_infinities=True

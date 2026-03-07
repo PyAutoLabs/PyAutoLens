@@ -1,5 +1,4 @@
 from abc import ABC
-from functools import partial
 import numpy as np
 from typing import Optional, Tuple
 
@@ -91,40 +90,6 @@ class AbstractFitPoint(aa.AbstractFit, ABC):
         return self._noise_map
 
     @property
-    def deflections_func(self):
-        """
-        Returns the deflection angle function, which for example given input image-plane positions computes their
-        deflection angles.
-
-        The use of this specific `deflections_func` property is not typical, using the `partial` function to wrap
-        a deflections method of the tracer. This is essentially a trick so that, depending on whether multi-plane
-        ray-tracing is to be performed, a different deflection function is used. This function is then
-        used in `magnifications_at_positions` to compute the magnification of the point source account for
-        multi-plane ray-tracing.
-
-        For multi-plane ray-tracing with more than 2 planes, the deflection function determines the index of the
-        plane with the last mass profile such that the deflection function does not perform unnecessary computations
-        beyond this plane.
-
-        TODO: Simplify this property and calculation of the deflection angles, as this property is confusing.
-        TODO: This could be done by allowing for the Hessian to receive planes as input.
-        """
-
-        if len(self.tracer.planes) > 2:
-            upper_plane_index = self.tracer.extract_plane_index_of_profile(
-                profile_name=self.name
-            )
-
-            return partial(
-                self.tracer.deflections_between_planes_from,
-                xp=self._xp,
-                plane_i=0,
-                plane_j=upper_plane_index,
-            )
-
-        return self.tracer.deflections_yx_2d_from
-
-    @property
     def magnifications_at_positions(self) -> aa.ArrayIrregular:
         """
         The magnification of every observed position in the image-plane, which is computed from the tracer's deflection
@@ -139,10 +104,19 @@ class AbstractFitPoint(aa.AbstractFit, ABC):
         2) For fitting the fluxes of point sources, the magnification is used to scale the flux of the point source
            in the source-plane to the image-plane, thus computing the model image-plane fluxes.
         """
+        use_multi_plane = len(self.tracer.planes) > 2
+        plane_j = (
+            self.tracer.extract_plane_index_of_profile(profile_name=self.name)
+            if use_multi_plane
+            else -1
+        )
+        od = ag.LensCalc.from_tracer(
+            tracer=self.tracer,
+            use_multi_plane=use_multi_plane,
+            plane_j=plane_j,
+        )
         return abs(
-            self.tracer.magnification_2d_via_hessian_from(
-                grid=self.positions, deflections_func=self.deflections_func, xp=self._xp
-            )
+            od.magnification_2d_via_hessian_from(grid=self.positions, xp=self._xp)
         )
 
     @property

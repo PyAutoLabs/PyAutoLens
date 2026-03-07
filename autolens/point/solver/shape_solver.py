@@ -8,7 +8,8 @@ import autoarray as aa
 
 from autoarray.structures.triangles.shape import Shape
 
-from autogalaxy import OperateDeflections
+import autogalaxy as ag
+from autolens.lens.tracer import Tracer
 from .step import Step
 
 logger = logging.getLogger(__name__)
@@ -186,7 +187,7 @@ class AbstractSolver:
 
     def _plane_grid(
         self,
-        tracer: OperateDeflections,
+        tracer: Tracer,
         grid: aa.type.Grid2DLike,
         plane_redshift: Optional[float] = None,
     ) -> aa.type.Grid2DLike:
@@ -215,7 +216,7 @@ class AbstractSolver:
 
     def solve_triangles(
         self,
-        tracer: OperateDeflections,
+        tracer: Tracer,
         shape: Shape,
         plane_redshift: Optional[float] = None,
     ):
@@ -258,7 +259,7 @@ class AbstractSolver:
         return final_step.filtered_triangles
 
     def _filter_low_magnification(
-        self, tracer: OperateDeflections, points: List[Tuple[float, float]]
+        self, tracer: Tracer, points: List[Tuple[float, float]]
     ) -> List[Tuple[float, float]]:
         """
         Filter the points to keep only those with an absolute magnification above the threshold.
@@ -273,15 +274,17 @@ class AbstractSolver:
         The points with an absolute magnification above the threshold.
         """
         points = self._xp.array(points)
-        magnifications = tracer.magnification_2d_via_hessian_from(
-            grid=aa.Grid2DIrregular(points).array, buffer=self.scale, xp=self._xp
+        magnifications = ag.LensCalc.from_mass_obj(
+            tracer
+        ).magnification_2d_via_hessian_from(
+            grid=aa.Grid2DIrregular(points).array, xp=self._xp
         )
-        mask = self._xp.abs(magnifications.array) > self.magnification_threshold
+        mask = self._xp.abs(magnifications) > self.magnification_threshold
         return self._xp.where(mask[:, None], points, self._xp.nan)
 
     def _plane_triangles(
         self,
-        tracer: OperateDeflections,
+        tracer: Tracer,
         triangles: aa.AbstractTriangles,
         plane_redshift,
     ):
@@ -298,7 +301,7 @@ class AbstractSolver:
 
     def steps(
         self,
-        tracer: OperateDeflections,
+        tracer: Tracer,
         shape: Shape,
         plane_redshift: Optional[float] = None,
     ) -> Iterator[Step]:
@@ -368,7 +371,7 @@ class AbstractSolver:
 class ShapeSolver(AbstractSolver):
     def find_magnification(
         self,
-        tracer: OperateDeflections,
+        tracer: Tracer,
         shape: Shape,
         plane_redshift: Optional[float] = None,
     ) -> float:

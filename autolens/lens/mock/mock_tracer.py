@@ -43,8 +43,8 @@ class MockTracerPoint(MockTracer):
     def planes(self):
         return [0, 1]
 
-    def deflections_yx_2d_from(self):
-        pass
+    def deflections_yx_2d_from(self, grid, xp=np):
+        return xp.zeros_like(grid.array)
 
     def extract_attribute(self, cls, attr_name):
         return [self.attribute]
@@ -54,9 +54,6 @@ class MockTracerPoint(MockTracer):
 
     def traced_grid_2d_list_from(self, grid, plane_index_limit=None):
         return [self.positions]
-
-    def magnification_2d_via_hessian_from(self, grid, deflections_func=None, xp=np):
-        return self.magnification
 
     def einstein_radius_from(self, grid):
         return self.einstein_radius

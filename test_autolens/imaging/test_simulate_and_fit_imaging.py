@@ -327,10 +327,6 @@ def test__simulate_imaging_data_and_fit__linear_light_profiles_and_pixelization(
         settings=al.Settings(
             use_positive_only_solver=True,
         ),
-        preloads=al.Preloads(
-            mapper_indices=range(1, 10),
-            source_pixel_zeroed_indices=np.array([1, 2, 3, 4, 6, 7, 8, 9])
-        )
     )
 
     assert fit_linear.inversion.reconstruction == pytest.approx(
@@ -459,10 +455,6 @@ def test__simulate_imaging_data_and_fit__linear_light_profiles_and_pixelization_
         settings=al.Settings(
             use_positive_only_solver=True,
         ),
-        preloads=al.Preloads(
-            mapper_indices=range(1, 10),
-            source_pixel_zeroed_indices=np.array([1, 2, 3, 4, 6, 7, 8, 9])
-        )
     )
 
     assert fit_linear.inversion.reconstruction == pytest.approx(
@@ -533,7 +525,7 @@ def test__simulate_imaging_data_and_fit__linear_light_profiles_and_pixelization_
     )
 
     pixelization = al.Pixelization(
-        mesh=al.mesh.Delaunay(),
+        mesh=al.mesh.Delaunay(pixels=25, zeroed_pixels=5),
         regularization=al.reg.AdaptSplit(inner_coefficient=0.01, outer_coefficient=0.1, signal_scale=0.1),
     )
 
@@ -550,19 +542,6 @@ def test__simulate_imaging_data_and_fit__linear_light_profiles_and_pixelization_
         galaxy_image_plane_mesh_grid_dict={source_galaxy_pix: image_plane_mesh_grid},
     )
 
-    total_mapper_pixels = image_plane_mesh_grid.shape[0]
-
-    total_linear_light_profiles = 1
-
-    mapper_indices = al.mapper_indices_from(
-        total_linear_light_profiles=total_linear_light_profiles,
-        total_mapper_pixels=total_mapper_pixels,
-    )
-
-    preloads = al.Preloads(
-        mapper_indices=mapper_indices,
-    )
-
     tracer_linear = al.Tracer(
         galaxies=[lens_galaxy_linear, source_galaxy_pix]
     )
@@ -570,7 +549,6 @@ def test__simulate_imaging_data_and_fit__linear_light_profiles_and_pixelization_
     fit_linear = al.FitImaging(
         dataset=masked_dataset,
         tracer=tracer_linear,
-        preloads=preloads,
         adapt_images=adapt_images,
         settings=al.Settings(use_positive_only_solver=False),
     )
@@ -611,34 +589,27 @@ def test__simulate_imaging_data_and_fit__linear_light_profiles_and_pixelization_
         0.180018267146, 1.0e-4
     )
 
-    preloads = al.Preloads(
-        mapper_indices=mapper_indices,
-        source_pixel_zeroed_indices=[2, 4, 5, 7, 8, 9, 12, 14, 17, 19, 21, 22, 24]
-    )
 
     fit_linear = al.FitImaging(
         dataset=masked_dataset,
         tracer=tracer_linear,
-        preloads=preloads,
         adapt_images=adapt_images,
         settings=al.Settings(
             use_positive_only_solver=True,
+            use_edge_zeroed_pixels=True
         ),
     )
-
-    print(fit_linear.inversion.reconstruction)
-    print(fit_linear.figure_of_merit)
 
     assert fit_linear.inversion.reconstruction[0:2] == pytest.approx(
         np.array(
             [
-                100.00111892,
-                1.56139854
+                99.9785287998059,
+                0.8958653625423
             ]
         ),
         1.0e-4,
     )
-    assert fit_linear.figure_of_merit == pytest.approx(-190.665986828461, 1.0e-4)
+    assert fit_linear.figure_of_merit == pytest.approx(-190.6935526756, 1.0e-4)
 
 
 def test__simulate_imaging_data_and_fit__complex_fit_compare_mapping_matrix_sparse_operator():

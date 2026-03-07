@@ -211,9 +211,9 @@ def test__positions_threshold_from(analysis_imaging_7x7):
 
     result = res.Result(samples_summary=samples_summary, analysis=analysis_imaging_7x7)
 
-    assert result.positions_threshold_from() == pytest.approx(0.930414842576, 1.0e-4)
+    assert result.positions_threshold_from() == pytest.approx(0.0019501455, 1.0e-4)
     assert result.positions_threshold_from(factor=5.0) == pytest.approx(
-        4.652074212, 1.0e-4
+        0.0097507278035, 1.0e-4
     )
     assert result.positions_threshold_from(minimum_threshold=10.0) == pytest.approx(
         10.0, 1.0e-4

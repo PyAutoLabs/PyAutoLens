@@ -108,7 +108,6 @@ class AnalysisImaging(AnalysisDataset):
             dataset_model=dataset_model,
             adapt_images=adapt_images,
             settings=self.settings,
-            preloads=self.preloads,
             xp=self._xp
         )
 

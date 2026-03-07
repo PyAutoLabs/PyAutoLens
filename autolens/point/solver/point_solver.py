@@ -4,7 +4,7 @@ from typing import Tuple, Optional
 import autoarray as aa
 from autoarray.structures.triangles.shape import Point
 
-from autogalaxy import OperateDeflections
+from autolens.lens.tracer import Tracer
 from .shape_solver import AbstractSolver
 
 
@@ -15,7 +15,7 @@ class PointSolver(AbstractSolver):
 
     def solve(
         self,
-        tracer: OperateDeflections,
+        tracer: Tracer,
         source_plane_coordinate: Tuple[float, float],
         plane_redshift: Optional[float] = None,
         remove_infinities: bool = True,

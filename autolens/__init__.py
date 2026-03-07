@@ -27,8 +27,6 @@ from autoarray.inversion.mesh.border_relocator import BorderRelocator
 from autoarray.operators.convolver import Convolver
 from autoarray.operators.transformer import TransformerDFT
 from autoarray.operators.transformer import TransformerNUFFT
-from autoarray.preloads import Preloads
-from autoarray.preloads import mapper_indices_from
 from autoarray.structures.arrays.uniform_1d import Array1D
 from autoarray.structures.arrays.uniform_2d import Array2D
 from autoarray.structures.arrays.rgb import Array2DRGB
@@ -83,7 +81,7 @@ from autogalaxy.profiles.light import (
 )
 from autogalaxy.profiles.light.linear import LightProfileLinearObjFuncList
 from autogalaxy.operate.image import OperateImage
-from autogalaxy.operate.deflections import OperateDeflections
+from autogalaxy.operate.lens_calc import LensCalc
 from autogalaxy.quantity.dataset_quantity import DatasetQuantity
 from autogalaxy import convert
 
@@ -132,4 +130,4 @@ from autoconf.fitsable import hdu_list_for_output_from
 
 conf.instance.register(__file__)
 
-__version__ = "2026.1.21.3"
+__version__ = "2026.2.26.4"
