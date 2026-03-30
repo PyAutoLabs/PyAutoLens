@@ -22,11 +22,11 @@ from autogalaxy.aggregator.ellipse.fit_ellipse import FitEllipseAgg
 
 from autolens.aggregator.subhalo import SubhaloAgg
 
-from autolens.aggregator.subplot import SubplotDataset as subplot_dataset
-from autolens.aggregator.subplot import SubplotTracer as subplot_tracer
-from autolens.aggregator.subplot import SubplotFitX1Plane as subplot_fit_x1_plane
-from autolens.aggregator.subplot import SubplotFit as subplot_fit
-from autolens.aggregator.subplot import SubplotFitLog10 as subplot_fit_log10
+from autolens.aggregator.subplot import Dataset as subplot_dataset
+from autolens.aggregator.subplot import Tracer as subplot_tracer
+from autolens.aggregator.subplot import FitX1Plane as subplot_fit_x1_plane
+from autolens.aggregator.subplot import Fit as subplot_fit
+from autolens.aggregator.subplot import FitLog10 as subplot_fit_log10
 from autolens.aggregator.subplot import (
     FITSGalaxyImages as fits_galaxy_images,
 )

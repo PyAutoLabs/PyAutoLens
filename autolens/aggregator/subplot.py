@@ -41,9 +41,9 @@ class FITSFit(Enum):
     chi_squared_map = "CHI_SQUARED_MAP"
 
 
-class SubplotDataset(Enum):
+class Dataset(Enum):
     """
-    The subplots that can be extracted from the subplot_fit image.
+    The subplots that can be extracted from the fit image.
 
     The values correspond to the position of the subplot in the 4x3 grid.
     """
@@ -58,9 +58,9 @@ class SubplotDataset(Enum):
     over_sample_size_pixelization = (1, 2)
 
 
-class SubplotTracer(Enum):
+class Tracer(Enum):
     """
-    The subplots that can be extracted from the subplot_tracer image.
+    The subplots that can be extracted from the tracer image.
 
     The values correspond to the position of the subplot in the 3x3 grid.
     """
@@ -76,9 +76,9 @@ class SubplotTracer(Enum):
     deflections_x = (2, 2)
 
 
-class SubplotFitX1Plane(Enum):
+class FitX1Plane(Enum):
     """
-    The subplots that can be extracted from the subplot_fit image.
+    The subplots that can be extracted from the fit image.
 
     The values correspond to the position of the subplot in the 4x3 grid.
     """
@@ -91,9 +91,9 @@ class SubplotFitX1Plane(Enum):
     normalized_residual_map = (2, 1)
 
 
-class SubplotFit(Enum):
+class Fit(Enum):
     """
-    The subplots that can be extracted from the subplot_fit image.
+    The subplots that can be extracted from the fit image.
 
     The values correspond to the position of the subplot in the 4x3 grid.
     """
@@ -112,9 +112,9 @@ class SubplotFit(Enum):
     source_plane_image = (3, 2)
 
 
-class SubplotFitLog10(Enum):
+class FitLog10(Enum):
     """
-    The subplots that can be extracted from the subplot_fit image.
+    The subplots that can be extracted from the fit image.
 
     The values correspond to the position of the subplot in the 4x3 grid.
     """
