@@ -255,7 +255,7 @@ def subplot_fit_real_space(
         for _ax in axes_flat:
             _ax.axis("off")
         axes_flat[0].set_title("Reconstructed Data")
-        axes_flat[1].set_title("Source Reconstruction")
+        axes_flat[1].set_title("Source Plane (Zoom)")
 
     plt.tight_layout()
     save_figure(fig, path=output_path, filename="fit_real_space", format=output_format)

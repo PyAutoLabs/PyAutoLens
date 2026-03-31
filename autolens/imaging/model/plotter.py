@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from typing import List
 
+import autoarray as aa
 from autogalaxy.imaging.model.plotter import PlotterImaging as AgPlotterImaging
 from autogalaxy.imaging.plot.fit_imaging_plots import (
     fits_fit,
@@ -18,6 +19,7 @@ from autolens.imaging.plot.fit_imaging_plots import (
     subplot_tracer_from_fit,
     subplot_fit_combined,
     subplot_fit_combined_log10,
+    _compute_critical_curve_lines,
 )
 
 from autolens.analysis.plotter import plot_setting
@@ -50,29 +52,57 @@ class PlotterImaging(Plotter):
 
         plane_indexes_to_plot = [i for i in fit.tracer.plane_indexes_with_images if i != 0]
 
+        # Compute critical curves and caustics once for all subplot functions.
+        tracer = fit.tracer_linear_light_profiles_to_light_profiles
+        _zoom = aa.Zoom2D(mask=fit.mask)
+        _cc_grid = aa.Grid2D.from_extent(
+            extent=_zoom.extent_from(buffer=0), shape_native=_zoom.shape_native
+        )
+        ip_lines, ip_colors, sp_lines, sp_colors = _compute_critical_curve_lines(tracer, _cc_grid)
+
         if should_plot("subplot_fit") or quick_update:
 
             if len(fit.tracer.planes) > 2:
                 for plane_index in plane_indexes_to_plot:
-                    subplot_fit(fit, output_path=output_path, output_format=fmt,
-                                plane_index=plane_index)
+                    subplot_fit(
+                        fit, output_path=output_path, output_format=fmt,
+                        plane_index=plane_index,
+                        image_plane_lines=ip_lines, image_plane_line_colors=ip_colors,
+                        source_plane_lines=sp_lines, source_plane_line_colors=sp_colors,
+                    )
             else:
-                subplot_fit(fit, output_path=output_path, output_format=fmt)
+                subplot_fit(
+                    fit, output_path=output_path, output_format=fmt,
+                    image_plane_lines=ip_lines, image_plane_line_colors=ip_colors,
+                    source_plane_lines=sp_lines, source_plane_line_colors=sp_colors,
+                )
 
         if quick_update:
             return
 
         if plot_setting(section="tracer", name="subplot_tracer"):
-            subplot_tracer_from_fit(fit, output_path=output_path, output_format=fmt)
+            subplot_tracer_from_fit(
+                fit, output_path=output_path, output_format=fmt,
+                image_plane_lines=ip_lines, image_plane_line_colors=ip_colors,
+                source_plane_lines=sp_lines, source_plane_line_colors=sp_colors,
+            )
 
         if should_plot("subplot_fit_log10"):
             try:
                 if len(fit.tracer.planes) > 2:
                     for plane_index in plane_indexes_to_plot:
-                        subplot_fit_log10(fit, output_path=output_path, output_format=fmt,
-                                          plane_index=plane_index)
+                        subplot_fit_log10(
+                            fit, output_path=output_path, output_format=fmt,
+                            plane_index=plane_index,
+                            image_plane_lines=ip_lines, image_plane_line_colors=ip_colors,
+                            source_plane_lines=sp_lines, source_plane_line_colors=sp_colors,
+                        )
                 else:
-                    subplot_fit_log10(fit, output_path=output_path, output_format=fmt)
+                    subplot_fit_log10(
+                        fit, output_path=output_path, output_format=fmt,
+                        image_plane_lines=ip_lines, image_plane_line_colors=ip_colors,
+                        source_plane_lines=sp_lines, source_plane_line_colors=sp_colors,
+                    )
             except ValueError:
                 pass
 

@@ -7,8 +7,98 @@ import autogalaxy as ag
 
 from autoarray.plot.array import plot_array
 from autoarray.plot.utils import save_figure, hide_unused_axes, conf_subplot_figsize
-from autoarray.plot.utils import numpy_lines as _to_lines, numpy_positions as _to_positions
-from autogalaxy.plot.plot_utils import _critical_curves_from, _caustics_from
+from autoarray.plot.utils import numpy_positions as _to_positions
+
+
+def plane_image_from(
+    galaxies,
+    grid: aa.Grid2D,
+    buffer: float = 1.0e-2,
+    zoom_to_brightest: bool = True,
+) -> aa.Array2D:
+    """
+    Return the unlensed source-plane image of a list of galaxies.
+
+    The galaxies' light profiles are evaluated directly on *grid* — a plain
+    uniform grid, **not** a ray-traced grid.  This shows what the source
+    looks like in its own plane, without any lensing distortion.  A typical
+    caller passes ``fit.mask.derive_grid.all_false`` (the full unmasked
+    image-plane grid) so that the source is rendered at a natural scale and
+    position before any optional zoom is applied.
+
+    When ``zoom_to_brightest`` is ``True`` the function first evaluates the
+    galaxy images on *grid* to locate the bright region, then builds a
+    smaller uniform grid centred on that region and re-evaluates the images
+    at full resolution.  The zoom threshold is read from
+    ``visualize / general / zoom / plane_percent`` in the config.
+
+    Parameters
+    ----------
+    galaxies
+        The galaxies whose images are summed to form the plane image.
+    grid
+        Uniform grid on which the source light profiles are evaluated.
+        Should be a plain spatial grid (e.g. ``fit.mask.derive_grid.all_false``),
+        not a ray-traced source-plane grid.
+    buffer
+        Arc-second padding added around the bright region when constructing
+        the zoomed grid.
+    zoom_to_brightest
+        If ``True``, zoom the grid in on the brightest pixels before
+        evaluating the final image.
+
+    Returns
+    -------
+    aa.Array2D
+        Plane image on the (possibly zoomed) grid.
+    """
+    from autoconf import conf
+
+    shape = grid.shape_native
+
+    if zoom_to_brightest:
+        try:
+            image = sum(g.image_2d_from(grid=grid) for g in galaxies)
+            image_native = image.native
+
+            zoom_percent = conf.instance["visualize"]["general"]["zoom"]["plane_percent"]
+            fractional_value = float(np.max(image_native)) * zoom_percent
+
+            fractional_bool = image_native > fractional_value
+            true_indices = np.argwhere(fractional_bool)
+
+            y_max_pix = np.min(true_indices[:, 0])
+            y_min_pix = np.max(true_indices[:, 0])
+            x_min_pix = np.min(true_indices[:, 1])
+            x_max_pix = np.max(true_indices[:, 1])
+
+            grid_native = grid.native
+            extent = (
+                grid_native[0, x_min_pix][1] - buffer,
+                grid_native[0, x_max_pix][1] + buffer,
+                grid_native[y_min_pix, 0][0] - buffer,
+                grid_native[y_max_pix, 0][0] + buffer,
+            )
+            extent = aa.util.geometry.extent_symmetric_from(extent=extent)
+
+            pixel_scales = (
+                float((extent[3] - extent[2]) / shape[0]),
+                float((extent[1] - extent[0]) / shape[1]),
+            )
+            origin = ((extent[3] + extent[2]) / 2.0, (extent[1] + extent[0]) / 2.0)
+
+            grid = aa.Grid2D.uniform(
+                shape_native=shape,
+                pixel_scales=pixel_scales,
+                origin=origin,
+            )
+        except (ValueError, IndexError):
+            pass
+
+    image = sum(g.image_2d_from(grid=grid) for g in galaxies)
+    return aa.Array2D.no_mask(
+        values=image.native, pixel_scales=grid.pixel_scales, origin=grid.origin
+    )
 
 
 def subplot_tracer(
@@ -19,6 +109,10 @@ def subplot_tracer(
     colormap: Optional[str] = None,
     use_log10: bool = False,
     positions=None,
+    image_plane_lines=None,
+    image_plane_line_colors=None,
+    source_plane_lines=None,
+    source_plane_line_colors=None,
 ):
     """Multi-panel subplot of the tracer: image, source images, and mass quantities.
 
@@ -38,16 +132,11 @@ def subplot_tracer(
     final_plane_index = len(tracer.planes) - 1
     traced_grids = tracer.traced_grid_2d_list_from(grid=grid)
 
-    tan_cc, rad_cc = _critical_curves_from(tracer, grid)
-    tan_ca, rad_ca = _caustics_from(tracer, grid)
-    _tan_cc_lines = _to_lines(list(tan_cc) if tan_cc is not None else []) or []
-    _rad_cc_lines = _to_lines(list(rad_cc) if rad_cc is not None else []) or []
-    _tan_ca_lines = _to_lines(list(tan_ca) if tan_ca is not None else []) or []
-    _rad_ca_lines = _to_lines(list(rad_ca) if rad_ca is not None else []) or []
-    image_plane_lines = (_tan_cc_lines + _rad_cc_lines) or None
-    image_plane_line_colors = ["black"] * len(_tan_cc_lines) + ["white"] * len(_rad_cc_lines)
-    source_plane_lines = (_tan_ca_lines + _rad_ca_lines) or None
-    source_plane_line_colors = ["black"] * len(_tan_ca_lines) + ["white"] * len(_rad_ca_lines)
+    if image_plane_lines is None and source_plane_lines is None:
+        from autolens.imaging.plot.fit_imaging_plots import _compute_critical_curve_lines
+        image_plane_lines, image_plane_line_colors, source_plane_lines, source_plane_line_colors = (
+            _compute_critical_curve_lines(tracer, grid)
+        )
     pos_list = _to_positions(positions)
 
     # --- compute arrays ---
