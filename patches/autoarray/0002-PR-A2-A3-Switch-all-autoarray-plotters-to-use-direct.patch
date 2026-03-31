@@ -684,7 +684,7 @@ index b9a44679..47617e1e 100644
                  pixel_values=pixel_values,
 +                mapper=self.mapper,
 +                ax=ax,
-+                title=auto_labels.title or "Source Reconstruction",
++                title=auto_labels.title or Source Plane (Zoom),
 +                colormap=self.mat_plot_2d.cmap.cmap,
 +                use_log10=self.mat_plot_2d.use_log10,
                  zoom_to_brightest=zoom_to_brightest,
