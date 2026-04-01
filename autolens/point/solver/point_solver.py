@@ -19,6 +19,7 @@ default but can be retained for use inside a ``jax.jit``-traced function.
 import logging
 from typing import Tuple, Optional
 
+import numpy as np
 import autoarray as aa
 from autoarray.structures.triangles.shape import Point
 
@@ -66,7 +67,8 @@ class PointSolver(AbstractSolver):
 
         Returns
         -------
-        A list of image plane coordinates that are traced to the source plane coordinate.
+        A ``Grid2DIrregular`` of image-plane coordinates, always numpy-backed even when the
+        solver uses a JAX backend internally.
         """
         kept_triangles = super().solve_triangles(
             tracer=tracer,
@@ -90,4 +92,4 @@ class PointSolver(AbstractSolver):
 
             solution = solution[~self._xp.isinf(solution).any(axis=1)]
 
-        return aa.Grid2DIrregular(solution)
+        return aa.Grid2DIrregular(np.asarray(solution))
