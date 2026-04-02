@@ -35,11 +35,11 @@ def _compute_critical_curve_lines(tracer, grid):
         _rad_ca_lines = _to_lines(list(rad_ca) if rad_ca is not None else []) or []
         image_plane_lines = (_tan_cc_lines + _rad_cc_lines) or None
         image_plane_line_colors = (
-            ["black"] * len(_tan_cc_lines) + ["white"] * len(_rad_cc_lines)
+            ["white"] * len(_tan_cc_lines) + ["yellow"] * len(_rad_cc_lines)
         )
         source_plane_lines = (_tan_ca_lines + _rad_ca_lines) or None
         source_plane_line_colors = (
-            ["black"] * len(_tan_ca_lines) + ["white"] * len(_rad_ca_lines)
+            ["white"] * len(_tan_ca_lines) + ["yellow"] * len(_rad_ca_lines)
         )
         return image_plane_lines, image_plane_line_colors, source_plane_lines, source_plane_line_colors
     except Exception:
@@ -171,10 +171,7 @@ def subplot_fit(
 
     if image_plane_lines is None and source_plane_lines is None:
         tracer = fit.tracer_linear_light_profiles_to_light_profiles
-        _zoom = aa.Zoom2D(mask=fit.dataset.real_space_mask)
-        _cc_grid = aa.Grid2D.from_extent(
-            extent=_zoom.extent_from(buffer=0), shape_native=_zoom.shape_native
-        )
+        _cc_grid = fit.dataset.real_space_mask.derive_grid.all_false
         image_plane_lines, image_plane_line_colors, source_plane_lines, source_plane_line_colors = (
             _compute_critical_curve_lines(tracer, _cc_grid)
         )
@@ -294,10 +291,7 @@ def subplot_fit_dirty_images(
     """
     if image_plane_lines is None:
         tracer = fit.tracer_linear_light_profiles_to_light_profiles
-        _zoom = aa.Zoom2D(mask=fit.dataset.real_space_mask)
-        _cc_grid = aa.Grid2D.from_extent(
-            extent=_zoom.extent_from(buffer=0), shape_native=_zoom.shape_native
-        )
+        _cc_grid = fit.dataset.real_space_mask.derive_grid.all_false
         image_plane_lines, image_plane_line_colors, _, _ = (
             _compute_critical_curve_lines(tracer, _cc_grid)
         )
@@ -364,10 +358,7 @@ def subplot_fit_real_space(
 
     if fit.inversion is None:
         # Parametric source: image-plane model image + source-plane image
-        zoom = aa.Zoom2D(mask=fit.dataset.real_space_mask)
-        grid = aa.Grid2D.from_extent(
-            extent=zoom.extent_from(buffer=0), shape_native=zoom.shape_native
-        )
+        grid = fit.dataset.real_space_mask.derive_grid.all_false
         image = tracer.image_2d_from(grid=grid)
         plot_array(array=image, ax=axes_flat[0], title="Image", colormap=colormap)
 
@@ -386,3 +377,136 @@ def subplot_fit_real_space(
 
     plt.tight_layout()
     save_figure(fig, path=output_path, filename="fit_real_space", format=output_format)
+
+
+def subplot_tracer_from_fit(
+    fit,
+    output_path: Optional[str] = None,
+    output_format: str = "png",
+    colormap: Optional[str] = None,
+    image_plane_lines=None,
+    image_plane_line_colors=None,
+    source_plane_lines=None,
+    source_plane_line_colors=None,
+):
+    """
+    Produce a 9-panel tracer subplot derived from a `FitInterferometer` object.
+
+    Panels (3x3 = 9 axes):
+      0: Dirty Model Image with critical curves
+      1: Source Model Image (dirty, image-plane projection) with critical curves
+      2: Source plane (no zoom) with caustics
+      3: Lens image (log10) with critical curves
+      4: Convergence (log10)
+      5: Potential (log10)
+      6: Deflections Y with critical curves
+      7: Deflections X with critical curves
+      8: Magnification with critical curves
+
+    Parameters
+    ----------
+    fit : FitInterferometer
+        The interferometer fit whose best-fit tracer is visualised.
+    output_path : str, optional
+        Directory in which to save the figure.  If ``None`` the figure is
+        not saved to disk.
+    output_format : str, optional
+        Image format passed to :func:`~autoarray.plot.utils.save_figure`.
+    colormap : str, optional
+        Matplotlib colormap name applied to all image panels.
+    """
+    from autogalaxy.operate.lens_calc import LensCalc
+
+    final_plane_index = len(fit.tracer.planes) - 1
+    tracer = fit.tracer_linear_light_profiles_to_light_profiles
+
+    # --- grid from real-space mask (matches imaging behaviour) ---
+    grid = fit.dataset.real_space_mask.derive_grid.all_false
+
+    if image_plane_lines is None and source_plane_lines is None:
+        image_plane_lines, image_plane_line_colors, source_plane_lines, source_plane_line_colors = (
+            _compute_critical_curve_lines(tracer, grid)
+        )
+
+    traced_grids = tracer.traced_grid_2d_list_from(grid=grid)
+    lens_galaxies = ag.Galaxies(galaxies=tracer.planes[0])
+    lens_image = lens_galaxies.image_2d_from(grid=traced_grids[0])
+
+    deflections = tracer.deflections_yx_2d_from(grid=grid)
+    deflections_y = aa.Array2D(values=deflections.slim[:, 0], mask=grid.mask)
+    deflections_x = aa.Array2D(values=deflections.slim[:, 1], mask=grid.mask)
+
+    magnification = LensCalc.from_mass_obj(tracer).magnification_2d_from(grid=grid)
+
+    fig, axes = plt.subplots(3, 3, figsize=conf_subplot_figsize(3, 3))
+    axes_flat = list(axes.flatten())
+
+    # Panel 0: Dirty Model Image
+    plot_array(array=fit.dirty_model_image, ax=axes_flat[0], title="Dirty Model Image",
+               lines=image_plane_lines, line_colors=image_plane_line_colors,
+               colormap=colormap)
+
+    # Panel 1: Lensed source image (image-plane projection).
+    # Use galaxy_image_dict so that pixelized (inversion) sources are included.
+    try:
+        galaxy_image_dict = fit.galaxy_image_dict
+        source_galaxies_list = tracer.planes[final_plane_index]
+        source_model_img = sum(
+            galaxy_image_dict[galaxy]
+            for galaxy in source_galaxies_list
+            if galaxy in galaxy_image_dict
+        )
+        if np.all(source_model_img == 0):
+            source_model_img = None
+    except Exception:
+        source_model_img = None
+    if source_model_img is not None:
+        plot_array(array=source_model_img, ax=axes_flat[1], title="Source Model Image",
+                   colormap=colormap,
+                   lines=image_plane_lines, line_colors=image_plane_line_colors)
+    else:
+        axes_flat[1].axis("off")
+
+    # Panel 2: Source Plane (No Zoom) with caustics
+    _plot_source_plane(fit, axes_flat[2], final_plane_index, zoom_to_brightest=False,
+                       colormap=colormap, title="Source Plane (No Zoom)",
+                       lines=source_plane_lines, line_colors=source_plane_line_colors)
+
+    # Panel 3: Lens Image (log10)
+    plot_array(array=lens_image, ax=axes_flat[3], title="Lens Image",
+               lines=image_plane_lines, line_colors=image_plane_line_colors,
+               colormap=colormap, use_log10=True)
+
+    # Panel 4: Convergence (log10)
+    try:
+        convergence = tracer.convergence_2d_from(grid=grid)
+        plot_array(array=convergence, ax=axes_flat[4], title="Convergence",
+                   colormap=colormap, use_log10=True)
+    except Exception:
+        axes_flat[4].axis("off")
+
+    # Panel 5: Potential (log10)
+    try:
+        potential = tracer.potential_2d_from(grid=grid)
+        plot_array(array=potential, ax=axes_flat[5], title="Potential",
+                   colormap=colormap, use_log10=True)
+    except Exception:
+        axes_flat[5].axis("off")
+
+    # Panel 6: Deflections Y
+    plot_array(array=deflections_y, ax=axes_flat[6], title="Deflections Y",
+               lines=image_plane_lines, line_colors=image_plane_line_colors,
+               colormap=colormap)
+
+    # Panel 7: Deflections X
+    plot_array(array=deflections_x, ax=axes_flat[7], title="Deflections X",
+               lines=image_plane_lines, line_colors=image_plane_line_colors,
+               colormap=colormap)
+
+    # Panel 8: Magnification
+    plot_array(array=magnification, ax=axes_flat[8], title="Magnification",
+               lines=image_plane_lines, line_colors=image_plane_line_colors,
+               colormap=colormap)
+
+    plt.tight_layout()
+    save_figure(fig, path=output_path, filename="tracer", format=output_format)

@@ -101,10 +101,7 @@ class VisualizerInterferometer(af.Visualizer):
         )
 
         # Compute grid and critical curves once for all plot functions.
-        zoom = ag.Zoom2D(mask=fit.dataset.real_space_mask)
-        grid = ag.Grid2D.from_extent(
-            extent=zoom.extent_from(buffer=0), shape_native=zoom.shape_native
-        )
+        grid = fit.dataset.real_space_mask.derive_grid.all_false
         ip_lines, ip_colors, sp_lines, sp_colors = _compute_critical_curve_lines(
             tracer, grid
         )

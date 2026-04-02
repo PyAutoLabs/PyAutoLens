@@ -14,6 +14,7 @@ from autolens.interferometer.plot.fit_interferometer_plots import (
     subplot_fit,
     subplot_fit_dirty_images,
     subplot_fit_real_space,
+    subplot_tracer_from_fit,
     _compute_critical_curve_lines,
 )
 from autolens.analysis.plotter import Plotter
@@ -59,10 +60,7 @@ class PlotterInterferometer(Plotter):
         # Use pre-computed critical curves if provided, otherwise compute once here.
         if image_plane_lines is None and source_plane_lines is None:
             tracer = fit.tracer_linear_light_profiles_to_light_profiles
-            _zoom = aa.Zoom2D(mask=fit.dataset.real_space_mask)
-            _cc_grid = aa.Grid2D.from_extent(
-                extent=_zoom.extent_from(buffer=0), shape_native=_zoom.shape_native
-            )
+            _cc_grid = fit.dataset.real_space_mask.derive_grid.all_false
             ip_lines, ip_colors, sp_lines, sp_colors = _compute_critical_curve_lines(tracer, _cc_grid)
         else:
             ip_lines, ip_colors, sp_lines, sp_colors = (
@@ -72,6 +70,13 @@ class PlotterInterferometer(Plotter):
 
         if should_plot("subplot_fit"):
             subplot_fit(
+                fit, output_path=output_path, output_format=fmt,
+                image_plane_lines=ip_lines, image_plane_line_colors=ip_colors,
+                source_plane_lines=sp_lines, source_plane_line_colors=sp_colors,
+            )
+
+        if plot_setting(section="tracer", name="subplot_tracer"):
+            subplot_tracer_from_fit(
                 fit, output_path=output_path, output_format=fmt,
                 image_plane_lines=ip_lines, image_plane_line_colors=ip_colors,
                 source_plane_lines=sp_lines, source_plane_line_colors=sp_colors,

@@ -42,11 +42,11 @@ def _compute_critical_curve_lines(tracer, grid):
         _rad_ca_lines = _to_lines(list(rad_ca) if rad_ca is not None else []) or []
         image_plane_lines = (_tan_cc_lines + _rad_cc_lines) or None
         image_plane_line_colors = (
-            ["black"] * len(_tan_cc_lines) + ["white"] * len(_rad_cc_lines)
+            ["white"] * len(_tan_cc_lines) + ["yellow"] * len(_rad_cc_lines)
         )
         source_plane_lines = (_tan_ca_lines + _rad_ca_lines) or None
         source_plane_line_colors = (
-            ["black"] * len(_tan_ca_lines) + ["white"] * len(_rad_ca_lines)
+            ["white"] * len(_tan_ca_lines) + ["yellow"] * len(_rad_ca_lines)
         )
         return image_plane_lines, image_plane_line_colors, source_plane_lines, source_plane_line_colors
     except Exception:
