@@ -5,14 +5,17 @@ from autofit.non_linear.plot.mle_plotters import MLEPlotter
 # ---------------------------------------------------------------------------
 # Standalone plot helpers (autoarray)
 # ---------------------------------------------------------------------------
-from autoarray.plot.array import plot_array
-from autoarray.plot.grid import plot_grid
+from autogalaxy.plot.plot_utils import plot_array, plot_grid, fits_array
 
 from autoarray.dataset.plot.imaging_plots import (
     subplot_imaging_dataset,
     subplot_imaging_dataset_list,
+    fits_imaging,
 )
-from autoarray.dataset.plot.interferometer_plots import subplot_interferometer_dirty_images
+from autoarray.dataset.plot.interferometer_plots import (
+    subplot_interferometer_dirty_images,
+    fits_interferometer,
+)
 
 # ---------------------------------------------------------------------------
 # Galaxy / profile subplots (autogalaxy)

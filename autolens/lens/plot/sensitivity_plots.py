@@ -5,7 +5,7 @@ from typing import Optional
 
 import autoarray as aa
 
-from autoarray.plot.array import plot_array
+from autogalaxy.plot.plot_utils import plot_array
 from autoarray.plot.utils import save_figure
 
 

@@ -6,7 +6,7 @@ from typing import Optional
 import autoarray as aa
 import autogalaxy as ag
 
-from autoarray.plot.array import plot_array
+from autogalaxy.plot.plot_utils import plot_array
 from autoarray.plot.yx import plot_yx
 from autoarray.plot.utils import save_figure, conf_subplot_figsize
 from autoarray.plot.utils import numpy_lines as _to_lines
@@ -91,9 +91,17 @@ def _plot_source_plane(fit, ax, plane_index, zoom_to_brightest=True,
 
     tracer = fit.tracer_linear_light_profiles_to_light_profiles
     if not tracer.planes[plane_index].has(cls=aa.Pixelization):
+        if zoom_to_brightest:
+            grid = fit.dataset.real_space_mask.derive_grid.all_false
+        else:
+            zoom = aa.Zoom2D(mask=fit.dataset.real_space_mask)
+            grid = aa.Grid2D.from_extent(
+                extent=zoom.extent_from(buffer=0),
+                shape_native=zoom.shape_native,
+            )
         image = plane_image_from(
             galaxies=tracer.planes[plane_index],
-            grid=fit.dataset.real_space_mask.derive_grid.all_false,
+            grid=grid,
             zoom_to_brightest=zoom_to_brightest,
         )
         plot_array(
@@ -495,17 +503,14 @@ def subplot_tracer_from_fit(
 
     # Panel 6: Deflections Y
     plot_array(array=deflections_y, ax=axes_flat[6], title="Deflections Y",
-               lines=image_plane_lines, line_colors=image_plane_line_colors,
                colormap=colormap)
 
     # Panel 7: Deflections X
     plot_array(array=deflections_x, ax=axes_flat[7], title="Deflections X",
-               lines=image_plane_lines, line_colors=image_plane_line_colors,
                colormap=colormap)
 
     # Panel 8: Magnification
     plot_array(array=magnification, ax=axes_flat[8], title="Magnification",
-               lines=image_plane_lines, line_colors=image_plane_line_colors,
                colormap=colormap)
 
     plt.tight_layout()

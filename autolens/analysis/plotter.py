@@ -14,7 +14,7 @@ from autolens.lens.plot.tracer_plots import (
     fits_tracer,
     fits_source_plane_images,
 )
-from autoarray.plot.array import plot_array
+from autogalaxy.plot.plot_utils import plot_array
 
 
 class Plotter(AgPlotter):
