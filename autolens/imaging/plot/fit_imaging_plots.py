@@ -713,6 +713,7 @@ def subplot_tracer_from_fit(
     else:
         axes_flat[1].axis("off")
 
+
     # Panel 2: Source Plane (No Zoom) (same as subplot_fit panel 12)
     _plot_source_plane(fit, axes_flat[2], final_plane_index, zoom_to_brightest=False,
                        colormap=colormap, title="Source Plane (No Zoom)",
