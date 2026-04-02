@@ -19,7 +19,7 @@ from autolens.imaging.plot.fit_imaging_plots import (
     subplot_tracer_from_fit,
     subplot_fit_combined,
     subplot_fit_combined_log10,
-    _compute_critical_curve_lines,
+    _compute_critical_curves_from_fit,
 )
 
 from autolens.analysis.plotter import plot_setting
@@ -31,7 +31,13 @@ class PlotterImaging(Plotter):
     imaging_combined = AgPlotterImaging.imaging_combined
 
     def fit_imaging(
-        self, fit: FitImaging, quick_update: bool = False
+        self,
+        fit: FitImaging,
+        quick_update: bool = False,
+        image_plane_lines=None,
+        image_plane_line_colors=None,
+        source_plane_lines=None,
+        source_plane_line_colors=None,
     ):
         """
         Visualizes a `FitImaging` object, which fits an imaging dataset.
@@ -42,6 +48,14 @@ class PlotterImaging(Plotter):
             The maximum log likelihood `FitImaging` of the non-linear search.
         quick_update
             If True only the essential subplot_fit is output.
+        image_plane_lines
+            Pre-computed critical-curve lines. Computed internally if not provided.
+        image_plane_line_colors
+            Colours for each image-plane line.
+        source_plane_lines
+            Pre-computed caustic lines. Computed internally if not provided.
+        source_plane_line_colors
+            Colours for each source-plane line.
         """
 
         def should_plot(name):
@@ -52,13 +66,15 @@ class PlotterImaging(Plotter):
 
         plane_indexes_to_plot = [i for i in fit.tracer.plane_indexes_with_images if i != 0]
 
-        # Compute critical curves and caustics once for all subplot functions.
-        tracer = fit.tracer_linear_light_profiles_to_light_profiles
-        _zoom = aa.Zoom2D(mask=fit.mask)
-        _cc_grid = aa.Grid2D.from_extent(
-            extent=_zoom.extent_from(buffer=0), shape_native=_zoom.shape_native
-        )
-        ip_lines, ip_colors, sp_lines, sp_colors = _compute_critical_curve_lines(tracer, _cc_grid)
+        # Compute critical curves and caustics once for all subplot functions,
+        # unless already provided by the caller (e.g. the visualizer).
+        if image_plane_lines is None and source_plane_lines is None:
+            ip_lines, ip_colors, sp_lines, sp_colors = _compute_critical_curves_from_fit(fit)
+        else:
+            ip_lines, ip_colors, sp_lines, sp_colors = (
+                image_plane_lines, image_plane_line_colors,
+                source_plane_lines, source_plane_line_colors,
+            )
 
         if should_plot("subplot_fit") or quick_update:
 

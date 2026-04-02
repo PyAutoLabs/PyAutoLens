@@ -6,6 +6,7 @@ import autofit as af
 import autogalaxy as ag
 
 from autolens.imaging.model.plotter import PlotterImaging
+from autolens.imaging.plot.fit_imaging_plots import _compute_critical_curves_from_fit
 
 from autolens import exc
 
@@ -101,10 +102,19 @@ class VisualizerImaging(af.Visualizer):
             title_prefix=analysis.title_prefix,
         )
 
+        grid = fit.mask.derive_grid.all_false
+
+        # Compute critical curves once for all plot functions.
+        ip_lines, ip_colors, sp_lines, sp_colors = _compute_critical_curves_from_fit(fit)
+
         try:
             plotter.fit_imaging(
                 fit=fit,
                 quick_update=quick_update,
+                image_plane_lines=ip_lines,
+                image_plane_line_colors=ip_colors,
+                source_plane_lines=sp_lines,
+                source_plane_line_colors=sp_colors,
             )
         except exc.InversionException:
             pass
@@ -135,16 +145,13 @@ class VisualizerImaging(af.Visualizer):
                 )
                 return
 
-        zoom = ag.Zoom2D(mask=fit.mask)
-
-        extent = zoom.extent_from(buffer=0)
-        shape_native = zoom.shape_native
-
-        grid = ag.Grid2D.from_extent(extent=extent, shape_native=shape_native)
-
         plotter.tracer(
             tracer=tracer,
             grid=grid,
+            image_plane_lines=ip_lines,
+            image_plane_line_colors=ip_colors,
+            source_plane_lines=sp_lines,
+            source_plane_line_colors=sp_colors,
         )
         plotter.galaxies(
             galaxies=tracer.galaxies,

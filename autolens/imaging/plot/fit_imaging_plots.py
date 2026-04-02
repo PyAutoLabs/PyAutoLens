@@ -53,6 +53,19 @@ def _compute_critical_curve_lines(tracer, grid):
         return None, None, None, None
 
 
+def _compute_critical_curves_from_fit(fit):
+    """Compute critical-curve and caustic lines from a FitImaging object.
+
+    Convenience wrapper around :func:`_compute_critical_curve_lines` that
+    derives the tracer and grid from *fit* directly, using the fully unmasked
+    image-plane grid so the curves cover the whole image extent.
+
+    Returns the same 4-tuple as :func:`_compute_critical_curve_lines`.
+    """
+    tracer = fit.tracer_linear_light_profiles_to_light_profiles
+    return _compute_critical_curve_lines(tracer, fit.mask.derive_grid.all_false)
+
+
 def _get_source_vmax(fit):
     """
     Return the colour-scale maximum for source-plane panels.
@@ -217,14 +230,8 @@ def subplot_fit(
     source_vmax = _get_source_vmax(fit)
 
     if image_plane_lines is None and source_plane_lines is None:
-        tracer = fit.tracer_linear_light_profiles_to_light_profiles
-        _zoom = aa.Zoom2D(mask=fit.mask)
-        _cc_grid = aa.Grid2D.from_extent(
-            extent=_zoom.extent_from(buffer=0),
-            shape_native=_zoom.shape_native,
-        )
         image_plane_lines, image_plane_line_colors, source_plane_lines, source_plane_line_colors = (
-            _compute_critical_curve_lines(tracer, _cc_grid)
+            _compute_critical_curves_from_fit(fit)
         )
 
     fig, axes = plt.subplots(3, 4, figsize=conf_subplot_figsize(3, 4))
@@ -422,14 +429,8 @@ def subplot_fit_log10(
     source_vmax = _get_source_vmax(fit)
 
     if image_plane_lines is None and source_plane_lines is None:
-        tracer = fit.tracer_linear_light_profiles_to_light_profiles
-        _zoom = aa.Zoom2D(mask=fit.mask)
-        _cc_grid = aa.Grid2D.from_extent(
-            extent=_zoom.extent_from(buffer=0),
-            shape_native=_zoom.shape_native,
-        )
         image_plane_lines, image_plane_line_colors, source_plane_lines, source_plane_line_colors = (
-            _compute_critical_curve_lines(tracer, _cc_grid)
+            _compute_critical_curves_from_fit(fit)
         )
 
     fig, axes = plt.subplots(3, 4, figsize=conf_subplot_figsize(3, 4))
@@ -673,14 +674,11 @@ def subplot_tracer_from_fit(
     tracer = fit.tracer_linear_light_profiles_to_light_profiles
 
     # --- grid ---
-    zoom = aa.Zoom2D(mask=fit.mask)
-    grid = aa.Grid2D.from_extent(
-        extent=zoom.extent_from(buffer=0), shape_native=zoom.shape_native
-    )
+    grid = fit.mask.derive_grid.all_false
 
     if image_plane_lines is None and source_plane_lines is None:
         image_plane_lines, image_plane_line_colors, source_plane_lines, source_plane_line_colors = (
-            _compute_critical_curve_lines(tracer, grid)
+            _compute_critical_curves_from_fit(fit)
         )
 
     source_vmax = _get_source_vmax(fit)
@@ -689,7 +687,7 @@ def subplot_tracer_from_fit(
     lens_galaxies = ag.Galaxies(galaxies=tracer.planes[0])
     lens_image = lens_galaxies.image_2d_from(grid=traced_grids[0])
 
-    deflections = lens_galaxies.deflections_yx_2d_from(grid=grid)
+    deflections = tracer.deflections_yx_2d_from(grid=grid)
     deflections_y = aa.Array2D(values=deflections.slim[:, 0], mask=grid.mask)
     deflections_x = aa.Array2D(values=deflections.slim[:, 1], mask=grid.mask)
 
@@ -703,10 +701,10 @@ def subplot_tracer_from_fit(
                lines=image_plane_lines, line_colors=image_plane_line_colors,
                colormap=colormap)
 
-    # Panel 1: Source Model Image (image-plane projection)
+    # Panel 1: Source Model Image (same as subplot_fit panel 7)
     try:
         source_model_img = fit.model_images_of_planes_list[final_plane_index]
-    except Exception:
+    except (IndexError, AttributeError):
         source_model_img = None
     if source_model_img is not None:
         plot_array(array=source_model_img, ax=axes_flat[1], title="Source Model Image",
@@ -715,7 +713,7 @@ def subplot_tracer_from_fit(
     else:
         axes_flat[1].axis("off")
 
-    # Panel 2: Source Plane (No Zoom)
+    # Panel 2: Source Plane (No Zoom) (same as subplot_fit panel 12)
     _plot_source_plane(fit, axes_flat[2], final_plane_index, zoom_to_brightest=False,
                        colormap=colormap, title="Source Plane (No Zoom)",
                        lines=source_plane_lines, line_colors=source_plane_line_colors,
