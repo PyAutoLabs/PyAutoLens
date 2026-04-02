@@ -46,10 +46,14 @@ def test__perfect_fit__chi_squared_0():
     if path.exists(file_path) is False:
         os.makedirs(file_path)
 
-    dataset.output_to_fits(
+    from autoarray.dataset.plot.imaging_plots import fits_imaging
+
+    fits_imaging(
+        dataset=dataset,
         data_path=path.join(file_path, "data.fits"),
         noise_map_path=path.join(file_path, "noise_map.fits"),
         psf_path=path.join(file_path, "psf.fits"),
+        overwrite=True,
     )
 
     dataset = al.Imaging.from_fits(
@@ -756,10 +760,14 @@ def test__fit_figure_of_merit__mge_mass_model(masked_imaging_7x7, masked_imaging
     if path.exists(file_path) is False:
         os.makedirs(file_path)
 
-    dataset.output_to_fits(
+    from autoarray.dataset.plot.imaging_plots import fits_imaging
+
+    fits_imaging(
+        dataset=dataset,
         data_path=path.join(file_path, "data.fits"),
         noise_map_path=path.join(file_path, "noise_map.fits"),
         psf_path=path.join(file_path, "psf.fits"),
+        overwrite=True,
     )
 
     dataset = al.Imaging.from_fits(

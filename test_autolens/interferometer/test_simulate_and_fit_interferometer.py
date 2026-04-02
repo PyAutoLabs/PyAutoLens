@@ -48,10 +48,14 @@ def test__perfect_fit__chi_squared_0():
     if path.exists(file_path) is False:
         os.makedirs(file_path)
 
-    dataset.output_to_fits(
+    from autoarray.dataset.plot.interferometer_plots import fits_interferometer
+
+    fits_interferometer(
+        dataset=dataset,
         data_path=path.join(file_path, "data.fits"),
         noise_map_path=path.join(file_path, "noise_map.fits"),
         uv_wavelengths_path=path.join(file_path, "uv_wavelengths.fits"),
+        overwrite=True,
     )
 
     real_space_mask = al.Mask2D.all_false(
