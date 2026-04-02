@@ -32,6 +32,10 @@ class PlotterPoint(Plotter):
         self,
         fit: FitPointDataset,
         quick_update: bool = False,
+        image_plane_lines=None,
+        image_plane_line_colors=None,
+        source_plane_lines=None,
+        source_plane_line_colors=None,
     ):
         """
         Visualizes a `FitPointDataset` object.
@@ -40,6 +44,14 @@ class PlotterPoint(Plotter):
         ----------
         fit
             The maximum log likelihood `FitPointDataset` of the non-linear search.
+        image_plane_lines
+            Pre-computed critical-curve lines to overlay on image-plane panels.
+        image_plane_line_colors
+            Colours for each image-plane line.
+        source_plane_lines
+            Pre-computed caustic lines to overlay on source-plane panels.
+        source_plane_line_colors
+            Colours for each source-plane line.
         """
 
         def should_plot(name):
@@ -49,7 +61,13 @@ class PlotterPoint(Plotter):
         fmt = self.fmt
 
         if should_plot("subplot_fit") or quick_update:
-            subplot_fit_point(fit, output_path=output_path, output_format=fmt)
+            subplot_fit_point(
+                fit, output_path=output_path, output_format=fmt,
+                image_plane_lines=image_plane_lines,
+                image_plane_line_colors=image_plane_line_colors,
+                source_plane_lines=source_plane_lines,
+                source_plane_line_colors=source_plane_line_colors,
+            )
 
         if quick_update:
             return

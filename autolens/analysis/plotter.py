@@ -37,6 +37,10 @@ class Plotter(AgPlotter):
         self,
         tracer: Tracer,
         grid: aa.type.Grid2DLike,
+        image_plane_lines=None,
+        image_plane_line_colors=None,
+        source_plane_lines=None,
+        source_plane_line_colors=None,
     ):
         """
         Visualizes a `Tracer` object.
@@ -47,6 +51,14 @@ class Plotter(AgPlotter):
             The maximum log likelihood `Tracer` of the non-linear search.
         grid
             A 2D grid of (y,x) arc-second coordinates used to perform ray-tracing.
+        image_plane_lines
+            Pre-computed critical-curve lines to overlay on image-plane panels.
+        image_plane_line_colors
+            Colours for each image-plane line.
+        source_plane_lines
+            Pre-computed caustic lines to overlay on source-plane panels.
+        source_plane_line_colors
+            Colours for each source-plane line.
         """
 
         def should_plot(name):
@@ -54,6 +66,18 @@ class Plotter(AgPlotter):
 
         output_path = str(self.image_path)
         fmt = self.fmt
+
+        if should_plot("subplot_tracer"):
+            subplot_tracer(
+                tracer=tracer,
+                grid=grid,
+                output_path=output_path,
+                output_format=fmt,
+                image_plane_lines=image_plane_lines,
+                image_plane_line_colors=image_plane_line_colors,
+                source_plane_lines=source_plane_lines,
+                source_plane_line_colors=source_plane_line_colors,
+            )
 
         if should_plot("subplot_galaxies_images"):
             subplot_galaxies_images(

@@ -2,6 +2,7 @@ import autofit as af
 import autogalaxy as ag
 
 from autolens.point.model.plotter import PlotterPoint
+from autolens.imaging.plot.fit_imaging_plots import _compute_critical_curve_lines
 
 
 class VisualizerPoint(af.Visualizer):
@@ -69,20 +70,36 @@ class VisualizerPoint(af.Visualizer):
             image_path=paths.image_path, title_prefix=analysis.title_prefix
         )
 
-        plotter.fit_point(fit=fit, quick_update=quick_update)
-
-        if quick_update:
-            return
-
         tracer = fit.tracer
 
         grid = ag.Grid2D.from_extent(
             extent=fit.dataset.extent_from(), shape_native=(100, 100)
         )
 
+        # Compute critical curves and caustics once for all plot functions.
+        ip_lines, ip_colors, sp_lines, sp_colors = _compute_critical_curve_lines(
+            tracer, grid
+        )
+
+        plotter.fit_point(
+            fit=fit,
+            quick_update=quick_update,
+            image_plane_lines=ip_lines,
+            image_plane_line_colors=ip_colors,
+            source_plane_lines=sp_lines,
+            source_plane_line_colors=sp_colors,
+        )
+
+        if quick_update:
+            return
+
         plotter.tracer(
             tracer=tracer,
             grid=grid,
+            image_plane_lines=ip_lines,
+            image_plane_line_colors=ip_colors,
+            source_plane_lines=sp_lines,
+            source_plane_line_colors=sp_colors,
         )
         plotter.galaxies(
             galaxies=tracer.galaxies,

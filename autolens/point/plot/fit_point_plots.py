@@ -9,6 +9,10 @@ def subplot_fit(
     fit,
     output_path: Optional[str] = None,
     output_format: str = "png",
+    image_plane_lines=None,
+    image_plane_line_colors=None,
+    source_plane_lines=None,
+    source_plane_line_colors=None,
 ):
     """
     Produce a subplot summarising a `FitPointDataset`.
