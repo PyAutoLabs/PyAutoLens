@@ -1,4 +1,7 @@
+import autogalaxy as ag
+
 from autolens.analysis.plotter import Plotter
+from autolens.imaging.plot.fit_imaging_plots import _compute_critical_curve_lines
 
 from autolens.point.fit.dataset import FitPointDataset
 from autolens.point.plot.fit_point_plots import subplot_fit as subplot_fit_point
@@ -60,13 +63,27 @@ class PlotterPoint(Plotter):
         output_path = str(self.image_path)
         fmt = self.fmt
 
+        # Use pre-computed critical curves if provided, otherwise compute once here.
+        if image_plane_lines is None and source_plane_lines is None:
+            grid = ag.Grid2D.from_extent(
+                extent=fit.dataset.extent_from(), shape_native=(100, 100)
+            )
+            ip_lines, ip_colors, sp_lines, sp_colors = _compute_critical_curve_lines(
+                fit.tracer, grid
+            )
+        else:
+            ip_lines, ip_colors, sp_lines, sp_colors = (
+                image_plane_lines, image_plane_line_colors,
+                source_plane_lines, source_plane_line_colors,
+            )
+
         if should_plot("subplot_fit") or quick_update:
             subplot_fit_point(
                 fit, output_path=output_path, output_format=fmt,
-                image_plane_lines=image_plane_lines,
-                image_plane_line_colors=image_plane_line_colors,
-                source_plane_lines=source_plane_lines,
-                source_plane_line_colors=source_plane_line_colors,
+                image_plane_lines=ip_lines,
+                image_plane_line_colors=ip_colors,
+                source_plane_lines=sp_lines,
+                source_plane_line_colors=sp_colors,
             )
 
         if quick_update:

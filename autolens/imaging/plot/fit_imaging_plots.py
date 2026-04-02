@@ -701,10 +701,10 @@ def subplot_tracer_from_fit(
                lines=image_plane_lines, line_colors=image_plane_line_colors,
                colormap=colormap)
 
-    # Panel 1: Source Model Image (image-plane projection)
+    # Panel 1: Source Model Image (same as subplot_fit panel 7)
     try:
         source_model_img = fit.model_images_of_planes_list[final_plane_index]
-    except Exception:
+    except (IndexError, AttributeError):
         source_model_img = None
     if source_model_img is not None:
         plot_array(array=source_model_img, ax=axes_flat[1], title="Source Model Image",
@@ -713,7 +713,7 @@ def subplot_tracer_from_fit(
     else:
         axes_flat[1].axis("off")
 
-    # Panel 2: Source Plane (No Zoom)
+    # Panel 2: Source Plane (No Zoom) (same as subplot_fit panel 12)
     _plot_source_plane(fit, axes_flat[2], final_plane_index, zoom_to_brightest=False,
                        colormap=colormap, title="Source Plane (No Zoom)",
                        lines=source_plane_lines, line_colors=source_plane_line_colors,

@@ -6,6 +6,7 @@ import autogalaxy as ag
 from autolens.interferometer.model.plotter import (
     PlotterInterferometer,
 )
+from autolens.interferometer.plot.fit_interferometer_plots import _compute_critical_curve_lines
 from autogalaxy import exc
 
 logger = logging.getLogger(__name__)
@@ -93,15 +94,29 @@ class VisualizerInterferometer(af.Visualizer):
             via a non-linear search).
         """
         fit = analysis.fit_from(instance=instance)
+        tracer = fit.tracer_linear_light_profiles_to_light_profiles
 
         plotter = PlotterInterferometer(
             image_path=paths.image_path, title_prefix=analysis.title_prefix
+        )
+
+        # Compute grid and critical curves once for all plot functions.
+        zoom = ag.Zoom2D(mask=fit.dataset.real_space_mask)
+        grid = ag.Grid2D.from_extent(
+            extent=zoom.extent_from(buffer=0), shape_native=zoom.shape_native
+        )
+        ip_lines, ip_colors, sp_lines, sp_colors = _compute_critical_curve_lines(
+            tracer, grid
         )
 
         try:
             plotter.fit_interferometer(
                 fit=fit,
                 quick_update=quick_update,
+                image_plane_lines=ip_lines,
+                image_plane_line_colors=ip_colors,
+                source_plane_lines=sp_lines,
+                source_plane_line_colors=sp_colors,
             )
         except exc.InversionException:
             logger(ag.exc.invalid_linear_algebra_for_visualization_message())
@@ -130,23 +145,13 @@ class VisualizerInterferometer(af.Visualizer):
             except exc.InversionException:
                 return
 
-        tracer = fit.tracer_linear_light_profiles_to_light_profiles
-
-        zoom = ag.Zoom2D(mask=fit.dataset.real_space_mask)
-
-        extent = zoom.extent_from(buffer=0)
-        shape_native = zoom.shape_native
-
-        grid = ag.Grid2D.from_extent(extent=extent, shape_native=shape_native)
-
-        try:
-            plotter.fit_interferometer(fit=fit)
-        except exc.InversionException:
-            pass
-
         plotter.tracer(
             tracer=tracer,
             grid=grid,
+            image_plane_lines=ip_lines,
+            image_plane_line_colors=ip_colors,
+            source_plane_lines=sp_lines,
+            source_plane_line_colors=sp_colors,
         )
         plotter.galaxies(
             galaxies=tracer.galaxies,
