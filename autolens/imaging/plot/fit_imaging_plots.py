@@ -6,7 +6,8 @@ from typing import Optional, List
 import autoarray as aa
 import autogalaxy as ag
 
-from autoarray.plot.array import plot_array, _zoom_array_2d
+from autogalaxy.plot.plot_utils import plot_array
+from autoarray.plot.array import _zoom_array_2d
 from autoarray.plot.utils import save_figure, hide_unused_axes, conf_subplot_figsize
 from autoarray.plot.utils import numpy_lines as _to_lines
 from autoarray.inversion.mappers.abstract import Mapper
@@ -42,11 +43,11 @@ def _compute_critical_curve_lines(tracer, grid):
         _rad_ca_lines = _to_lines(list(rad_ca) if rad_ca is not None else []) or []
         image_plane_lines = (_tan_cc_lines + _rad_cc_lines) or None
         image_plane_line_colors = (
-            ["black"] * len(_tan_cc_lines) + ["white"] * len(_rad_cc_lines)
+            ["white"] * len(_tan_cc_lines) + ["yellow"] * len(_rad_cc_lines)
         )
         source_plane_lines = (_tan_ca_lines + _rad_ca_lines) or None
         source_plane_line_colors = (
-            ["black"] * len(_tan_ca_lines) + ["white"] * len(_rad_ca_lines)
+            ["white"] * len(_tan_ca_lines) + ["yellow"] * len(_rad_ca_lines)
         )
         return image_plane_lines, image_plane_line_colors, source_plane_lines, source_plane_line_colors
     except Exception:
@@ -134,9 +135,17 @@ def _plot_source_plane(fit, ax, plane_index, zoom_to_brightest=True,
     """
     tracer = fit.tracer_linear_light_profiles_to_light_profiles
     if not tracer.planes[plane_index].has(cls=aa.Pixelization):
+        if zoom_to_brightest:
+            grid = fit.mask.derive_grid.all_false
+        else:
+            zoom = aa.Zoom2D(mask=fit.mask)
+            grid = aa.Grid2D.from_extent(
+                extent=zoom.extent_from(buffer=0),
+                shape_native=zoom.shape_native,
+            )
         image = plane_image_from(
             galaxies=tracer.planes[plane_index],
-            grid=fit.mask.derive_grid.all_false,
+            grid=grid,
             zoom_to_brightest=zoom_to_brightest,
         )
         plot_array(
@@ -713,6 +722,7 @@ def subplot_tracer_from_fit(
     else:
         axes_flat[1].axis("off")
 
+
     # Panel 2: Source Plane (No Zoom) (same as subplot_fit panel 12)
     _plot_source_plane(fit, axes_flat[2], final_plane_index, zoom_to_brightest=False,
                        colormap=colormap, title="Source Plane (No Zoom)",
@@ -742,17 +752,14 @@ def subplot_tracer_from_fit(
 
     # Panel 6: Deflections Y
     plot_array(array=deflections_y, ax=axes_flat[6], title="Deflections Y",
-               lines=image_plane_lines, line_colors=image_plane_line_colors,
                colormap=colormap)
 
     # Panel 7: Deflections X
     plot_array(array=deflections_x, ax=axes_flat[7], title="Deflections X",
-               lines=image_plane_lines, line_colors=image_plane_line_colors,
                colormap=colormap)
 
     # Panel 8: Magnification
     plot_array(array=magnification, ax=axes_flat[8], title="Magnification",
-               lines=image_plane_lines, line_colors=image_plane_line_colors,
                colormap=colormap)
 
     plt.tight_layout()

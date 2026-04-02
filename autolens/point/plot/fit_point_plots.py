@@ -36,7 +36,7 @@ def subplot_fit(
     output_format : str, optional
         Image format passed to :func:`~autoarray.plot.utils.save_figure`.
     """
-    from autoarray.plot.grid import plot_grid
+    from autogalaxy.plot.plot_utils import plot_grid
     from autoarray.plot.yx import plot_yx
 
     has_fluxes = fit.dataset.fluxes is not None

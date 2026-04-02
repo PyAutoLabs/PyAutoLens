@@ -5,7 +5,7 @@ from typing import Optional, List
 import autoarray as aa
 import autogalaxy as ag
 
-from autoarray.plot.array import plot_array
+from autogalaxy.plot.plot_utils import plot_array
 from autoarray.plot.utils import save_figure, hide_unused_axes, conf_subplot_figsize
 from autoarray.plot.utils import numpy_positions as _to_positions
 
