@@ -1,0 +1,37 @@
+# Notify downstream workspaces when a PR is merged to main.
+#
+# Sends a repository_dispatch event to each workspace repo so they can
+# trigger an automated API update (via Copilot coding agent or similar).
+#
+# Required secret:
+#   WORKSPACE_DISPATCH_TOKEN — PAT with repo scope on the target workspace
+#                              repositories.
+
+name: Notify Workspaces
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  dispatch:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        workspace:
+          - Jammy2211/autolens_workspace
+    steps:
+      - name: Send repository_dispatch
+        env:
+          GH_TOKEN: ${{ secrets.WORKSPACE_DISPATCH_TOKEN }}
+        run: |
+          gh api --method POST \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${{ matrix.workspace }}/dispatches" \
+            -f "event_type=api-update" \
+            -f "client_payload[pr_number]=${{ github.event.pull_request.number }}" \
+            -f "client_payload[pr_title]=${{ github.event.pull_request.title }}" \
+            -f "client_payload[pr_branch]=${{ github.event.pull_request.head.ref }}" \
+            -f "client_payload[pr_url]=${{ github.event.pull_request.html_url }}"
