@@ -83,22 +83,20 @@ Create figures and subplots showing quantities of standard **PyAutoLens** object
     subplot_sensitivity
     subplot_sensitivity_figures_of_merit
 
-Non-linear Search Plotters [aplt]
----------------------------------
+Non-linear Search Plot Functions [aplt]
+---------------------------------------
 
-Create figures and subplots of non-linear search specific visualization of every search algorithm supported
-by **PyAutoGalaxy**.
+Module-level functions for visualizing non-linear search results.
 
-.. currentmodule:: autogalaxy.plot
+.. currentmodule:: autofit.plot
 
 .. autosummary::
    :toctree: _autosummary
-   :template: custom-class-template.rst
-   :recursive:
 
-   NestPlotter
-   MCMCPlotter
-   MLEPlotter
+   corner_cornerpy
+   corner_anesthetic
+   subplot_parameters
+   log_likelihood_vs_iteration
 
 Plot Customization [aplt]
 -------------------------
