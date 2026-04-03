@@ -183,7 +183,7 @@ def _plot_source_plane(fit, ax, plane_index, zoom_to_brightest=True,
 def subplot_fit(
     fit,
     output_path: Optional[str] = None,
-    output_format: str = "png",
+    output_format: str = None,
     colormap: Optional[str] = None,
     plane_index: Optional[int] = None,
     image_plane_lines=None,
@@ -327,7 +327,7 @@ def subplot_fit(
 def subplot_fit_x1_plane(
     fit,
     output_path: Optional[str] = None,
-    output_format: str = "png",
+    output_format: str = None,
     colormap: Optional[str] = None,
 ):
     """
@@ -391,7 +391,7 @@ def subplot_fit_x1_plane(
 def subplot_fit_log10(
     fit,
     output_path: Optional[str] = None,
-    output_format: str = "png",
+    output_format: str = None,
     colormap: Optional[str] = None,
     plane_index: Optional[int] = None,
     image_plane_lines=None,
@@ -515,7 +515,7 @@ def subplot_fit_log10(
 def subplot_fit_log10_x1_plane(
     fit,
     output_path: Optional[str] = None,
-    output_format: str = "png",
+    output_format: str = None,
     colormap: Optional[str] = None,
 ):
     """
@@ -576,7 +576,7 @@ def subplot_fit_log10_x1_plane(
 def subplot_of_planes(
     fit,
     output_path: Optional[str] = None,
-    output_format: str = "png",
+    output_format: str = None,
     colormap: Optional[str] = None,
     plane_index: Optional[int] = None,
 ):
@@ -644,7 +644,7 @@ def subplot_of_planes(
 def subplot_tracer_from_fit(
     fit,
     output_path: Optional[str] = None,
-    output_format: str = "png",
+    output_format: str = None,
     colormap: Optional[str] = None,
     image_plane_lines=None,
     image_plane_line_colors=None,
@@ -769,7 +769,7 @@ def subplot_tracer_from_fit(
 def subplot_fit_combined(
     fit_list: List,
     output_path: Optional[str] = None,
-    output_format: str = "png",
+    output_format: str = None,
     colormap: Optional[str] = None,
 ):
     """
@@ -851,7 +851,7 @@ def subplot_fit_combined(
 def subplot_fit_combined_log10(
     fit_list: List,
     output_path: Optional[str] = None,
-    output_format: str = "png",
+    output_format: str = None,
     colormap: Optional[str] = None,
 ):
     """

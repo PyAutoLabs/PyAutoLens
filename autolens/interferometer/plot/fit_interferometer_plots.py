@@ -137,7 +137,7 @@ def _plot_source_plane(fit, ax, plane_index, zoom_to_brightest=True,
 def subplot_fit(
     fit,
     output_path: Optional[str] = None,
-    output_format: str = "png",
+    output_format: str = None,
     colormap: Optional[str] = None,
     image_plane_lines=None,
     image_plane_line_colors=None,
@@ -271,7 +271,7 @@ def subplot_fit(
 def subplot_fit_dirty_images(
     fit,
     output_path: Optional[str] = None,
-    output_format: str = "png",
+    output_format: str = None,
     colormap: Optional[str] = None,
     use_log10: bool = False,
     image_plane_lines=None,
@@ -328,7 +328,7 @@ def subplot_fit_dirty_images(
 def subplot_fit_real_space(
     fit,
     output_path: Optional[str] = None,
-    output_format: str = "png",
+    output_format: str = None,
     colormap: Optional[str] = None,
     source_plane_lines=None,
     source_plane_line_colors=None,
@@ -390,7 +390,7 @@ def subplot_fit_real_space(
 def subplot_tracer_from_fit(
     fit,
     output_path: Optional[str] = None,
-    output_format: str = "png",
+    output_format: str = None,
     colormap: Optional[str] = None,
     image_plane_lines=None,
     image_plane_line_colors=None,

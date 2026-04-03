@@ -15,7 +15,7 @@ def subplot_tracer_images(
     tracer_no_perturb,
     source_image,
     output_path: Optional[str] = None,
-    output_format: str = "png",
+    output_format: str = None,
     colormap: Optional[str] = None,
     use_log10: bool = False,
 ):
@@ -119,7 +119,7 @@ def subplot_sensitivity(
     result,
     data_subtracted,
     output_path: Optional[str] = None,
-    output_format: str = "png",
+    output_format: str = None,
     colormap: Optional[str] = None,
     use_log10: bool = False,
 ):
@@ -247,7 +247,7 @@ def subplot_sensitivity(
 def subplot_figures_of_merit_grid(
     result,
     output_path: Optional[str] = None,
-    output_format: str = "png",
+    output_format: str = None,
     colormap: Optional[str] = None,
     use_log_evidences: bool = True,
     remove_zeros: bool = True,

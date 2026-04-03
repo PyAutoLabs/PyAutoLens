@@ -8,7 +8,7 @@ from autoarray.plot.utils import save_figure, conf_subplot_figsize
 def subplot_dataset(
     dataset,
     output_path: Optional[str] = None,
-    output_format: str = "png",
+    output_format: str = None,
 ):
     """
     Produce a subplot visualising a `PointDataset`.

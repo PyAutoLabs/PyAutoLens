@@ -8,7 +8,7 @@ from autoarray.plot.utils import save_figure, conf_subplot_figsize
 def subplot_fit(
     fit,
     output_path: Optional[str] = None,
-    output_format: str = "png",
+    output_format: str = None,
     image_plane_lines=None,
     image_plane_line_colors=None,
     source_plane_lines=None,

@@ -105,7 +105,7 @@ def subplot_tracer(
     tracer,
     grid: aa.type.Grid2DLike,
     output_path: Optional[str] = None,
-    output_format: str = "png",
+    output_format: str = None,
     colormap: Optional[str] = None,
     use_log10: bool = False,
     positions=None,
@@ -195,7 +195,7 @@ def subplot_lensed_images(
     tracer,
     grid: aa.type.Grid2DLike,
     output_path: Optional[str] = None,
-    output_format: str = "png",
+    output_format: str = None,
     colormap: Optional[str] = None,
     use_log10: bool = False,
 ):
@@ -249,7 +249,7 @@ def subplot_galaxies_images(
     tracer,
     grid: aa.type.Grid2DLike,
     output_path: Optional[str] = None,
-    output_format: str = "png",
+    output_format: str = None,
     colormap: Optional[str] = None,
     use_log10: bool = False,
 ):
