@@ -11,7 +11,7 @@ def subplot_detection_imaging(
     result,
     fit_imaging_with_subhalo,
     output_path: Optional[str] = None,
-    output_format: str = "png",
+    output_format: str = None,
     colormap: Optional[str] = None,
     use_log10: bool = False,
     use_log_evidences: bool = True,
@@ -102,7 +102,7 @@ def subplot_detection_fits(
     fit_imaging_no_subhalo,
     fit_imaging_with_subhalo,
     output_path: Optional[str] = None,
-    output_format: str = "png",
+    output_format: str = None,
     colormap: Optional[str] = None,
 ):
     """
