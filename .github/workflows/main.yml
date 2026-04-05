@@ -51,6 +51,11 @@ jobs:
         export BRANCH="${{ steps.extract_branch.outputs.branch }}"
         for PACKAGE in ${PACKAGES[@]}; do
           pushd $PACKAGE
+          if [[ "$PACKAGE" == "PyAutoFit" && "$BRANCH" == "main" ]]; then
+            echo "Skipping branch override for PyAutoFit (keeping main_build)"
+            popd
+            continue
+          fi
           export existed_in_remote=$(git ls-remote --heads origin ${BRANCH})
 
           if [[ -z ${existed_in_remote} ]]; then
