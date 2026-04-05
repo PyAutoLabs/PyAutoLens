@@ -92,4 +92,4 @@ class PointSolver(AbstractSolver):
 
             solution = solution[~self._xp.isinf(solution).any(axis=1)]
 
-        return aa.Grid2DIrregular(np.asarray(solution))
+        return aa.Grid2DIrregular(solution)

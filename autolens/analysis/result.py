@@ -323,7 +323,9 @@ class Result(AgResultDataset):
 
             positions = positions[distances > mass_centre_radial_distance_min]
 
-        positions = aa.Grid2DIrregular(positions)
+        positions = aa.Grid2DIrregular(
+            np.asarray(positions.array if hasattr(positions, "array") else positions)
+        )
 
         threshold = self.positions_threshold_from(
             factor=factor,
