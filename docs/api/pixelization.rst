@@ -25,7 +25,7 @@ their associated API.
 Image Mesh [ag.image_mesh]
 --------------------------
 
-.. currentmodule:: autoarray.inversion.pixelization.image_mesh
+.. currentmodule:: autoarray.inversion.mesh.image_mesh
 
 .. autosummary::
    :toctree: _autosummary
@@ -39,7 +39,7 @@ Image Mesh [ag.image_mesh]
 Mesh [ag.mesh]
 --------------
 
-.. currentmodule:: autoarray.inversion.pixelization.mesh
+.. currentmodule:: autoarray.inversion.mesh.mesh
 
 .. autosummary::
    :toctree: _autosummary
@@ -48,8 +48,6 @@ Mesh [ag.mesh]
 
    RectangularAdaptDensity
    Delaunay
-   Voronoi
-   Voronoi
 
 Regularization [ag.reg]
 -----------------------
