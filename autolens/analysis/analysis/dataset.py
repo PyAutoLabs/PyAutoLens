@@ -31,6 +31,7 @@ from autolens.analysis.result import ResultDataset
 from autolens.analysis.positions import PositionsLH
 
 from autolens import exc
+from autofit.non_linear.test_mode import is_test_mode
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +105,7 @@ class AnalysisDataset(AgAnalysisDataset, AnalysisLens):
             raise_inversion_positions_likelihood_exception
         )
 
-        if os.environ.get("PYAUTOFIT_TEST_MODE") == "1":
+        if is_test_mode():
             self.raise_inversion_positions_likelihood_exception = False
 
         # Can be deleted after relevent AutoFIT PR merged
