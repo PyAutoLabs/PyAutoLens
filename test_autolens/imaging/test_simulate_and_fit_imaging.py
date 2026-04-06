@@ -618,7 +618,7 @@ def test__simulate_imaging_data_and_fit__linear_light_profiles_and_pixelization_
 
 def test__simulate_imaging_data_and_fit__complex_fit_compare_mapping_matrix_sparse_operator():
 
-    grid = al.Grid2D.uniform(shape_native=(21, 21), pixel_scales=0.1)
+    grid = al.Grid2D.uniform(shape_native=(15, 15), pixel_scales=0.1)
 
     psf = al.Convolver.from_gaussian(
         shape_native=(3, 3), pixel_scales=0.2, sigma=0.75, normalize=True
