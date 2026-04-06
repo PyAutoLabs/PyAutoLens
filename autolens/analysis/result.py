@@ -31,6 +31,7 @@ from autolens.point.max_separation import (
 )
 from autolens.lens.tracer import Tracer
 from autolens.point.solver import PointSolver
+from autofit.non_linear.test_mode import is_test_mode
 
 logger = logging.getLogger(__name__)
 
@@ -303,7 +304,7 @@ class Result(AgResultDataset):
         The `PositionsLH` object used to apply a likelihood penalty or resample the positions.
         """
 
-        if os.environ.get("PYAUTOFIT_TEST_MODE") == "1":
+        if is_test_mode():
             return
 
         positions = (

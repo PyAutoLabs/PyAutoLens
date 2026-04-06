@@ -1,6 +1,7 @@
 import os
 
 import autofit as af
+from autofit.non_linear.test_mode import is_test_mode
 
 from autogalaxy.quantity.model.plotter import PlotterQuantity
 
@@ -39,7 +40,7 @@ class VisualizerQuantity(af.Visualizer):
             via a non-linear search).
         """
 
-        if os.environ.get("PYAUTOFIT_TEST_MODE") == "1":
+        if is_test_mode():
             return
 
         fit = analysis.fit_quantity_for_instance(instance=instance)
