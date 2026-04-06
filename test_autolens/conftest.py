@@ -1,5 +1,6 @@
 import os
 from os import path
+from unittest.mock import MagicMock
 
 import pytest
 from matplotlib import pyplot
@@ -28,6 +29,8 @@ def make_plot_patch(monkeypatch):
     plot_patch = PlotPatch()
     monkeypatch.setattr(pyplot, "savefig", plot_patch)
     monkeypatch.setattr(matplotlib.figure.Figure, "savefig", plot_patch)
+    monkeypatch.setattr(pyplot, "tight_layout", lambda *a, **kw: None)
+    monkeypatch.setattr(pyplot, "colorbar", lambda *a, **kw: MagicMock())
     return plot_patch
 
 

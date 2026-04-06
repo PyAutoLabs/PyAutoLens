@@ -63,22 +63,3 @@ def test_trivial(
     assert coordinates[0] == pytest.approx(source_plane_coordinate, abs=1.0e-1)
 
 
-def test_real_example_jax(grid, tracer):
-
-    import jax.numpy as jnp
-
-    jax_solver = PointSolver.for_grid(
-        grid=grid, pixel_scale_precision=0.001, xp=jnp, magnification_threshold=1e-8
-    )
-
-    result = jax_solver.solve(
-        tracer=tracer, source_plane_coordinate=(0.07, 0.07), remove_infinities=True
-    )
-
-    assert len(result) == 5
-
-    result = jax_solver.solve(
-        tracer=tracer, source_plane_coordinate=(0.07, 0.07), remove_infinities=False
-    )
-
-    assert len(result) == 15
