@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from typing import Optional
 
 from autogalaxy.plot.plot_utils import plot_array
-from autoarray.plot.utils import save_figure
+from autoarray.plot.utils import save_figure, tight_layout
 from autolens.imaging.plot.fit_imaging_plots import _plot_source_plane
 
 
@@ -94,7 +94,7 @@ def subplot_detection_imaging(
         colormap=colormap,
     )
 
-    plt.tight_layout()
+    tight_layout()
     save_figure(fig, path=output_path, filename="detection_imaging", format=output_format)
 
 
@@ -173,5 +173,5 @@ def subplot_detection_fits(
     _plot_source_plane(fit_imaging_with_subhalo, axes[1][2], plane_index=1,
                        colormap=colormap)
 
-    plt.tight_layout()
+    tight_layout()
     save_figure(fig, path=output_path, filename="detection_fits", format=output_format)

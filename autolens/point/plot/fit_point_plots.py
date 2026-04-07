@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from typing import Optional
 
-from autoarray.plot.utils import save_figure, conf_subplot_figsize
+from autoarray.plot.utils import save_figure, conf_subplot_figsize, tight_layout
 
 
 def subplot_fit(
@@ -81,5 +81,5 @@ def subplot_fit(
             output_format=output_format,
         )
 
-    plt.tight_layout()
+    tight_layout()
     save_figure(fig, path=output_path, filename="fit", format=output_format)

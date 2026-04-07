@@ -8,7 +8,7 @@ import autogalaxy as ag
 
 from autogalaxy.plot.plot_utils import plot_array
 from autoarray.plot.yx import plot_yx
-from autoarray.plot.utils import save_figure, conf_subplot_figsize
+from autoarray.plot.utils import save_figure, conf_subplot_figsize, tight_layout
 from autoarray.plot.utils import numpy_lines as _to_lines
 from autoarray.inversion.mappers.abstract import Mapper
 from autoarray.inversion.plot.mapper_plots import plot_mapper
@@ -264,7 +264,7 @@ def subplot_fit(
                        lines=source_plane_lines,
                        line_colors=source_plane_line_colors)
 
-    plt.tight_layout()
+    tight_layout()
     save_figure(fig, path=output_path, filename="fit", format=output_format)
 
 
@@ -321,7 +321,7 @@ def subplot_fit_dirty_images(
     plot_array(array=fit.dirty_chi_squared_map, ax=axes_flat[5],
                title="Dirty Chi-Squared Map", colormap=colormap, cb_unit=r"$\chi^2$")
 
-    plt.tight_layout()
+    tight_layout()
     save_figure(fig, path=output_path, filename="fit_dirty_images", format=output_format)
 
 
@@ -383,7 +383,7 @@ def subplot_fit_real_space(
                            title="Source Reconstruction",
                            lines=source_plane_lines, line_colors=source_plane_line_colors)
 
-    plt.tight_layout()
+    tight_layout()
     save_figure(fig, path=output_path, filename="fit_real_space", format=output_format)
 
 
@@ -513,5 +513,5 @@ def subplot_tracer_from_fit(
     plot_array(array=magnification, ax=axes_flat[8], title="Magnification",
                colormap=colormap)
 
-    plt.tight_layout()
+    tight_layout()
     save_figure(fig, path=output_path, filename="tracer", format=output_format)

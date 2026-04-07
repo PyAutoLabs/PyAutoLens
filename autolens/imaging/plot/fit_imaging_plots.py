@@ -8,7 +8,7 @@ import autogalaxy as ag
 
 from autogalaxy.plot.plot_utils import plot_array
 from autoarray.plot.array import _zoom_array_2d
-from autoarray.plot.utils import save_figure, hide_unused_axes, conf_subplot_figsize
+from autoarray.plot.utils import save_figure, hide_unused_axes, conf_subplot_figsize, tight_layout
 from autoarray.plot.utils import numpy_lines as _to_lines
 from autoarray.inversion.mappers.abstract import Mapper
 from autoarray.inversion.plot.mapper_plots import plot_mapper
@@ -320,7 +320,7 @@ def subplot_fit(
                        vmax=source_vmax)
 
     hide_unused_axes(axes_flat)
-    plt.tight_layout()
+    tight_layout()
     save_figure(fig, path=output_path, filename=f"fit{plane_index_tag}", format=output_format)
 
 
@@ -384,7 +384,7 @@ def subplot_fit_x1_plane(
     plot_array(array=norm_resid, ax=axes_flat[5], title="Normalized Residual Map",
                colormap=colormap, vmin=-_abs_max, vmax=_abs_max, cb_unit=r"$\sigma$")
 
-    plt.tight_layout()
+    tight_layout()
     save_figure(fig, path=output_path, filename="fit_x1_plane", format=output_format)
 
 
@@ -508,7 +508,7 @@ def subplot_fit_log10(
                        lines=source_plane_lines, line_colors=source_plane_line_colors,
                        vmax=source_vmax)
 
-    plt.tight_layout()
+    tight_layout()
     save_figure(fig, path=output_path, filename=f"fit_log10{plane_index_tag}", format=output_format)
 
 
@@ -569,7 +569,7 @@ def subplot_fit_log10_x1_plane(
     plot_array(array=fit.chi_squared_map, ax=axes_flat[5], title="Chi-Squared Map",
                colormap=colormap, use_log10=True, cb_unit=r"$\chi^2$")
 
-    plt.tight_layout()
+    tight_layout()
     save_figure(fig, path=output_path, filename="fit_log10", format=output_format)
 
 
@@ -637,7 +637,7 @@ def subplot_of_planes(
 
         _plot_source_plane(fit, axes_flat[3], pidx, colormap=colormap)
 
-        plt.tight_layout()
+        tight_layout()
         save_figure(fig, path=output_path, filename=f"fit_of_plane_{pidx}", format=output_format)
 
 
@@ -762,7 +762,7 @@ def subplot_tracer_from_fit(
     plot_array(array=magnification, ax=axes_flat[8], title="Magnification",
                colormap=colormap)
 
-    plt.tight_layout()
+    tight_layout()
     save_figure(fig, path=output_path, filename="tracer", format=output_format)
 
 
@@ -844,7 +844,7 @@ def subplot_fit_combined(
         plot_array(array=fit.normalized_residual_map, ax=row_axes[5],
                    title="Normalized Residual Map", colormap=colormap, cb_unit=r"$\sigma$")
 
-    plt.tight_layout()
+    tight_layout()
     save_figure(fig, path=output_path, filename="fit_combined", format=output_format)
 
 
@@ -920,7 +920,7 @@ def subplot_fit_combined_log10(
         plot_array(array=fit.normalized_residual_map, ax=row_axes[5],
                    title="Normalized Residual Map", colormap=colormap, cb_unit=r"$\sigma$")
 
-    plt.tight_layout()
+    tight_layout()
     save_figure(fig, path=output_path, filename="fit_combined_log10", format=output_format)
 
 
