@@ -105,7 +105,7 @@ class Plotter(AgPlotter):
             if isinstance(fmt, (list, tuple)):
                 fmt = fmt[0]
 
-            _title = f"{self.title_prefix}Image With Positions" if self.title_prefix else "Image With Positions"
+            _title = f"{self.title_prefix.rstrip()} Image With Positions" if self.title_prefix else "Image With Positions"
             plot_array(
                 array=image,
                 positions=[pos_arr],
