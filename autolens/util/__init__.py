@@ -18,6 +18,7 @@ from autoarray.inversion.inversion.interferometer import (
     inversion_interferometer_util as inversion_interferometer,
 )
 from autoarray.operators import transformer_util as transformer
+from autoarray.util import dataset_util as dataset
 from autogalaxy.util import error_util as error
 from autogalaxy.analysis import chaining_util as chaining
 
