@@ -6,7 +6,7 @@ import autoarray as aa
 import autogalaxy as ag
 
 from autogalaxy.plot.plot_utils import plot_array
-from autoarray.plot.utils import save_figure, hide_unused_axes, conf_subplot_figsize
+from autoarray.plot.utils import save_figure, hide_unused_axes, conf_subplot_figsize, tight_layout
 from autoarray.plot.utils import numpy_positions as _to_positions
 
 
@@ -187,7 +187,7 @@ def subplot_tracer(
                lines=image_plane_lines, line_colors=image_plane_line_colors, colormap=colormap)
 
     hide_unused_axes(axes_flat)
-    plt.tight_layout()
+    tight_layout()
     save_figure(fig, path=output_path, filename="tracer", format=output_format)
 
 
@@ -241,7 +241,7 @@ def subplot_lensed_images(
             use_log10=use_log10,
         )
 
-    plt.tight_layout()
+    tight_layout()
     save_figure(fig, path=output_path, filename="lensed_images", format=output_format)
 
 
@@ -328,7 +328,7 @@ def subplot_galaxies_images(
             )
             idx += 1
 
-    plt.tight_layout()
+    tight_layout()
     save_figure(fig, path=output_path, filename="galaxies_images", format=output_format)
 
 

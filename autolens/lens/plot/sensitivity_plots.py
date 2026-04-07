@@ -6,7 +6,7 @@ from typing import Optional
 import autoarray as aa
 
 from autogalaxy.plot.plot_utils import plot_array
-from autoarray.plot.utils import save_figure
+from autoarray.plot.utils import save_figure, tight_layout
 
 
 def subplot_tracer_images(
@@ -111,7 +111,7 @@ def subplot_tracer_images(
                title="Residual Map (Subhalo - No Subhalo)",
                colormap=colormap, use_log10=use_log10, lines=no_perturb_cc_lines)
 
-    plt.tight_layout()
+    tight_layout()
     save_figure(fig, path=output_path, filename="lensed_images", format=output_format)
 
 
@@ -240,7 +240,7 @@ def subplot_sensitivity(
     except (TypeError, AttributeError):
         pass
 
-    plt.tight_layout()
+    tight_layout()
     save_figure(fig, path=output_path, filename="sensitivity", format=output_format)
 
 
@@ -288,5 +288,5 @@ def subplot_figures_of_merit_grid(
     fig, ax = plt.subplots(1, 1, figsize=(7, 7))
     plot_array(array=figures_of_merit, ax=ax, title="Increase in Log Evidence",
                colormap=colormap)
-    plt.tight_layout()
+    tight_layout()
     save_figure(fig, path=output_path, filename="sensitivity", format=output_format)
