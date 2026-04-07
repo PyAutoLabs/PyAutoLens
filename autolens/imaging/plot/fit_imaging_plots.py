@@ -244,7 +244,7 @@ def subplot_fit(
             _compute_critical_curves_from_fit(fit)
         )
 
-    _pf = (lambda t: f"{title_prefix}{t}") if title_prefix else (lambda t: t)
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     fig, axes = subplots(3, 4, figsize=conf_subplot_figsize(3, 4))
     axes_flat = list(axes.flatten())
 
@@ -360,7 +360,7 @@ def subplot_fit_x1_plane(
     colormap : str, optional
         Matplotlib colormap name applied to all image panels.
     """
-    _pf = (lambda t: f"{title_prefix}{t}") if title_prefix else (lambda t: t)
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     fig, axes = subplots(2, 3, figsize=conf_subplot_figsize(2, 3))
     axes_flat = list(axes.flatten())
 
@@ -448,7 +448,7 @@ def subplot_fit_log10(
             _compute_critical_curves_from_fit(fit)
         )
 
-    _pf = (lambda t: f"{title_prefix}{t}") if title_prefix else (lambda t: t)
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     fig, axes = subplots(3, 4, figsize=conf_subplot_figsize(3, 4))
     axes_flat = list(axes.flatten())
 
@@ -550,7 +550,7 @@ def subplot_fit_log10_x1_plane(
     colormap : str, optional
         Matplotlib colormap name applied to all image panels.
     """
-    _pf = (lambda t: f"{title_prefix}{t}") if title_prefix else (lambda t: t)
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     fig, axes = subplots(2, 3, figsize=conf_subplot_figsize(2, 3))
     axes_flat = list(axes.flatten())
 
@@ -627,7 +627,7 @@ def subplot_of_planes(
     else:
         plane_indexes = [plane_index]
 
-    _pf = (lambda t: f"{title_prefix}{t}") if title_prefix else (lambda t: t)
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     for pidx in plane_indexes:
         fig, axes = subplots(1, 4, figsize=conf_subplot_figsize(1, 4))
         axes_flat = list(axes.flatten())
@@ -717,7 +717,7 @@ def subplot_tracer_from_fit(
 
     magnification = LensCalc.from_mass_obj(tracer).magnification_2d_from(grid=grid)
 
-    _pf = (lambda t: f"{title_prefix}{t}") if title_prefix else (lambda t: t)
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     fig, axes = subplots(3, 3, figsize=conf_subplot_figsize(3, 3))
     axes_flat = list(axes.flatten())
 
@@ -826,7 +826,7 @@ def subplot_fit_combined(
 
     final_plane_index = len(fit_list[0].tracer.planes) - 1
 
-    _pf = (lambda t: f"{title_prefix}{t}") if title_prefix else (lambda t: t)
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     for row, fit in enumerate(fit_list):
         row_axes = all_axes[row]
 
@@ -903,7 +903,7 @@ def subplot_fit_combined_log10(
 
     final_plane_index = len(fit_list[0].tracer.planes) - 1
 
-    _pf = (lambda t: f"{title_prefix}{t}") if title_prefix else (lambda t: t)
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     for row, fit in enumerate(fit_list):
         row_axes = all_axes[row]
 

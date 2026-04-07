@@ -161,7 +161,7 @@ def subplot_tracer(
 
     magnification = LensCalc.from_mass_obj(tracer).magnification_2d_from(grid=grid)
 
-    _pf = (lambda t: f"{title_prefix}{t}") if title_prefix else (lambda t: t)
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     fig, axes = subplots(3, 3, figsize=conf_subplot_figsize(3, 3))
     axes_flat = list(axes.flatten())
 
@@ -232,7 +232,7 @@ def subplot_lensed_images(
     fig, axes = subplots(1, n, figsize=conf_subplot_figsize(1, n))
     axes_flat = [axes] if n == 1 else list(np.array(axes).flatten())
 
-    _pf = (lambda t: f"{title_prefix}{t}") if title_prefix else (lambda t: t)
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     for plane_index in range(n):
         galaxies = ag.Galaxies(galaxies=tracer.planes[plane_index])
         image = galaxies.image_2d_from(grid=traced_grids[plane_index])
@@ -296,7 +296,7 @@ def subplot_galaxies_images(
 
     idx = 0
 
-    _pf = (lambda t: f"{title_prefix}{t}") if title_prefix else (lambda t: t)
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     lens_galaxies = ag.Galaxies(galaxies=tracer.planes[0])
     lens_image = lens_galaxies.image_2d_from(grid=traced_grids[0])
     plot_array(

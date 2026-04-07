@@ -184,7 +184,7 @@ def subplot_fit(
             _compute_critical_curve_lines(tracer, _cc_grid)
         )
 
-    _pf = (lambda t: f"{title_prefix}{t}") if title_prefix else (lambda t: t)
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     fig, axes = subplots(3, 4, figsize=conf_subplot_figsize(3, 4))
     axes_flat = list(axes.flatten())
 
@@ -306,7 +306,7 @@ def subplot_fit_dirty_images(
             _compute_critical_curve_lines(tracer, _cc_grid)
         )
 
-    _pf = (lambda t: f"{title_prefix}{t}") if title_prefix else (lambda t: t)
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     fig, axes = subplots(2, 3, figsize=conf_subplot_figsize(2, 3))
     axes_flat = list(axes.flatten())
 
@@ -368,7 +368,7 @@ def subplot_fit_real_space(
     fig, axes = subplots(1, 2, figsize=conf_subplot_figsize(1, 2))
     axes_flat = list(axes.flatten())
 
-    _pf = (lambda t: f"{title_prefix}{t}") if title_prefix else (lambda t: t)
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     if fit.inversion is None:
         # Parametric source: image-plane model image + source-plane image
         grid = fit.dataset.real_space_mask.derive_grid.all_false
@@ -452,7 +452,7 @@ def subplot_tracer_from_fit(
 
     magnification = LensCalc.from_mass_obj(tracer).magnification_2d_from(grid=grid)
 
-    _pf = (lambda t: f"{title_prefix}{t}") if title_prefix else (lambda t: t)
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     fig, axes = subplots(3, 3, figsize=conf_subplot_figsize(3, 3))
     axes_flat = list(axes.flatten())
 

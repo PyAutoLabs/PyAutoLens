@@ -47,7 +47,7 @@ def subplot_dataset(
         else dataset.positions
     )
 
-    _prefix = title_prefix or ""
+    _prefix = f"{title_prefix.rstrip()} " if title_prefix else ""
     plot_grid(
         grid=grid,
         ax=axes_flat[0],

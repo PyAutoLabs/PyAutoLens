@@ -57,7 +57,7 @@ def subplot_fit(
         else fit.positions.model_data
     )
 
-    _prefix = title_prefix or ""
+    _prefix = f"{title_prefix.rstrip()} " if title_prefix else ""
     plot_grid(
         grid=obs_grid,
         ax=axes_flat[0],
