@@ -1,7 +1,7 @@
 import os
 
 import autofit as af
-from autofit.non_linear.test_mode import is_test_mode
+from autoconf.test_mode import is_test_mode
 
 from autogalaxy.quantity.model.plotter import PlotterQuantity
 

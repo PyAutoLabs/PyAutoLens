@@ -31,7 +31,7 @@ from autolens.point.max_separation import (
 )
 from autolens.lens.tracer import Tracer
 from autolens.point.solver import PointSolver
-from autofit.non_linear.test_mode import is_test_mode
+from autoconf.test_mode import is_test_mode
 
 logger = logging.getLogger(__name__)
 
