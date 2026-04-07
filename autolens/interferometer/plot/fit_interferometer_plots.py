@@ -142,6 +142,7 @@ def subplot_fit(
     image_plane_line_colors=None,
     source_plane_lines=None,
     source_plane_line_colors=None,
+    title_prefix: str = None,
 ):
     """
     Produce a 12-panel subplot summarising an interferometer fit.
@@ -183,6 +184,7 @@ def subplot_fit(
             _compute_critical_curve_lines(tracer, _cc_grid)
         )
 
+    _pf = (lambda t: f"{title_prefix}{t}") if title_prefix else (lambda t: t)
     fig, axes = subplots(3, 4, figsize=conf_subplot_figsize(3, 4))
     axes_flat = list(axes.flatten())
 
@@ -191,32 +193,32 @@ def subplot_fit(
         y=np.real(fit.residual_map),
         x=fit.dataset.uv_distances / 10 ** 3.0,
         ax=axes_flat[0],
-        title="Amplitudes vs UV-Distance",
+        title=_pf("Amplitudes vs UV-Distance"),
         xtick_suffix='"',
         ytick_suffix="Jy",
         plot_axis_type="scatter",
     )
 
-    plot_array(array=fit.dirty_image, ax=axes_flat[1], title="Dirty Image",
+    plot_array(array=fit.dirty_image, ax=axes_flat[1], title=_pf("Dirty Image"),
                colormap=colormap)
     plot_array(array=fit.dirty_signal_to_noise_map, ax=axes_flat[2],
-               title="Dirty Signal-To-Noise Map", colormap=colormap)
+               title=_pf("Dirty Signal-To-Noise Map"), colormap=colormap)
 
     # Panel 3 (4th): dirty model image with critical curves
-    plot_array(array=fit.dirty_model_image, ax=axes_flat[3], title="Dirty Model Image",
+    plot_array(array=fit.dirty_model_image, ax=axes_flat[3], title=_pf("Dirty Model Image"),
                colormap=colormap, lines=image_plane_lines,
                line_colors=image_plane_line_colors)
 
     # Panel 4: dirty residual map
     plot_array(array=fit.dirty_residual_map, ax=axes_flat[4],
-               title="Dirty Residual Map", colormap=colormap)
+               title=_pf("Dirty Residual Map"), colormap=colormap)
 
     # Panel 5: normalized residual vs UV-distances (real)
     plot_yx(
         y=np.real(fit.normalized_residual_map),
         x=fit.dataset.uv_distances / 10 ** 3.0,
         ax=axes_flat[5],
-        title="Normalized Residual Map (Real)",
+        title=_pf("Normalized Residual Map (Real)"),
         xtick_suffix='"',
         ytick_suffix=r"$\sigma$",
         plot_axis_type="scatter",
@@ -227,7 +229,7 @@ def subplot_fit(
         y=np.imag(fit.normalized_residual_map),
         x=fit.dataset.uv_distances / 10 ** 3.0,
         ax=axes_flat[6],
-        title="Normalized Residual Map (Imag)",
+        title=_pf("Normalized Residual Map (Imag)"),
         xtick_suffix='"',
         ytick_suffix=r"$\sigma$",
         plot_axis_type="scatter",
@@ -236,30 +238,30 @@ def subplot_fit(
     # Panel 7 (8th): source plane zoomed with caustics
     _plot_source_plane(fit, axes_flat[7], final_plane_index,
                        zoom_to_brightest=True, colormap=colormap,
-                       title="Source Plane (Zoomed)",
+                       title=_pf("Source Plane (Zoomed)"),
                        lines=source_plane_lines,
                        line_colors=source_plane_line_colors)
 
     plot_array(array=fit.dirty_normalized_residual_map, ax=axes_flat[8],
-               title="Dirty Normalized Residual Map", colormap=colormap, cb_unit=r"$\sigma$")
+               title=_pf("Dirty Normalized Residual Map"), colormap=colormap, cb_unit=r"$\sigma$")
 
     # Panel 9: clipped to ±1σ
     plot_array(
         fit.dirty_normalized_residual_map,
         ax=axes_flat[9],
-        title=r"Normalized Residual Map $1\sigma$",
+        title=_pf(r"Normalized Residual Map $1\sigma$"),
         colormap=colormap,
         vmin=-1.0, vmax=1.0,
         cb_unit=r"$\sigma$",
     )
 
     plot_array(array=fit.dirty_chi_squared_map, ax=axes_flat[10],
-               title="Dirty Chi-Squared Map", colormap=colormap, cb_unit=r"$\chi^2$")
+               title=_pf("Dirty Chi-Squared Map"), colormap=colormap, cb_unit=r"$\chi^2$")
 
     # Panel 11 (12th): source plane not zoomed with caustics
     _plot_source_plane(fit, axes_flat[11], final_plane_index,
                        zoom_to_brightest=False, colormap=colormap,
-                       title="Source Plane (No Zoom)",
+                       title=_pf("Source Plane (No Zoom)"),
                        lines=source_plane_lines,
                        line_colors=source_plane_line_colors)
 
@@ -275,6 +277,7 @@ def subplot_fit_dirty_images(
     use_log10: bool = False,
     image_plane_lines=None,
     image_plane_line_colors=None,
+    title_prefix: str = None,
 ):
     """
     Produce a 2×3 subplot of dirty-image diagnostics for an interferometer fit.
@@ -303,22 +306,23 @@ def subplot_fit_dirty_images(
             _compute_critical_curve_lines(tracer, _cc_grid)
         )
 
+    _pf = (lambda t: f"{title_prefix}{t}") if title_prefix else (lambda t: t)
     fig, axes = subplots(2, 3, figsize=conf_subplot_figsize(2, 3))
     axes_flat = list(axes.flatten())
 
-    plot_array(array=fit.dirty_image, ax=axes_flat[0], title="Dirty Image",
+    plot_array(array=fit.dirty_image, ax=axes_flat[0], title=_pf("Dirty Image"),
                colormap=colormap, use_log10=use_log10)
     plot_array(array=fit.dirty_signal_to_noise_map, ax=axes_flat[1],
-               title="Dirty Signal-To-Noise Map", colormap=colormap)
+               title=_pf("Dirty Signal-To-Noise Map"), colormap=colormap)
     plot_array(array=fit.dirty_model_image, ax=axes_flat[2],
-               title="Dirty Model Image", colormap=colormap, use_log10=use_log10,
+               title=_pf("Dirty Model Image"), colormap=colormap, use_log10=use_log10,
                lines=image_plane_lines, line_colors=image_plane_line_colors)
     plot_array(array=fit.dirty_residual_map, ax=axes_flat[3],
-               title="Dirty Residual Map", colormap=colormap)
+               title=_pf("Dirty Residual Map"), colormap=colormap)
     plot_array(array=fit.dirty_normalized_residual_map, ax=axes_flat[4],
-               title="Dirty Normalized Residual Map", colormap=colormap, cb_unit=r"$\sigma$")
+               title=_pf("Dirty Normalized Residual Map"), colormap=colormap, cb_unit=r"$\sigma$")
     plot_array(array=fit.dirty_chi_squared_map, ax=axes_flat[5],
-               title="Dirty Chi-Squared Map", colormap=colormap, cb_unit=r"$\chi^2$")
+               title=_pf("Dirty Chi-Squared Map"), colormap=colormap, cb_unit=r"$\chi^2$")
 
     tight_layout()
     save_figure(fig, path=output_path, filename="fit_dirty_images", format=output_format)
@@ -331,6 +335,7 @@ def subplot_fit_real_space(
     colormap: Optional[str] = None,
     source_plane_lines=None,
     source_plane_line_colors=None,
+    title_prefix: str = None,
 ):
     """
     Produce a real-space subplot for an interferometer fit.
@@ -363,23 +368,24 @@ def subplot_fit_real_space(
     fig, axes = subplots(1, 2, figsize=conf_subplot_figsize(1, 2))
     axes_flat = list(axes.flatten())
 
+    _pf = (lambda t: f"{title_prefix}{t}") if title_prefix else (lambda t: t)
     if fit.inversion is None:
         # Parametric source: image-plane model image + source-plane image
         grid = fit.dataset.real_space_mask.derive_grid.all_false
         image = tracer.image_2d_from(grid=grid)
-        plot_array(array=image, ax=axes_flat[0], title="Image", colormap=colormap)
+        plot_array(array=image, ax=axes_flat[0], title=_pf("Image"), colormap=colormap)
 
         _plot_source_plane(fit, axes_flat[1], final_plane_index,
                            zoom_to_brightest=True, colormap=colormap,
-                           title="Source Plane (Zoomed)",
+                           title=_pf("Source Plane (Zoomed)"),
                            lines=source_plane_lines, line_colors=source_plane_line_colors)
     else:
         # Pixelized source: dirty model image + source reconstruction
         plot_array(array=fit.dirty_model_image, ax=axes_flat[0],
-                   title="Reconstructed Image", colormap=colormap)
+                   title=_pf("Reconstructed Image"), colormap=colormap)
         _plot_source_plane(fit, axes_flat[1], final_plane_index,
                            zoom_to_brightest=True, colormap=colormap,
-                           title="Source Reconstruction",
+                           title=_pf("Source Reconstruction"),
                            lines=source_plane_lines, line_colors=source_plane_line_colors)
 
     tight_layout()
@@ -395,6 +401,7 @@ def subplot_tracer_from_fit(
     image_plane_line_colors=None,
     source_plane_lines=None,
     source_plane_line_colors=None,
+    title_prefix: str = None,
 ):
     """
     Produce a 9-panel tracer subplot derived from a `FitInterferometer` object.
@@ -445,11 +452,12 @@ def subplot_tracer_from_fit(
 
     magnification = LensCalc.from_mass_obj(tracer).magnification_2d_from(grid=grid)
 
+    _pf = (lambda t: f"{title_prefix}{t}") if title_prefix else (lambda t: t)
     fig, axes = subplots(3, 3, figsize=conf_subplot_figsize(3, 3))
     axes_flat = list(axes.flatten())
 
     # Panel 0: Dirty Model Image
-    plot_array(array=fit.dirty_model_image, ax=axes_flat[0], title="Dirty Model Image",
+    plot_array(array=fit.dirty_model_image, ax=axes_flat[0], title=_pf("Dirty Model Image"),
                lines=image_plane_lines, line_colors=image_plane_line_colors,
                colormap=colormap)
 
@@ -468,7 +476,7 @@ def subplot_tracer_from_fit(
     except Exception:
         source_model_img = None
     if source_model_img is not None:
-        plot_array(array=source_model_img, ax=axes_flat[1], title="Source Model Image",
+        plot_array(array=source_model_img, ax=axes_flat[1], title=_pf("Source Model Image"),
                    colormap=colormap,
                    lines=image_plane_lines, line_colors=image_plane_line_colors)
     else:
@@ -476,18 +484,18 @@ def subplot_tracer_from_fit(
 
     # Panel 2: Source Plane (No Zoom) with caustics
     _plot_source_plane(fit, axes_flat[2], final_plane_index, zoom_to_brightest=False,
-                       colormap=colormap, title="Source Plane (No Zoom)",
+                       colormap=colormap, title=_pf("Source Plane (No Zoom)"),
                        lines=source_plane_lines, line_colors=source_plane_line_colors)
 
     # Panel 3: Lens Image (log10)
-    plot_array(array=lens_image, ax=axes_flat[3], title="Lens Image",
+    plot_array(array=lens_image, ax=axes_flat[3], title=_pf("Lens Image"),
                lines=image_plane_lines, line_colors=image_plane_line_colors,
                colormap=colormap, use_log10=True)
 
     # Panel 4: Convergence (log10)
     try:
         convergence = tracer.convergence_2d_from(grid=grid)
-        plot_array(array=convergence, ax=axes_flat[4], title="Convergence",
+        plot_array(array=convergence, ax=axes_flat[4], title=_pf("Convergence"),
                    colormap=colormap, use_log10=True)
     except Exception:
         axes_flat[4].axis("off")
@@ -495,21 +503,21 @@ def subplot_tracer_from_fit(
     # Panel 5: Potential (log10)
     try:
         potential = tracer.potential_2d_from(grid=grid)
-        plot_array(array=potential, ax=axes_flat[5], title="Potential",
+        plot_array(array=potential, ax=axes_flat[5], title=_pf("Potential"),
                    colormap=colormap, use_log10=True)
     except Exception:
         axes_flat[5].axis("off")
 
     # Panel 6: Deflections Y
-    plot_array(array=deflections_y, ax=axes_flat[6], title="Deflections Y",
+    plot_array(array=deflections_y, ax=axes_flat[6], title=_pf("Deflections Y"),
                colormap=colormap)
 
     # Panel 7: Deflections X
-    plot_array(array=deflections_x, ax=axes_flat[7], title="Deflections X",
+    plot_array(array=deflections_x, ax=axes_flat[7], title=_pf("Deflections X"),
                colormap=colormap)
 
     # Panel 8: Magnification
-    plot_array(array=magnification, ax=axes_flat[8], title="Magnification",
+    plot_array(array=magnification, ax=axes_flat[8], title=_pf("Magnification"),
                colormap=colormap)
 
     tight_layout()

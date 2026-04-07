@@ -84,12 +84,14 @@ class PlotterImaging(Plotter):
                         plane_index=plane_index,
                         image_plane_lines=ip_lines, image_plane_line_colors=ip_colors,
                         source_plane_lines=sp_lines, source_plane_line_colors=sp_colors,
+                        title_prefix=self.title_prefix,
                     )
             else:
                 subplot_fit(
                     fit, output_path=output_path, output_format=fmt,
                     image_plane_lines=ip_lines, image_plane_line_colors=ip_colors,
                     source_plane_lines=sp_lines, source_plane_line_colors=sp_colors,
+                    title_prefix=self.title_prefix,
                 )
 
         if quick_update:
@@ -100,6 +102,7 @@ class PlotterImaging(Plotter):
                 fit, output_path=output_path, output_format=fmt,
                 image_plane_lines=ip_lines, image_plane_line_colors=ip_colors,
                 source_plane_lines=sp_lines, source_plane_line_colors=sp_colors,
+                title_prefix=self.title_prefix,
             )
 
         if should_plot("subplot_fit_log10"):
@@ -111,18 +114,21 @@ class PlotterImaging(Plotter):
                             plane_index=plane_index,
                             image_plane_lines=ip_lines, image_plane_line_colors=ip_colors,
                             source_plane_lines=sp_lines, source_plane_line_colors=sp_colors,
+                            title_prefix=self.title_prefix,
                         )
                 else:
                     subplot_fit_log10(
                         fit, output_path=output_path, output_format=fmt,
                         image_plane_lines=ip_lines, image_plane_line_colors=ip_colors,
                         source_plane_lines=sp_lines, source_plane_line_colors=sp_colors,
+                        title_prefix=self.title_prefix,
                     )
             except ValueError:
                 pass
 
         if should_plot("subplot_of_planes"):
-            subplot_of_planes(fit, output_path=output_path, output_format=fmt)
+            subplot_of_planes(fit, output_path=output_path, output_format=fmt,
+                              title_prefix=self.title_prefix)
 
         if should_plot("fits_fit"):
             fits_fit(fit=fit, output_path=self.image_path)
@@ -154,9 +160,11 @@ class PlotterImaging(Plotter):
         fmt = self.fmt
 
         if should_plot("subplot_fit") or quick_update:
-            subplot_fit_combined(fit_list, output_path=output_path, output_format=fmt)
+            subplot_fit_combined(fit_list, output_path=output_path, output_format=fmt,
+                                 title_prefix=self.title_prefix)
 
             if quick_update:
                 return
 
-            subplot_fit_combined_log10(fit_list, output_path=output_path, output_format=fmt)
+            subplot_fit_combined_log10(fit_list, output_path=output_path, output_format=fmt,
+                                       title_prefix=self.title_prefix)

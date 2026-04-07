@@ -8,6 +8,7 @@ def subplot_dataset(
     dataset,
     output_path: Optional[str] = None,
     output_format: str = None,
+    title_prefix: str = None,
 ):
     """
     Produce a subplot visualising a `PointDataset`.
@@ -46,10 +47,11 @@ def subplot_dataset(
         else dataset.positions
     )
 
+    _prefix = title_prefix or ""
     plot_grid(
         grid=grid,
         ax=axes_flat[0],
-        title=f"{dataset.name} Positions",
+        title=f"{_prefix}{dataset.name} Positions",
         output_path=None,
         output_filename=None,
         output_format=output_format,
@@ -62,7 +64,7 @@ def subplot_dataset(
             y=y,
             x=x,
             ax=axes_flat[1],
-            title=f"{dataset.name} Fluxes",
+            title=f"{_prefix}{dataset.name} Fluxes",
             output_path=None,
             output_filename="point_dataset_fluxes",
             output_format=output_format,

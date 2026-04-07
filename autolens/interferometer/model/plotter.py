@@ -73,6 +73,7 @@ class PlotterInterferometer(Plotter):
                 fit, output_path=output_path, output_format=fmt,
                 image_plane_lines=ip_lines, image_plane_line_colors=ip_colors,
                 source_plane_lines=sp_lines, source_plane_line_colors=sp_colors,
+                title_prefix=self.title_prefix,
             )
 
         if plot_setting(section="tracer", name="subplot_tracer"):
@@ -80,12 +81,14 @@ class PlotterInterferometer(Plotter):
                 fit, output_path=output_path, output_format=fmt,
                 image_plane_lines=ip_lines, image_plane_line_colors=ip_colors,
                 source_plane_lines=sp_lines, source_plane_line_colors=sp_colors,
+                title_prefix=self.title_prefix,
             )
 
         if should_plot("subplot_fit_dirty_images") or quick_update:
             subplot_fit_dirty_images(
                 fit, output_path=output_path, output_format=fmt,
                 image_plane_lines=ip_lines, image_plane_line_colors=ip_colors,
+                title_prefix=self.title_prefix,
             )
 
         if quick_update:
@@ -95,6 +98,7 @@ class PlotterInterferometer(Plotter):
             subplot_fit_real_space(
                 fit, output_path=output_path, output_format=fmt,
                 source_plane_lines=sp_lines, source_plane_line_colors=sp_colors,
+                title_prefix=self.title_prefix,
             )
 
         if should_plot("fits_galaxy_images"):

@@ -112,6 +112,7 @@ def subplot_tracer(
     image_plane_line_colors=None,
     source_plane_lines=None,
     source_plane_line_colors=None,
+    title_prefix: str = None,
 ):
     """Multi-panel subplot of the tracer: image, source images, and mass quantities.
 
@@ -160,29 +161,30 @@ def subplot_tracer(
 
     magnification = LensCalc.from_mass_obj(tracer).magnification_2d_from(grid=grid)
 
+    _pf = (lambda t: f"{title_prefix}{t}") if title_prefix else (lambda t: t)
     fig, axes = subplots(3, 3, figsize=conf_subplot_figsize(3, 3))
     axes_flat = list(axes.flatten())
 
-    plot_array(array=image, ax=axes_flat[0], title="Model Image",
+    plot_array(array=image, ax=axes_flat[0], title=_pf("Model Image"),
                lines=image_plane_lines, line_colors=image_plane_line_colors,
                positions=pos_list, colormap=colormap, use_log10=use_log10)
-    plot_array(array=source_image, ax=axes_flat[1], title="Source Model Image",
+    plot_array(array=source_image, ax=axes_flat[1], title=_pf("Source Model Image"),
                colormap=colormap, use_log10=use_log10, vmax=source_vmax)
-    plot_array(array=source_image, ax=axes_flat[2], title="Source Plane (No Zoom)",
+    plot_array(array=source_image, ax=axes_flat[2], title=_pf("Source Plane (No Zoom)"),
                lines=source_plane_lines, line_colors=source_plane_line_colors,
                colormap=colormap, use_log10=use_log10)
-    plot_array(array=lens_image, ax=axes_flat[3], title="Lens Image",
+    plot_array(array=lens_image, ax=axes_flat[3], title=_pf("Lens Image"),
                lines=image_plane_lines, line_colors=image_plane_line_colors,
                colormap=colormap, use_log10=True)
-    plot_array(array=convergence, ax=axes_flat[4], title="Convergence",
+    plot_array(array=convergence, ax=axes_flat[4], title=_pf("Convergence"),
                colormap=colormap, use_log10=True)
-    plot_array(array=potential, ax=axes_flat[5], title="Potential",
+    plot_array(array=potential, ax=axes_flat[5], title=_pf("Potential"),
                colormap=colormap, use_log10=True)
-    plot_array(array=deflections_y, ax=axes_flat[6], title="Deflections Y",
+    plot_array(array=deflections_y, ax=axes_flat[6], title=_pf("Deflections Y"),
                lines=image_plane_lines, line_colors=image_plane_line_colors, colormap=colormap)
-    plot_array(array=deflections_x, ax=axes_flat[7], title="Deflections X",
+    plot_array(array=deflections_x, ax=axes_flat[7], title=_pf("Deflections X"),
                lines=image_plane_lines, line_colors=image_plane_line_colors, colormap=colormap)
-    plot_array(array=magnification, ax=axes_flat[8], title="Magnification",
+    plot_array(array=magnification, ax=axes_flat[8], title=_pf("Magnification"),
                lines=image_plane_lines, line_colors=image_plane_line_colors, colormap=colormap)
 
     hide_unused_axes(axes_flat)
@@ -197,6 +199,7 @@ def subplot_lensed_images(
     output_format: str = None,
     colormap: Optional[str] = None,
     use_log10: bool = False,
+    title_prefix: str = None,
 ):
     """
     Produce a subplot with one panel per tracer plane showing each plane's image.
@@ -229,13 +232,14 @@ def subplot_lensed_images(
     fig, axes = subplots(1, n, figsize=conf_subplot_figsize(1, n))
     axes_flat = [axes] if n == 1 else list(np.array(axes).flatten())
 
+    _pf = (lambda t: f"{title_prefix}{t}") if title_prefix else (lambda t: t)
     for plane_index in range(n):
         galaxies = ag.Galaxies(galaxies=tracer.planes[plane_index])
         image = galaxies.image_2d_from(grid=traced_grids[plane_index])
         plot_array(
             array=image,
             ax=axes_flat[plane_index],
-            title=f"Image Of Plane {plane_index}",
+            title=_pf(f"Image Of Plane {plane_index}"),
             colormap=colormap,
             use_log10=use_log10,
         )
@@ -251,6 +255,7 @@ def subplot_galaxies_images(
     output_format: str = None,
     colormap: Optional[str] = None,
     use_log10: bool = False,
+    title_prefix: str = None,
 ):
     """
     Produce a subplot showing per-galaxy images for every plane in the tracer.
@@ -291,12 +296,13 @@ def subplot_galaxies_images(
 
     idx = 0
 
+    _pf = (lambda t: f"{title_prefix}{t}") if title_prefix else (lambda t: t)
     lens_galaxies = ag.Galaxies(galaxies=tracer.planes[0])
     lens_image = lens_galaxies.image_2d_from(grid=traced_grids[0])
     plot_array(
         array=lens_image,
         ax=axes_flat[idx],
-        title="Image Of Plane 0",
+        title=_pf("Image Of Plane 0"),
         colormap=colormap,
         use_log10=use_log10,
     )
@@ -311,7 +317,7 @@ def subplot_galaxies_images(
             plot_array(
                 array=image,
                 ax=axes_flat[idx],
-                title=f"Image Of Plane {plane_index}",
+                title=_pf(f"Image Of Plane {plane_index}"),
                 colormap=colormap,
                 use_log10=use_log10,
             )
@@ -321,7 +327,7 @@ def subplot_galaxies_images(
             plot_array(
                 array=image,
                 ax=axes_flat[idx],
-                title=f"Plane Image Of Plane {plane_index}",
+                title=_pf(f"Plane Image Of Plane {plane_index}"),
                 colormap=colormap,
                 use_log10=use_log10,
             )

@@ -12,6 +12,7 @@ def subplot_fit(
     image_plane_line_colors=None,
     source_plane_lines=None,
     source_plane_line_colors=None,
+    title_prefix: str = None,
 ):
     """
     Produce a subplot summarising a `FitPointDataset`.
@@ -56,10 +57,11 @@ def subplot_fit(
         else fit.positions.model_data
     )
 
+    _prefix = title_prefix or ""
     plot_grid(
         grid=obs_grid,
         ax=axes_flat[0],
-        title=f"{fit.dataset.name} Fit Positions",
+        title=f"{_prefix}{fit.dataset.name} Fit Positions",
         output_path=None,
         output_filename=None,
         output_format=output_format,
@@ -74,7 +76,7 @@ def subplot_fit(
             y=y,
             x=x,
             ax=axes_flat[1],
-            title=f"{fit.dataset.name} Fit Fluxes",
+            title=f"{_prefix}{fit.dataset.name} Fit Fluxes",
             output_path=None,
             output_filename="fit_point_fluxes",
             output_format=output_format,
