@@ -189,6 +189,7 @@ def subplot_fit(
     image_plane_line_colors=None,
     source_plane_lines=None,
     source_plane_line_colors=None,
+    title_prefix: str = None,
 ):
     """
     Produce a 12-panel subplot summarising an imaging fit.
@@ -228,7 +229,8 @@ def subplot_fit(
     """
     if len(fit.tracer.planes) == 1:
         return subplot_fit_x1_plane(fit, output_path=output_path,
-                                    output_format=output_format, colormap=colormap)
+                                    output_format=output_format, colormap=colormap,
+                                    title_prefix=title_prefix)
 
     plane_index_tag = "" if plane_index is None else f"_{plane_index}"
     final_plane_index = (
@@ -242,18 +244,19 @@ def subplot_fit(
             _compute_critical_curves_from_fit(fit)
         )
 
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     fig, axes = subplots(3, 4, figsize=conf_subplot_figsize(3, 4))
     axes_flat = list(axes.flatten())
 
-    plot_array(array=fit.data, ax=axes_flat[0], title="Data", colormap=colormap)
+    plot_array(array=fit.data, ax=axes_flat[0], title=_pf("Data"), colormap=colormap)
 
     # Data at source scale
-    plot_array(array=fit.data, ax=axes_flat[1], title="Data (Source Scale)",
+    plot_array(array=fit.data, ax=axes_flat[1], title=_pf("Data (Source Scale)"),
                colormap=colormap, vmax=source_vmax)
 
     plot_array(array=fit.signal_to_noise_map, ax=axes_flat[2],
-               title="Signal-To-Noise Map", colormap=colormap)
-    plot_array(array=fit.model_data, ax=axes_flat[3], title="Model Image",
+               title=_pf("Signal-To-Noise Map"), colormap=colormap)
+    plot_array(array=fit.model_data, ax=axes_flat[3], title=_pf("Model Image"),
                colormap=colormap, lines=image_plane_lines,
                line_colors=image_plane_line_colors)
 
@@ -264,7 +267,7 @@ def subplot_fit(
         lens_model_img = None
     if lens_model_img is not None:
         plot_array(array=lens_model_img, ax=axes_flat[4],
-                   title="Lens Light Model Image", colormap=colormap)
+                   title=_pf("Lens Light Model Image"), colormap=colormap)
     else:
         axes_flat[4].axis("off")
 
@@ -274,7 +277,7 @@ def subplot_fit(
     except (IndexError, AttributeError):
         subtracted_img = None
     if subtracted_img is not None:
-        plot_array(array=subtracted_img, ax=axes_flat[5], title="Lens Light Subtracted",
+        plot_array(array=subtracted_img, ax=axes_flat[5], title=_pf("Lens Light Subtracted"),
                    colormap=colormap, vmin=0.0 if source_vmax is not None else None,
                    vmax=source_vmax)
     else:
@@ -286,7 +289,7 @@ def subplot_fit(
     except (IndexError, AttributeError):
         source_model_img = None
     if source_model_img is not None:
-        plot_array(array=source_model_img, ax=axes_flat[6], title="Source Model Image",
+        plot_array(array=source_model_img, ax=axes_flat[6], title=_pf("Source Model Image"),
                    colormap=colormap, vmax=source_vmax, lines=image_plane_lines,
                    line_colors=image_plane_line_colors)
     else:
@@ -294,27 +297,27 @@ def subplot_fit(
 
     # Source plane zoomed
     _plot_source_plane(fit, axes_flat[7], final_plane_index, zoom_to_brightest=True,
-                       colormap=colormap, title="Source Plane (Zoomed)",
+                       colormap=colormap, title=_pf("Source Plane (Zoomed)"),
                        lines=source_plane_lines, line_colors=source_plane_line_colors,
                        vmax=source_vmax)
 
     # Normalized residual map (symmetric)
     norm_resid = fit.normalized_residual_map
     _abs_max = _symmetric_vmax(norm_resid)
-    plot_array(array=norm_resid, ax=axes_flat[8], title="Normalized Residual Map",
+    plot_array(array=norm_resid, ax=axes_flat[8], title=_pf("Normalized Residual Map"),
                colormap=colormap, vmin=-_abs_max, vmax=_abs_max)
 
     # Normalized residual map clipped to [-1, 1]
     plot_array(array=norm_resid, ax=axes_flat[9],
-               title=r"Normalized Residual Map $1\sigma$",
+               title=_pf(r"Normalized Residual Map $1\sigma$"),
                colormap=colormap, vmin=-1.0, vmax=1.0)
 
     plot_array(array=fit.chi_squared_map, ax=axes_flat[10],
-               title="Chi-Squared Map", colormap=colormap, cb_unit=r"$\chi^2$")
+               title=_pf("Chi-Squared Map"), colormap=colormap, cb_unit=r"$\chi^2$")
 
     # Source plane not zoomed
     _plot_source_plane(fit, axes_flat[11], final_plane_index, zoom_to_brightest=False,
-                       colormap=colormap, title="Source Plane (No Zoom)",
+                       colormap=colormap, title=_pf("Source Plane (No Zoom)"),
                        lines=source_plane_lines, line_colors=source_plane_line_colors,
                        vmax=source_vmax)
 
@@ -328,6 +331,7 @@ def subplot_fit_x1_plane(
     output_path: Optional[str] = None,
     output_format: str = None,
     colormap: Optional[str] = None,
+    title_prefix: str = None,
 ):
     """
     Produce a 6-panel subplot for a single-plane tracer imaging fit.
@@ -356,6 +360,7 @@ def subplot_fit_x1_plane(
     colormap : str, optional
         Matplotlib colormap name applied to all image panels.
     """
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     fig, axes = subplots(2, 3, figsize=conf_subplot_figsize(2, 3))
     axes_flat = list(axes.flatten())
 
@@ -364,23 +369,23 @@ def subplot_fit_x1_plane(
     except (IndexError, AttributeError, ValueError):
         vmax = None
 
-    plot_array(array=fit.data, ax=axes_flat[0], title="Data", colormap=colormap, vmax=vmax)
+    plot_array(array=fit.data, ax=axes_flat[0], title=_pf("Data"), colormap=colormap, vmax=vmax)
 
     plot_array(array=fit.signal_to_noise_map, ax=axes_flat[1],
-               title="Signal-To-Noise Map", colormap=colormap)
+               title=_pf("Signal-To-Noise Map"), colormap=colormap)
 
-    plot_array(array=fit.model_data, ax=axes_flat[2], title="Model Image",
+    plot_array(array=fit.model_data, ax=axes_flat[2], title=_pf("Model Image"),
                colormap=colormap, vmax=vmax)
 
     norm_resid = fit.normalized_residual_map
-    plot_array(array=norm_resid, ax=axes_flat[3], title="Lens Light Subtracted",
+    plot_array(array=norm_resid, ax=axes_flat[3], title=_pf("Lens Light Subtracted"),
                colormap=colormap, cb_unit=r"$\sigma$")
 
-    plot_array(array=norm_resid, ax=axes_flat[4], title="Subtracted Image Zero Minimum",
+    plot_array(array=norm_resid, ax=axes_flat[4], title=_pf("Subtracted Image Zero Minimum"),
                colormap=colormap, vmin=0.0, cb_unit=r"$\sigma$")
 
     _abs_max = _symmetric_vmax(norm_resid)
-    plot_array(array=norm_resid, ax=axes_flat[5], title="Normalized Residual Map",
+    plot_array(array=norm_resid, ax=axes_flat[5], title=_pf("Normalized Residual Map"),
                colormap=colormap, vmin=-_abs_max, vmax=_abs_max, cb_unit=r"$\sigma$")
 
     tight_layout()
@@ -397,6 +402,7 @@ def subplot_fit_log10(
     image_plane_line_colors=None,
     source_plane_lines=None,
     source_plane_line_colors=None,
+    title_prefix: str = None,
 ):
     """
     Produce a 12-panel subplot summarising an imaging fit with log10 colour scaling.
@@ -427,7 +433,8 @@ def subplot_fit_log10(
     """
     if len(fit.tracer.planes) == 1:
         return subplot_fit_log10_x1_plane(fit, output_path=output_path,
-                                          output_format=output_format, colormap=colormap)
+                                          output_format=output_format, colormap=colormap,
+                                          title_prefix=title_prefix)
 
     plane_index_tag = "" if plane_index is None else f"_{plane_index}"
     final_plane_index = (
@@ -441,69 +448,72 @@ def subplot_fit_log10(
             _compute_critical_curves_from_fit(fit)
         )
 
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     fig, axes = subplots(3, 4, figsize=conf_subplot_figsize(3, 4))
     axes_flat = list(axes.flatten())
 
-    plot_array(array=fit.data, ax=axes_flat[0], title="Data", colormap=colormap,
+    plot_array(array=fit.data, ax=axes_flat[0], title=_pf("Data"), colormap=colormap,
                use_log10=True)
 
     try:
-        plot_array(array=fit.data, ax=axes_flat[1], title="Data (Source Scale)",
+        plot_array(array=fit.data, ax=axes_flat[1], title=_pf("Data (Source Scale)"),
                    colormap=colormap, use_log10=True)
     except ValueError:
         axes_flat[1].axis("off")
 
     try:
         plot_array(array=fit.signal_to_noise_map, ax=axes_flat[2],
-                   title="Signal-To-Noise Map", colormap=colormap, use_log10=True)
+                   title=_pf("Signal-To-Noise Map"), colormap=colormap, use_log10=True)
     except ValueError:
         axes_flat[2].axis("off")
 
-    plot_array(array=fit.model_data, ax=axes_flat[3], title="Model Image",
+    plot_array(array=fit.model_data, ax=axes_flat[3], title=_pf("Model Image"),
                colormap=colormap, use_log10=True, lines=image_plane_lines,
                line_colors=image_plane_line_colors)
 
     try:
         lens_model_img = fit.model_images_of_planes_list[0]
         plot_array(array=lens_model_img, ax=axes_flat[4],
-                   title="Lens Light Model Image", colormap=colormap, use_log10=True)
+                   title=_pf("Lens Light Model Image"), colormap=colormap, use_log10=True)
     except (IndexError, AttributeError):
         axes_flat[4].axis("off")
 
     try:
         subtracted_img = fit.subtracted_images_of_planes_list[final_plane_index]
         plot_array(array=subtracted_img, ax=axes_flat[5],
-                   title="Lens Light Subtracted", colormap=colormap, use_log10=True)
+                   title=_pf("Lens Light Subtracted"), colormap=colormap, use_log10=True)
     except (IndexError, AttributeError):
         axes_flat[5].axis("off")
 
     try:
         source_model_img = fit.model_images_of_planes_list[final_plane_index]
         plot_array(array=source_model_img, ax=axes_flat[6],
-                   title="Source Model Image", colormap=colormap, use_log10=True,
+                   title=_pf("Source Model Image"), colormap=colormap, use_log10=True,
                    lines=image_plane_lines, line_colors=image_plane_line_colors)
     except (IndexError, AttributeError):
         axes_flat[6].axis("off")
 
     _plot_source_plane(fit, axes_flat[7], final_plane_index, zoom_to_brightest=True,
                        colormap=colormap, use_log10=True,
+                       title=_pf("Source Plane (Zoomed)"),
                        lines=source_plane_lines, line_colors=source_plane_line_colors,
                        vmax=source_vmax)
 
     norm_resid = fit.normalized_residual_map
     _abs_max = _symmetric_vmax(norm_resid)
-    plot_array(array=norm_resid, ax=axes_flat[8], title="Normalized Residual Map",
+    plot_array(array=norm_resid, ax=axes_flat[8], title=_pf("Normalized Residual Map"),
                colormap=colormap, vmin=-_abs_max, vmax=_abs_max, cb_unit=r"$\sigma$")
 
     plot_array(array=norm_resid, ax=axes_flat[9],
-               title=r"Normalized Residual Map $1\sigma$",
+               title=_pf(r"Normalized Residual Map $1\sigma$"),
                colormap=colormap, vmin=-1.0, vmax=1.0, cb_unit=r"$\sigma$")
 
-    plot_array(array=fit.chi_squared_map, ax=axes_flat[10], title="Chi-Squared Map",
+    plot_array(array=fit.chi_squared_map, ax=axes_flat[10], title=_pf("Chi-Squared Map"),
                colormap=colormap, use_log10=True, cb_unit=r"$\chi^2$")
 
     _plot_source_plane(fit, axes_flat[11], final_plane_index, zoom_to_brightest=False,
                        colormap=colormap, use_log10=True,
+                       title=_pf("Source Plane (No Zoom)"),
                        lines=source_plane_lines, line_colors=source_plane_line_colors,
                        vmax=source_vmax)
 
@@ -516,6 +526,7 @@ def subplot_fit_log10_x1_plane(
     output_path: Optional[str] = None,
     output_format: str = None,
     colormap: Optional[str] = None,
+    title_prefix: str = None,
 ):
     """
     Produce a 6-panel log10 subplot for a single-plane tracer imaging fit.
@@ -539,6 +550,7 @@ def subplot_fit_log10_x1_plane(
     colormap : str, optional
         Matplotlib colormap name applied to all image panels.
     """
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     fig, axes = subplots(2, 3, figsize=conf_subplot_figsize(2, 3))
     axes_flat = list(axes.flatten())
 
@@ -547,25 +559,25 @@ def subplot_fit_log10_x1_plane(
     except (IndexError, AttributeError, ValueError):
         vmax = None
 
-    plot_array(array=fit.data, ax=axes_flat[0], title="Data", colormap=colormap,
+    plot_array(array=fit.data, ax=axes_flat[0], title=_pf("Data"), colormap=colormap,
                vmax=vmax, use_log10=True)
 
     try:
         plot_array(array=fit.signal_to_noise_map, ax=axes_flat[1],
-                   title="Signal-To-Noise Map", colormap=colormap, use_log10=True)
+                   title=_pf("Signal-To-Noise Map"), colormap=colormap, use_log10=True)
     except ValueError:
         axes_flat[1].axis("off")
 
-    plot_array(array=fit.model_data, ax=axes_flat[2], title="Model Image",
+    plot_array(array=fit.model_data, ax=axes_flat[2], title=_pf("Model Image"),
                colormap=colormap, vmax=vmax, use_log10=True)
 
     norm_resid = fit.normalized_residual_map
-    plot_array(array=norm_resid, ax=axes_flat[3], title="Lens Light Subtracted",
+    plot_array(array=norm_resid, ax=axes_flat[3], title=_pf("Lens Light Subtracted"),
                colormap=colormap, cb_unit=r"$\sigma$")
     _abs_max = _symmetric_vmax(norm_resid)
-    plot_array(array=norm_resid, ax=axes_flat[4], title="Normalized Residual Map",
+    plot_array(array=norm_resid, ax=axes_flat[4], title=_pf("Normalized Residual Map"),
                colormap=colormap, vmin=-_abs_max, vmax=_abs_max, cb_unit=r"$\sigma$")
-    plot_array(array=fit.chi_squared_map, ax=axes_flat[5], title="Chi-Squared Map",
+    plot_array(array=fit.chi_squared_map, ax=axes_flat[5], title=_pf("Chi-Squared Map"),
                colormap=colormap, use_log10=True, cb_unit=r"$\chi^2$")
 
     tight_layout()
@@ -578,6 +590,7 @@ def subplot_of_planes(
     output_format: str = None,
     colormap: Optional[str] = None,
     plane_index: Optional[int] = None,
+    title_prefix: str = None,
 ):
     """
     Produce a 4-panel subplot for each plane in the tracer.
@@ -614,27 +627,29 @@ def subplot_of_planes(
     else:
         plane_indexes = [plane_index]
 
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     for pidx in plane_indexes:
         fig, axes = subplots(1, 4, figsize=conf_subplot_figsize(1, 4))
         axes_flat = list(axes.flatten())
 
-        plot_array(array=fit.data, ax=axes_flat[0], title="Data", colormap=colormap)
+        plot_array(array=fit.data, ax=axes_flat[0], title=_pf("Data"), colormap=colormap)
 
         try:
             subtracted = fit.subtracted_images_of_planes_list[pidx]
             plot_array(array=subtracted, ax=axes_flat[1],
-                       title=f"Subtracted Image Plane {pidx}", colormap=colormap)
+                       title=_pf(f"Subtracted Image Plane {pidx}"), colormap=colormap)
         except (IndexError, AttributeError):
             axes_flat[1].axis("off")
 
         try:
             model_img = fit.model_images_of_planes_list[pidx]
             plot_array(array=model_img, ax=axes_flat[2],
-                       title=f"Model Image Plane {pidx}", colormap=colormap)
+                       title=_pf(f"Model Image Plane {pidx}"), colormap=colormap)
         except (IndexError, AttributeError):
             axes_flat[2].axis("off")
 
-        _plot_source_plane(fit, axes_flat[3], pidx, colormap=colormap)
+        _plot_source_plane(fit, axes_flat[3], pidx, colormap=colormap,
+                           title=_pf(f"Source Plane {pidx}"))
 
         tight_layout()
         save_figure(fig, path=output_path, filename=f"fit_of_plane_{pidx}", format=output_format)
@@ -649,6 +664,7 @@ def subplot_tracer_from_fit(
     image_plane_line_colors=None,
     source_plane_lines=None,
     source_plane_line_colors=None,
+    title_prefix: str = None,
 ):
     """
     Produce a 9-panel tracer subplot derived from a `FitImaging` object.
@@ -701,11 +717,12 @@ def subplot_tracer_from_fit(
 
     magnification = LensCalc.from_mass_obj(tracer).magnification_2d_from(grid=grid)
 
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     fig, axes = subplots(3, 3, figsize=conf_subplot_figsize(3, 3))
     axes_flat = list(axes.flatten())
 
     # Panel 0: Model Image
-    plot_array(array=fit.model_data, ax=axes_flat[0], title="Model Image",
+    plot_array(array=fit.model_data, ax=axes_flat[0], title=_pf("Model Image"),
                lines=image_plane_lines, line_colors=image_plane_line_colors,
                colormap=colormap)
 
@@ -715,28 +732,27 @@ def subplot_tracer_from_fit(
     except (IndexError, AttributeError):
         source_model_img = None
     if source_model_img is not None:
-        plot_array(array=source_model_img, ax=axes_flat[1], title="Source Model Image",
+        plot_array(array=source_model_img, ax=axes_flat[1], title=_pf("Source Model Image"),
                    colormap=colormap, vmax=source_vmax,
                    lines=image_plane_lines, line_colors=image_plane_line_colors)
     else:
         axes_flat[1].axis("off")
 
-
     # Panel 2: Source Plane (No Zoom) (same as subplot_fit panel 12)
     _plot_source_plane(fit, axes_flat[2], final_plane_index, zoom_to_brightest=False,
-                       colormap=colormap, title="Source Plane (No Zoom)",
+                       colormap=colormap, title=_pf("Source Plane (No Zoom)"),
                        lines=source_plane_lines, line_colors=source_plane_line_colors,
                        vmax=source_vmax)
 
     # Panel 3: Lens Image (log10)
-    plot_array(array=lens_image, ax=axes_flat[3], title="Lens Image",
+    plot_array(array=lens_image, ax=axes_flat[3], title=_pf("Lens Image"),
                lines=image_plane_lines, line_colors=image_plane_line_colors,
                colormap=colormap, use_log10=True)
 
     # Panel 4: Convergence (log10)
     try:
         convergence = tracer.convergence_2d_from(grid=grid)
-        plot_array(array=convergence, ax=axes_flat[4], title="Convergence",
+        plot_array(array=convergence, ax=axes_flat[4], title=_pf("Convergence"),
                    colormap=colormap, use_log10=True)
     except Exception:
         axes_flat[4].axis("off")
@@ -744,21 +760,21 @@ def subplot_tracer_from_fit(
     # Panel 5: Potential (log10)
     try:
         potential = tracer.potential_2d_from(grid=grid)
-        plot_array(array=potential, ax=axes_flat[5], title="Potential",
+        plot_array(array=potential, ax=axes_flat[5], title=_pf("Potential"),
                    colormap=colormap, use_log10=True)
     except Exception:
         axes_flat[5].axis("off")
 
     # Panel 6: Deflections Y
-    plot_array(array=deflections_y, ax=axes_flat[6], title="Deflections Y",
+    plot_array(array=deflections_y, ax=axes_flat[6], title=_pf("Deflections Y"),
                colormap=colormap)
 
     # Panel 7: Deflections X
-    plot_array(array=deflections_x, ax=axes_flat[7], title="Deflections X",
+    plot_array(array=deflections_x, ax=axes_flat[7], title=_pf("Deflections X"),
                colormap=colormap)
 
     # Panel 8: Magnification
-    plot_array(array=magnification, ax=axes_flat[8], title="Magnification",
+    plot_array(array=magnification, ax=axes_flat[8], title=_pf("Magnification"),
                colormap=colormap)
 
     tight_layout()
@@ -770,6 +786,7 @@ def subplot_fit_combined(
     output_path: Optional[str] = None,
     output_format: str = None,
     colormap: Optional[str] = None,
+    title_prefix: str = None,
 ):
     """
     Produce a combined multi-row subplot for a list of `FitImaging` objects.
@@ -809,39 +826,41 @@ def subplot_fit_combined(
 
     final_plane_index = len(fit_list[0].tracer.planes) - 1
 
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     for row, fit in enumerate(fit_list):
         row_axes = all_axes[row]
 
-        plot_array(array=fit.data, ax=row_axes[0], title="Data", colormap=colormap)
+        plot_array(array=fit.data, ax=row_axes[0], title=_pf("Data"), colormap=colormap)
 
         try:
             subtracted = fit.subtracted_images_of_planes_list[1]
-            plot_array(array=subtracted, ax=row_axes[1], title="Subtracted Image",
+            plot_array(array=subtracted, ax=row_axes[1], title=_pf("Subtracted Image"),
                        colormap=colormap)
         except (IndexError, AttributeError):
             row_axes[1].axis("off")
 
         try:
             lens_model = fit.model_images_of_planes_list[0]
-            plot_array(array=lens_model, ax=row_axes[2], title="Lens Model Image",
+            plot_array(array=lens_model, ax=row_axes[2], title=_pf("Lens Model Image"),
                        colormap=colormap)
         except (IndexError, AttributeError):
             row_axes[2].axis("off")
 
         try:
             source_model = fit.model_images_of_planes_list[final_plane_index]
-            plot_array(array=source_model, ax=row_axes[3], title="Source Model Image",
+            plot_array(array=source_model, ax=row_axes[3], title=_pf("Source Model Image"),
                        colormap=colormap)
         except (IndexError, AttributeError):
             row_axes[3].axis("off")
 
         try:
-            _plot_source_plane(fit, row_axes[4], final_plane_index, colormap=colormap)
+            _plot_source_plane(fit, row_axes[4], final_plane_index, colormap=colormap,
+                               title=_pf(f"Source Plane {final_plane_index}"))
         except Exception:
             row_axes[4].axis("off")
 
         plot_array(array=fit.normalized_residual_map, ax=row_axes[5],
-                   title="Normalized Residual Map", colormap=colormap, cb_unit=r"$\sigma$")
+                   title=_pf("Normalized Residual Map"), colormap=colormap, cb_unit=r"$\sigma$")
 
     tight_layout()
     save_figure(fig, path=output_path, filename="fit_combined", format=output_format)
@@ -852,6 +871,7 @@ def subplot_fit_combined_log10(
     output_path: Optional[str] = None,
     output_format: str = None,
     colormap: Optional[str] = None,
+    title_prefix: str = None,
 ):
     """
     Produce a combined log10 multi-row subplot for a list of `FitImaging` objects.
@@ -883,41 +903,43 @@ def subplot_fit_combined_log10(
 
     final_plane_index = len(fit_list[0].tracer.planes) - 1
 
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     for row, fit in enumerate(fit_list):
         row_axes = all_axes[row]
 
-        plot_array(array=fit.data, ax=row_axes[0], title="Data", colormap=colormap,
+        plot_array(array=fit.data, ax=row_axes[0], title=_pf("Data"), colormap=colormap,
                    use_log10=True)
 
         try:
             subtracted = fit.subtracted_images_of_planes_list[1]
-            plot_array(array=subtracted, ax=row_axes[1], title="Subtracted Image",
+            plot_array(array=subtracted, ax=row_axes[1], title=_pf("Subtracted Image"),
                        colormap=colormap, use_log10=True)
         except (IndexError, AttributeError):
             row_axes[1].axis("off")
 
         try:
             lens_model = fit.model_images_of_planes_list[0]
-            plot_array(array=lens_model, ax=row_axes[2], title="Lens Model Image",
+            plot_array(array=lens_model, ax=row_axes[2], title=_pf("Lens Model Image"),
                        colormap=colormap, use_log10=True)
         except (IndexError, AttributeError):
             row_axes[2].axis("off")
 
         try:
             source_model = fit.model_images_of_planes_list[final_plane_index]
-            plot_array(array=source_model, ax=row_axes[3], title="Source Model Image",
+            plot_array(array=source_model, ax=row_axes[3], title=_pf("Source Model Image"),
                        colormap=colormap, use_log10=True)
         except (IndexError, AttributeError):
             row_axes[3].axis("off")
 
         try:
             _plot_source_plane(fit, row_axes[4], final_plane_index, colormap=colormap,
-                               use_log10=True)
+                               use_log10=True,
+                               title=_pf(f"Source Plane {final_plane_index}"))
         except Exception:
             row_axes[4].axis("off")
 
         plot_array(array=fit.normalized_residual_map, ax=row_axes[5],
-                   title="Normalized Residual Map", colormap=colormap, cb_unit=r"$\sigma$")
+                   title=_pf("Normalized Residual Map"), colormap=colormap, cb_unit=r"$\sigma$")
 
     tight_layout()
     save_figure(fig, path=output_path, filename="fit_combined_log10", format=output_format)

@@ -72,6 +72,7 @@ class Plotter(AgPlotter):
                 grid=grid,
                 output_path=output_path,
                 output_format=fmt,
+                title_prefix=self.title_prefix,
             )
 
         if should_plot("fits_tracer"):
@@ -104,10 +105,11 @@ class Plotter(AgPlotter):
             if isinstance(fmt, (list, tuple)):
                 fmt = fmt[0]
 
+            _title = f"{self.title_prefix.rstrip()} Image With Positions" if self.title_prefix else "Image With Positions"
             plot_array(
                 array=image,
                 positions=[pos_arr],
-                title="Image With Positions",
+                title=_title,
                 output_path=str(self.image_path),
                 output_filename="image_with_positions",
                 output_format=fmt,

@@ -29,7 +29,8 @@ class PlotterPoint(Plotter):
         fmt = self.fmt
 
         if should_plot("subplot_dataset"):
-            subplot_dataset(dataset, output_path=output_path, output_format=fmt)
+            subplot_dataset(dataset, output_path=output_path, output_format=fmt,
+                            title_prefix=self.title_prefix)
 
     def fit_point(
         self,
@@ -84,6 +85,7 @@ class PlotterPoint(Plotter):
                 image_plane_line_colors=ip_colors,
                 source_plane_lines=sp_lines,
                 source_plane_line_colors=sp_colors,
+                title_prefix=self.title_prefix,
             )
 
         if quick_update:
