@@ -1,12 +1,11 @@
-import matplotlib.pyplot as plt
 import numpy as np
 from typing import Optional, List
 
 import autoarray as aa
 import autogalaxy as ag
 
-from autogalaxy.plot.plot_utils import plot_array
-from autoarray.plot.utils import save_figure, hide_unused_axes, conf_subplot_figsize, tight_layout
+from autogalaxy.util.plot_utils import plot_array
+from autoarray.plot.utils import subplots, save_figure, hide_unused_axes, conf_subplot_figsize, tight_layout
 from autoarray.plot.utils import numpy_positions as _to_positions
 
 
@@ -161,7 +160,7 @@ def subplot_tracer(
 
     magnification = LensCalc.from_mass_obj(tracer).magnification_2d_from(grid=grid)
 
-    fig, axes = plt.subplots(3, 3, figsize=conf_subplot_figsize(3, 3))
+    fig, axes = subplots(3, 3, figsize=conf_subplot_figsize(3, 3))
     axes_flat = list(axes.flatten())
 
     plot_array(array=image, ax=axes_flat[0], title="Model Image",
@@ -227,7 +226,7 @@ def subplot_lensed_images(
     traced_grids = tracer.traced_grid_2d_list_from(grid=grid)
     n = tracer.total_planes
 
-    fig, axes = plt.subplots(1, n, figsize=conf_subplot_figsize(1, n))
+    fig, axes = subplots(1, n, figsize=conf_subplot_figsize(1, n))
     axes_flat = [axes] if n == 1 else list(np.array(axes).flatten())
 
     for plane_index in range(n):
@@ -287,7 +286,7 @@ def subplot_galaxies_images(
     traced_grids = tracer.traced_grid_2d_list_from(grid=grid)
     n = 2 * tracer.total_planes - 1
 
-    fig, axes = plt.subplots(1, n, figsize=conf_subplot_figsize(1, n))
+    fig, axes = subplots(1, n, figsize=conf_subplot_figsize(1, n))
     axes_flat = [axes] if n == 1 else list(np.array(axes).flatten())
 
     idx = 0

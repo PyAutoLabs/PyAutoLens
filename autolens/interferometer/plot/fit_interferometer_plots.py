@@ -1,18 +1,17 @@
 import logging
-import matplotlib.pyplot as plt
 import numpy as np
 from typing import Optional
 
 import autoarray as aa
 import autogalaxy as ag
 
-from autogalaxy.plot.plot_utils import plot_array
+from autogalaxy.util.plot_utils import plot_array
 from autoarray.plot.yx import plot_yx
-from autoarray.plot.utils import save_figure, conf_subplot_figsize, tight_layout
+from autoarray.plot.utils import subplots, save_figure, conf_subplot_figsize, tight_layout
 from autoarray.plot.utils import numpy_lines as _to_lines
 from autoarray.inversion.mappers.abstract import Mapper
 from autoarray.inversion.plot.mapper_plots import plot_mapper
-from autogalaxy.plot.plot_utils import _critical_curves_from, _caustics_from
+from autogalaxy.util.plot_utils import _critical_curves_from, _caustics_from
 from autolens.lens.plot.tracer_plots import plane_image_from
 
 logger = logging.getLogger(__name__)
@@ -184,7 +183,7 @@ def subplot_fit(
             _compute_critical_curve_lines(tracer, _cc_grid)
         )
 
-    fig, axes = plt.subplots(3, 4, figsize=conf_subplot_figsize(3, 4))
+    fig, axes = subplots(3, 4, figsize=conf_subplot_figsize(3, 4))
     axes_flat = list(axes.flatten())
 
     # Panel 0: amplitudes vs UV-distances
@@ -304,7 +303,7 @@ def subplot_fit_dirty_images(
             _compute_critical_curve_lines(tracer, _cc_grid)
         )
 
-    fig, axes = plt.subplots(2, 3, figsize=conf_subplot_figsize(2, 3))
+    fig, axes = subplots(2, 3, figsize=conf_subplot_figsize(2, 3))
     axes_flat = list(axes.flatten())
 
     plot_array(array=fit.dirty_image, ax=axes_flat[0], title="Dirty Image",
@@ -361,7 +360,7 @@ def subplot_fit_real_space(
     tracer = fit.tracer_linear_light_profiles_to_light_profiles
     final_plane_index = len(fit.tracer.planes) - 1
 
-    fig, axes = plt.subplots(1, 2, figsize=conf_subplot_figsize(1, 2))
+    fig, axes = subplots(1, 2, figsize=conf_subplot_figsize(1, 2))
     axes_flat = list(axes.flatten())
 
     if fit.inversion is None:
@@ -446,7 +445,7 @@ def subplot_tracer_from_fit(
 
     magnification = LensCalc.from_mass_obj(tracer).magnification_2d_from(grid=grid)
 
-    fig, axes = plt.subplots(3, 3, figsize=conf_subplot_figsize(3, 3))
+    fig, axes = subplots(3, 3, figsize=conf_subplot_figsize(3, 3))
     axes_flat = list(axes.flatten())
 
     # Panel 0: Dirty Model Image

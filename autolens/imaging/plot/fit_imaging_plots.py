@@ -1,18 +1,17 @@
 import logging
-import matplotlib.pyplot as plt
 import numpy as np
 from typing import Optional, List
 
 import autoarray as aa
 import autogalaxy as ag
 
-from autogalaxy.plot.plot_utils import plot_array
+from autogalaxy.util.plot_utils import plot_array
 from autoarray.plot.array import _zoom_array_2d
-from autoarray.plot.utils import save_figure, hide_unused_axes, conf_subplot_figsize, tight_layout
+from autoarray.plot.utils import subplots, save_figure, hide_unused_axes, conf_subplot_figsize, tight_layout
 from autoarray.plot.utils import numpy_lines as _to_lines
 from autoarray.inversion.mappers.abstract import Mapper
 from autoarray.inversion.plot.mapper_plots import plot_mapper
-from autogalaxy.plot.plot_utils import _critical_curves_from, _caustics_from
+from autogalaxy.util.plot_utils import _critical_curves_from, _caustics_from
 
 logger = logging.getLogger(__name__)
 
@@ -243,7 +242,7 @@ def subplot_fit(
             _compute_critical_curves_from_fit(fit)
         )
 
-    fig, axes = plt.subplots(3, 4, figsize=conf_subplot_figsize(3, 4))
+    fig, axes = subplots(3, 4, figsize=conf_subplot_figsize(3, 4))
     axes_flat = list(axes.flatten())
 
     plot_array(array=fit.data, ax=axes_flat[0], title="Data", colormap=colormap)
@@ -357,7 +356,7 @@ def subplot_fit_x1_plane(
     colormap : str, optional
         Matplotlib colormap name applied to all image panels.
     """
-    fig, axes = plt.subplots(2, 3, figsize=conf_subplot_figsize(2, 3))
+    fig, axes = subplots(2, 3, figsize=conf_subplot_figsize(2, 3))
     axes_flat = list(axes.flatten())
 
     try:
@@ -442,7 +441,7 @@ def subplot_fit_log10(
             _compute_critical_curves_from_fit(fit)
         )
 
-    fig, axes = plt.subplots(3, 4, figsize=conf_subplot_figsize(3, 4))
+    fig, axes = subplots(3, 4, figsize=conf_subplot_figsize(3, 4))
     axes_flat = list(axes.flatten())
 
     plot_array(array=fit.data, ax=axes_flat[0], title="Data", colormap=colormap,
@@ -540,7 +539,7 @@ def subplot_fit_log10_x1_plane(
     colormap : str, optional
         Matplotlib colormap name applied to all image panels.
     """
-    fig, axes = plt.subplots(2, 3, figsize=conf_subplot_figsize(2, 3))
+    fig, axes = subplots(2, 3, figsize=conf_subplot_figsize(2, 3))
     axes_flat = list(axes.flatten())
 
     try:
@@ -616,7 +615,7 @@ def subplot_of_planes(
         plane_indexes = [plane_index]
 
     for pidx in plane_indexes:
-        fig, axes = plt.subplots(1, 4, figsize=conf_subplot_figsize(1, 4))
+        fig, axes = subplots(1, 4, figsize=conf_subplot_figsize(1, 4))
         axes_flat = list(axes.flatten())
 
         plot_array(array=fit.data, ax=axes_flat[0], title="Data", colormap=colormap)
@@ -702,7 +701,7 @@ def subplot_tracer_from_fit(
 
     magnification = LensCalc.from_mass_obj(tracer).magnification_2d_from(grid=grid)
 
-    fig, axes = plt.subplots(3, 3, figsize=conf_subplot_figsize(3, 3))
+    fig, axes = subplots(3, 3, figsize=conf_subplot_figsize(3, 3))
     axes_flat = list(axes.flatten())
 
     # Panel 0: Model Image
@@ -802,7 +801,7 @@ def subplot_fit_combined(
     """
     n_fits = len(fit_list)
     n_cols = 6
-    fig, axes = plt.subplots(n_fits, n_cols, figsize=conf_subplot_figsize(n_fits, n_cols))
+    fig, axes = subplots(n_fits, n_cols, figsize=conf_subplot_figsize(n_fits, n_cols))
     if n_fits == 1:
         all_axes = [list(axes)]
     else:
@@ -876,7 +875,7 @@ def subplot_fit_combined_log10(
     """
     n_fits = len(fit_list)
     n_cols = 6
-    fig, axes = plt.subplots(n_fits, n_cols, figsize=conf_subplot_figsize(n_fits, n_cols))
+    fig, axes = subplots(n_fits, n_cols, figsize=conf_subplot_figsize(n_fits, n_cols))
     if n_fits == 1:
         all_axes = [list(axes)]
     else:
