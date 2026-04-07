@@ -84,6 +84,11 @@ class AnalysisDataset(AgAnalysisDataset, AnalysisLens):
             anyway.
         """
 
+        import os
+
+        if os.environ.get("PYAUTO_DISABLE_JAX") == "1":
+            use_jax = False
+
         super().__init__(
             dataset=dataset,
             adapt_images=adapt_images,
@@ -107,9 +112,6 @@ class AnalysisDataset(AgAnalysisDataset, AnalysisLens):
 
         if is_test_mode():
             self.raise_inversion_positions_likelihood_exception = False
-
-        # Can be deleted after relevent AutoFIT PR merged
-        self._use_jax = use_jax
 
     def modify_before_fit(self, paths: af.DirectoryPaths, model: af.Collection):
         """
