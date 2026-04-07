@@ -85,7 +85,6 @@ from autogalaxy.operate.lens_calc import LensCalc
 from autogalaxy.quantity.dataset_quantity import DatasetQuantity
 from autogalaxy import convert
 
-from . import plot
 from . import aggregator as agg
 from .analysis import model_util
 from .lens import subhalo
@@ -131,3 +130,12 @@ from autoconf.fitsable import hdu_list_for_output_from
 conf.instance.register(__file__)
 
 __version__ = "2026.4.5.3"
+
+
+def __getattr__(name):
+    if name == "plot":
+        from . import plot
+
+        globals()["plot"] = plot
+        return plot
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -1,8 +1,7 @@
-import matplotlib.pyplot as plt
 import numpy as np
 from typing import Optional
 
-from autoarray.plot.utils import save_figure, conf_subplot_figsize, tight_layout
+from autoarray.plot.utils import subplots, save_figure, conf_subplot_figsize, tight_layout
 
 
 def subplot_dataset(
@@ -32,13 +31,13 @@ def subplot_dataset(
     output_format : str, optional
         Image format passed to :func:`~autoarray.plot.utils.save_figure`.
     """
-    from autogalaxy.plot.plot_utils import plot_grid
+    from autogalaxy.util.plot_utils import plot_grid
     from autoarray.plot.yx import plot_yx
 
     has_fluxes = dataset.fluxes is not None
     n = 2 if has_fluxes else 1
 
-    fig, axes = plt.subplots(1, n, figsize=conf_subplot_figsize(1, n))
+    fig, axes = subplots(1, n, figsize=conf_subplot_figsize(1, n))
     axes_flat = [axes] if n == 1 else list(np.array(axes).flatten())
 
     grid = np.array(

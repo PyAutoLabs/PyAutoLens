@@ -1,9 +1,8 @@
 """Standalone subplot functions for subhalo detection visualisation."""
-import matplotlib.pyplot as plt
 from typing import Optional
 
-from autogalaxy.plot.plot_utils import plot_array
-from autoarray.plot.utils import save_figure, tight_layout
+from autogalaxy.util.plot_utils import plot_array
+from autoarray.plot.utils import subplots, save_figure, tight_layout
 from autolens.imaging.plot.fit_imaging_plots import _plot_source_plane
 
 
@@ -57,7 +56,7 @@ def subplot_detection_imaging(
         If ``True`` grid positions where the figure of merit is exactly
         zero are masked out before plotting.
     """
-    fig, axes = plt.subplots(1, 4, figsize=(28, 7))
+    fig, axes = subplots(1, 4, figsize=(28, 7))
 
     plot_array(
         array=fit_imaging_with_subhalo.data,
@@ -141,7 +140,7 @@ def subplot_detection_fits(
     colormap : str, optional
         Matplotlib colormap name.
     """
-    fig, axes = plt.subplots(2, 3, figsize=(21, 14))
+    fig, axes = subplots(2, 3, figsize=(21, 14))
 
     plot_array(
         array=fit_imaging_no_subhalo.normalized_residual_map,

@@ -1,12 +1,11 @@
 """Standalone subplot functions for subhalo sensitivity mapping visualisation."""
-import matplotlib.pyplot as plt
 import numpy as np
 from typing import Optional
 
 import autoarray as aa
 
-from autogalaxy.plot.plot_utils import plot_array
-from autoarray.plot.utils import save_figure, tight_layout
+from autogalaxy.util.plot_utils import plot_array
+from autoarray.plot.utils import subplots, save_figure, tight_layout
 
 
 def subplot_tracer_images(
@@ -59,7 +58,7 @@ def subplot_tracer_images(
     use_log10 : bool, optional
         If ``True`` the colour scale is applied on a log10 stretch.
     """
-    from autogalaxy.plot.plot_utils import _critical_curves_from, _caustics_from
+    from autogalaxy.util.plot_utils import _critical_curves_from, _caustics_from
     from autoarray.plot.utils import numpy_lines as _to_lines
 
     grid = aa.Grid2D.from_mask(mask=mask)
@@ -94,7 +93,7 @@ def subplot_tracer_images(
 
     residual_map = lensed_source_image - lensed_source_image_no_perturb
 
-    fig, axes = plt.subplots(1, 6, figsize=(42, 7))
+    fig, axes = subplots(1, 6, figsize=(42, 7))
 
     plot_array(array=image, ax=axes[0], title="Image",
                colormap=colormap, use_log10=use_log10)
@@ -180,7 +179,7 @@ def subplot_sensitivity(
     above_threshold = np.where(log_likelihoods > 5.0, 1.0, 0.0)
     above_threshold = aa.Array2D(values=above_threshold, mask=log_likelihoods.mask)
 
-    fig, axes = plt.subplots(2, 4, figsize=(28, 14))
+    fig, axes = subplots(2, 4, figsize=(28, 14))
     axes_flat = list(axes.flatten())
 
     plot_array(array=data_subtracted, ax=axes_flat[0], title="Subtracted Image",
@@ -285,7 +284,7 @@ def subplot_figures_of_merit_grid(
         remove_zeros=remove_zeros,
     )
 
-    fig, ax = plt.subplots(1, 1, figsize=(7, 7))
+    fig, ax = subplots(1, 1, figsize=(7, 7))
     plot_array(array=figures_of_merit, ax=ax, title="Increase in Log Evidence",
                colormap=colormap)
     tight_layout()
