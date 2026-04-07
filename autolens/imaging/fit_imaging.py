@@ -198,7 +198,7 @@ class FitImaging(aa.FitImaging, AbstractFitInversion):
 
         return {**galaxy_image_2d_dict, **galaxy_linear_obj_image_dict}
 
-    @property
+    @cached_property
     def galaxy_model_image_dict(self) -> Dict[ag.Galaxy, np.ndarray]:
         """
         A dictionary which associates every galaxy in the tracer with its `model_image`.
@@ -268,7 +268,7 @@ class FitImaging(aa.FitImaging, AbstractFitInversion):
 
         return subtracted_signal_to_noise_maps_of_galaxies_dict
 
-    @property
+    @cached_property
     def model_images_of_planes_list(self) -> List[aa.Array2D]:
         """
         A list of every model image of every plane in the tracer.
