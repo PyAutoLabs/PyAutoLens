@@ -31,7 +31,7 @@ from autolens.analysis.result import ResultDataset
 from autolens.analysis.positions import PositionsLH
 
 from autolens import exc
-from autofit.non_linear.test_mode import is_test_mode
+from autoconf.test_mode import is_test_mode
 
 logger = logging.getLogger(__name__)
 
