@@ -68,10 +68,12 @@ jobs:
         pip3 install setuptools
         pip3 install wheel
         pip3 install pytest coverage pytest-cov
-        pip install ./PyAutoConf ./PyAutoFit ./PyAutoArray ./PyAutoGalaxy ./PyAutoLens
         if [ "${{ matrix.python-version }}" = "3.12" ]; then
+          pip install ./PyAutoConf ./PyAutoFit ./PyAutoArray ./PyAutoGalaxy ./PyAutoLens
           pip install "./PyAutoArray[optional]" "./PyAutoGalaxy[optional]" "./PyAutoLens[optional]"
         else
+          pip install --only-binary :all: scipy numpy matplotlib h5py contourpy
+          pip install ./PyAutoConf ./PyAutoFit ./PyAutoArray ./PyAutoGalaxy ./PyAutoLens
           pip install numba
         fi
     - name: Run tests
