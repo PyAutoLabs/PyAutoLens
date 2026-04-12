@@ -38,10 +38,10 @@ black autolens/
 
 ### Plot Output Mode
 
-Set `PYAUTOARRAY_OUTPUT_MODE=1` to capture every figure produced by a script into numbered PNG files in `./output_mode/<script_name>/`. This is useful for visually inspecting all plots from an integration test without needing a display.
+Set `PYAUTO_OUTPUT_MODE=1` to capture every figure produced by a script into numbered PNG files in `./output_mode/<script_name>/`. This is useful for visually inspecting all plots from an integration test without needing a display.
 
 ```bash
-PYAUTOARRAY_OUTPUT_MODE=1 python scripts/my_script.py
+PYAUTO_OUTPUT_MODE=1 python scripts/my_script.py
 # -> ./output_mode/my_script/0_fit.png, 1_tracer.png, ...
 ```
 

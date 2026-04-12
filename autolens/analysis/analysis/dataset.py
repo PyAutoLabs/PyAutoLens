@@ -31,7 +31,7 @@ from autolens.analysis.result import ResultDataset
 from autolens.analysis.positions import PositionsLH
 
 from autolens import exc
-from autoconf.test_mode import is_test_mode
+from autoconf.test_mode import skip_checks
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +110,7 @@ class AnalysisDataset(AgAnalysisDataset, AnalysisLens):
             raise_inversion_positions_likelihood_exception
         )
 
-        if is_test_mode():
+        if skip_checks():
             self.raise_inversion_positions_likelihood_exception = False
 
     def modify_before_fit(self, paths: af.DirectoryPaths, model: af.Collection):

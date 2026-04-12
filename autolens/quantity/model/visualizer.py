@@ -1,7 +1,7 @@
 import os
 
 import autofit as af
-from autoconf.test_mode import is_test_mode
+from autoconf.test_mode import skip_visualization
 
 from autogalaxy.quantity.model.plotter import PlotterQuantity
 
@@ -40,7 +40,7 @@ class VisualizerQuantity(af.Visualizer):
             via a non-linear search).
         """
 
-        if is_test_mode():
+        if skip_visualization():
             return
 
         fit = analysis.fit_quantity_for_instance(instance=instance)

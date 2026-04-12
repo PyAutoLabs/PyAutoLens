@@ -31,7 +31,7 @@ from autolens.point.max_separation import (
 )
 from autolens.lens.tracer import Tracer
 from autolens.point.solver import PointSolver
-from autoconf.test_mode import is_test_mode
+from autoconf.test_mode import skip_checks
 
 logger = logging.getLogger(__name__)
 
@@ -304,7 +304,7 @@ class Result(AgResultDataset):
         The `PositionsLH` object used to apply a likelihood penalty or resample the positions.
         """
 
-        if is_test_mode():
+        if skip_checks():
             return
 
         positions = (
