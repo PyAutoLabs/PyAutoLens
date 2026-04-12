@@ -30,11 +30,11 @@ First, update conda:
 
 Next, create a conda environment (we name this ``autolens`` to signify it is for the **PyAutoLens** install):
 
-The command below creates this environment with Python 3.11, the most recent supported version of Python:
+The command below creates this environment with Python 3.12:
 
 .. code-block:: bash
 
-    conda create -n autolens python=3.11
+    conda create -n autolens python=3.12
 
 Activate the conda environment (you will have to do this every time you want to run **PyAutoLens**):
 
