@@ -72,8 +72,7 @@ jobs:
           pip install ./PyAutoConf ./PyAutoFit ./PyAutoArray ./PyAutoGalaxy ./PyAutoLens
           pip install "./PyAutoArray[optional]" "./PyAutoGalaxy[optional]" "./PyAutoLens[optional]"
         else
-          pip install --only-binary :all: scipy numpy matplotlib h5py contourpy
-          pip install ./PyAutoConf ./PyAutoFit ./PyAutoArray ./PyAutoGalaxy ./PyAutoLens
+          pip install --only-binary scipy,numpy,matplotlib,h5py,contourpy ./PyAutoConf ./PyAutoFit ./PyAutoArray ./PyAutoGalaxy ./PyAutoLens
           pip install numba
         fi
     - name: Run tests
