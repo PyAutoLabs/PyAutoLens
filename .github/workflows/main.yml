@@ -6,6 +6,7 @@ jobs:
   unittest:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ['3.12', '3.13']
     steps:
@@ -70,6 +71,8 @@ jobs:
         pip install ./PyAutoConf ./PyAutoFit ./PyAutoArray ./PyAutoGalaxy ./PyAutoLens
         if [ "${{ matrix.python-version }}" = "3.12" ]; then
           pip install "./PyAutoArray[optional]" "./PyAutoGalaxy[optional]" "./PyAutoLens[optional]"
+        else
+          pip install numba pynufft
         fi
     - name: Run tests
       run: |
