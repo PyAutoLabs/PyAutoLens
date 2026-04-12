@@ -6,8 +6,9 @@ jobs:
   unittest:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ['3.12']
+        python-version: ['3.12', '3.13']
     steps:
     - name: Checkout PyAutoConf
       uses: actions/checkout@v2
@@ -67,7 +68,13 @@ jobs:
         pip3 install setuptools
         pip3 install wheel
         pip3 install pytest coverage pytest-cov
-        pip install ./PyAutoConf ./PyAutoFit "./PyAutoArray[optional]" "./PyAutoGalaxy[optional]" "./PyAutoLens[optional]"
+        if [ "${{ matrix.python-version }}" = "3.12" ]; then
+          pip install ./PyAutoConf ./PyAutoFit ./PyAutoArray ./PyAutoGalaxy ./PyAutoLens
+          pip install "./PyAutoArray[optional]" "./PyAutoGalaxy[optional]" "./PyAutoLens[optional]"
+        else
+          pip install ./PyAutoConf ./PyAutoFit ./PyAutoArray ./PyAutoGalaxy ./PyAutoLens
+          pip install numba
+        fi
     - name: Run tests
       run: |
         export ROOT_DIR=`pwd`
