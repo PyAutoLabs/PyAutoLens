@@ -1,4 +1,5 @@
 import copy
+import warnings
 import numpy as np
 import pytest
 
@@ -1098,3 +1099,96 @@ def test__total_mappers__three_pixelizations_across_planes__returns_three(
     fit = al.FitImaging(dataset=masked_imaging_7x7, tracer=tracer)
 
     assert fit.total_mappers == 3
+
+
+def test__mask_padding__off_centre_mask__same_likelihood_as_centred():
+    """
+    When the mask is close to the image edge and the PSF kernel footprint
+    extends beyond the image boundary, the blurring mask is automatically
+    padded. This test verifies that the padded fit produces the same
+    log-likelihood as an equivalent centred fit that requires no padding.
+    """
+    pixel_scales = 0.2
+
+    psf = al.Convolver.from_gaussian(
+        shape_native=(11, 11), pixel_scales=pixel_scales, sigma=0.75, normalize=True
+    )
+
+    lens_galaxy = al.Galaxy(
+        redshift=0.5,
+        light=al.lp.Sersic(
+            centre=(0.0, 0.0), intensity=0.1,
+            effective_radius=0.3, sersic_index=2.0,
+        ),
+        mass=al.mp.Isothermal(centre=(0.0, 0.0), einstein_radius=1.0),
+    )
+    source_galaxy = al.Galaxy(
+        redshift=1.0,
+        light=al.lp.Exponential(
+            centre=(0.0, 0.0), intensity=0.3, effective_radius=0.2,
+        ),
+    )
+    tracer_centred = al.Tracer(galaxies=[lens_galaxy, source_galaxy])
+
+    sim = al.SimulatorImaging(
+        exposure_time=300.0, psf=psf, add_poisson_noise_to_data=False,
+    )
+
+    # --- Centred fit on a large grid: no padding needed ---
+    grid_large = al.Grid2D.uniform(
+        shape_native=(51, 51), pixel_scales=pixel_scales, over_sample_size=1,
+    )
+    dataset_centred = sim.via_tracer_from(tracer=tracer_centred, grid=grid_large)
+    dataset_centred.noise_map = al.Array2D.ones(
+        shape_native=(51, 51), pixel_scales=pixel_scales,
+    )
+    mask_centred = al.Mask2D.circular(
+        shape_native=(51, 51), pixel_scales=pixel_scales,
+        radius=0.6, centre=(0.0, 0.0),
+    )
+    masked_centred = dataset_centred.apply_mask(mask=mask_centred)
+    fit_centred = al.FitImaging(dataset=masked_centred, tracer=tracer_centred)
+
+    # --- Off-centre fit on a small grid: triggers padding ---
+    offset = (0.0, 1.2)
+    lens_off = al.Galaxy(
+        redshift=0.5,
+        light=al.lp.Sersic(
+            centre=offset, intensity=0.1,
+            effective_radius=0.3, sersic_index=2.0,
+        ),
+        mass=al.mp.Isothermal(centre=offset, einstein_radius=1.0),
+    )
+    source_off = al.Galaxy(
+        redshift=1.0,
+        light=al.lp.Exponential(
+            centre=offset, intensity=0.3, effective_radius=0.2,
+        ),
+    )
+    tracer_off = al.Tracer(galaxies=[lens_off, source_off])
+
+    grid_small = al.Grid2D.uniform(
+        shape_native=(21, 21), pixel_scales=pixel_scales, over_sample_size=1,
+    )
+    dataset_off = sim.via_tracer_from(tracer=tracer_off, grid=grid_small)
+    dataset_off.noise_map = al.Array2D.ones(
+        shape_native=(21, 21), pixel_scales=pixel_scales,
+    )
+    mask_off = al.Mask2D.circular(
+        shape_native=(21, 21), pixel_scales=pixel_scales,
+        radius=0.6, centre=offset,
+    )
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        masked_off = dataset_off.apply_mask(mask=mask_off)
+        fit_off = al.FitImaging(dataset=masked_off, tracer=tracer_off)
+        padding_occurred = any("Mask padded" in str(x.message) for x in w)
+
+    assert padding_occurred, "Expected mask padding to be triggered for the off-centre mask"
+
+    assert fit_centred.chi_squared == pytest.approx(0.0, abs=1e-4)
+    assert fit_off.chi_squared == pytest.approx(0.0, abs=1e-4)
+    assert fit_off.log_likelihood == pytest.approx(
+        fit_centred.log_likelihood, abs=1e-4,
+    )
