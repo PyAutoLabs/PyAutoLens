@@ -66,3 +66,7 @@ dev = ["pytest", "black"]
 
 [tool.pytest.ini_options]
 testpaths = ["test_autolens"]
+filterwarnings = [
+    "ignore:cuda_plugin_extension:UserWarning",
+    "ignore::DeprecationWarning:jax",
+]
