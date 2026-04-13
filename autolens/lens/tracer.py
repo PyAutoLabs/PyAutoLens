@@ -233,7 +233,7 @@ class Tracer(ABC, ag.OperateImageGalaxies):
     def total_planes(self) -> int:
         return len(self.plane_redshifts)
 
-    @aa.grid_dec.to_grid
+    @aa.decorators.to_grid
     def traced_grid_2d_list_from(
         self, grid: aa.type.Grid2DLike, xp=np, plane_index_limit: int = Optional[None]
     ) -> List[aa.type.Grid2DLike]:
@@ -475,7 +475,7 @@ class Tracer(ABC, ag.OperateImageGalaxies):
 
         return image_2d_list
 
-    @aa.grid_dec.to_array
+    @aa.decorators.to_array
     def image_2d_from(
         self,
         grid: aa.type.Grid2DLike,
@@ -642,7 +642,7 @@ class Tracer(ABC, ag.OperateImageGalaxies):
 
         return galaxy_image_2d_dict
 
-    @aa.grid_dec.to_vector_yx
+    @aa.decorators.to_vector_yx
     def deflections_yx_2d_from(
         self, grid: aa.type.Grid2DLike, xp=np
     ) -> Union[aa.VectorYX2D, aa.VectorYX2DIrregular]:
@@ -673,7 +673,7 @@ class Tracer(ABC, ag.OperateImageGalaxies):
             return self.deflections_between_planes_from(grid=grid, xp=xp)
         return self.deflections_of_planes_summed_from(grid=grid, xp=xp)
 
-    @aa.grid_dec.to_vector_yx
+    @aa.decorators.to_vector_yx
     def deflections_of_planes_summed_from(
         self, grid: aa.type.Grid2DLike, xp=np
     ) -> Union[aa.VectorYX2D, aa.VectorYX2DIrregular]:
@@ -710,7 +710,7 @@ class Tracer(ABC, ag.OperateImageGalaxies):
             ]
         )
 
-    @aa.grid_dec.to_vector_yx
+    @aa.decorators.to_vector_yx
     def deflections_between_planes_from(
         self, grid: aa.type.Grid2DLike, xp=np, plane_i=0, plane_j=-1
     ) -> Union[aa.VectorYX2D, aa.VectorYX2DIrregular]:
@@ -739,7 +739,7 @@ class Tracer(ABC, ag.OperateImageGalaxies):
 
         return traced_grids_list[plane_i] - traced_grids_list[plane_j]
 
-    @aa.grid_dec.to_array
+    @aa.decorators.to_array
     def convergence_2d_from(self, grid: aa.type.Grid2DLike, xp=np) -> aa.Array2D:
         """
         Returns the summed 2D convergence of all galaxies in the tracer from a 2D grid of Cartesian (y,x) coordinates.
@@ -766,7 +766,7 @@ class Tracer(ABC, ag.OperateImageGalaxies):
             [galaxy.convergence_2d_from(grid=grid, xp=xp) for galaxy in self.galaxies]
         )
 
-    @aa.grid_dec.to_array
+    @aa.decorators.to_array
     def potential_2d_from(self, grid: aa.type.Grid2DLike, xp=np) -> aa.Array2D:
         """
         Returns the summed 2D potential of all galaxies in the tracer from a 2D grid of Cartesian (y,x) coordinates.
@@ -793,7 +793,7 @@ class Tracer(ABC, ag.OperateImageGalaxies):
             [galaxy.potential_2d_from(grid=grid, xp=xp) for galaxy in self.galaxies]
         )
 
-    @aa.grid_dec.to_array
+    @aa.decorators.to_array
     def time_delays_from(self, grid: aa.type.Grid2DLike, xp=np) -> aa.Array2D:
         """
         Returns the gravitational lensing time delay in days, for a grid of 2D (y, x) coordinates.
