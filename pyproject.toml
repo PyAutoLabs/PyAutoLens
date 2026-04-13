@@ -23,12 +23,12 @@ classifiers = [
 ]
 keywords = ["cli"]
 dependencies = [
-    "autogalaxy",
+    "autogalaxy==2026.4.13.3",
     "nautilus-sampler==1.0.5"
 ]
 
 [project.urls]
-Homepage = "https://github.com/Jammy2211/PyAutoLens"
+Homepage = "https://github.com/PyAutoLabs/PyAutoLens"
 
 [tool.setuptools]
 include-package-data = true
