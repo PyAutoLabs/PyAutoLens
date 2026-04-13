@@ -23,7 +23,7 @@ classifiers = [
 ]
 keywords = ["cli"]
 dependencies = [
-    "autogalaxy==2026.4.13.3",
+    "autogalaxy",
     "nautilus-sampler==1.0.5"
 ]
 
