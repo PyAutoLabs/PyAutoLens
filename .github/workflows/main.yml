@@ -13,22 +13,22 @@ jobs:
     - name: Checkout PyAutoConf
       uses: actions/checkout@v2
       with:
-        repository: rhayes777/PyAutoConf
+        repository: PyAutoLabs/PyAutoConf
         path: PyAutoConf
     - name: Checkout PyAutoFit
       uses: actions/checkout@v2
       with:
-        repository: rhayes777/PyAutoFit
+        repository: PyAutoLabs/PyAutoFit
         path: PyAutoFit
     - name: Checkout PyAutoArray
       uses: actions/checkout@v2
       with:
-        repository: Jammy2211/PyAutoArray
+        repository: PyAutoLabs/PyAutoArray
         path: PyAutoArray
     - name: Checkout PyAutoGalaxy
       uses: actions/checkout@v2
       with:
-        repository: Jammy2211/PyAutoGalaxy
+        repository: PyAutoLabs/PyAutoGalaxy
         path: PyAutoGalaxy
     - name: Checkout PyAutoLens
       uses: actions/checkout@v2
