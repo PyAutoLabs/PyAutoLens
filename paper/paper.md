@@ -88,7 +88,7 @@ strong lenses. The API allows users to perform ray-tracing by using analytic lig
 lens systems. Accompanying `PyAutoLens` is the [autolens workspace](https://github.com/Jammy2211/autolens_workspace), which 
 includes example scripts, lens datasets and the `HowToLens`
 lectures in Jupyter notebook format which introduce non-experts to strong lensing using `PyAutoLens`. Readers can 
-try `PyAutoLens` right now by going to [the introduction Jupyter notebook on Binder](https://mybinder.org/v2/gh/Jammy2211/autolens_workspace/release) 
+try `PyAutoLens` right now by going to [the introduction Jupyter notebook on Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.4.13.6/start_here.ipynb) 
 or checkout the [readthedocs](https://pyautolens.readthedocs.io/en/latest/) for a complete overview of `PyAutoLens`'s features.
 
 # Background
@@ -181,7 +181,7 @@ contains example scripts for modeling and simulating strong lenses and tutorials
 interferometer datasets before a `PyAutoLens` analysis. Also included are the `HowToLens` tutorials, a five chapter 
 lecture series composed of over 30 Jupyter notebooks aimed at non-experts, introducing them to strong gravitational 
 lensing, Bayesian inference and teaching them how to use `PyAutoLens` for their scientific study. The lectures 
-are available on our [Binder](https://mybinder.org/v2/gh/Jammy2211/autolens_workspace/HEAD) and may therefore be 
+are available on our [Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.4.13.6/start_here.ipynb) and may therefore be 
 taken without a local `PyAutoLens` installation.
 
 # Software Citations
