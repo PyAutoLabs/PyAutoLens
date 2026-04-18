@@ -1,0 +1,23 @@
+name: URL Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  url_check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          path: repo
+      - name: Checkout PyAutoBuild
+        uses: actions/checkout@v4
+        with:
+          repository: PyAutoLabs/PyAutoBuild
+          ref: main
+          path: PyAutoBuild
+      - name: Run url_check.sh
+        run: bash PyAutoBuild/autobuild/url_check.sh repo
