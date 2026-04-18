@@ -61,5 +61,5 @@ The **HowToLens** lecture series are a collection of Jupyter notebooks describin
 fitting project and giving illustrations of different statistical methods and techniques.
 
 Checkout the
-`tutorials section <file:///Users/Jammy/Code/PyAutoJAX/PyAutoLens/docs/_build/tutorials/howtolens.html>`_ for a
+`tutorials section <file:///Users/Jammy/Code/PyAutoLabs/PyAutoLens/docs/_build/tutorials/howtolens.html>`_ for a
 full description of the lectures and online examples of every notebook.
