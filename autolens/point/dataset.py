@@ -6,18 +6,32 @@ as a point (e.g. a quasar, supernova, or compact radio source).  Gravitational l
 splits the source into multiple images whose positions, fluxes, and time delays constrain
 the lens mass distribution.
 
-Two concrete data classes are provided:
+``PointDataset`` holds the image-plane positions, fluxes, and time delays of a single
+named point source together with their noise maps.  The ``name`` attribute is used to
+pair this dataset with the corresponding ``Point`` model component during fitting.
+When multiple point sources are fitted simultaneously (for example many multiply-imaged
+background sources in a strong-lens cluster) they are collected in a plain Python
+``list`` of ``PointDataset`` objects.
 
-- ``PointDataset`` — holds the image-plane positions, fluxes, and time delays of a
-  single named point source together with their noise maps.  The ``name`` attribute is
-  used to pair this dataset with the corresponding ``Point`` model component during
-  fitting.
-- ``PointDict`` — a dictionary of ``PointDataset`` objects keyed by name, used when
-  multiple point sources (e.g. different background quasars) are fitted simultaneously.
+Two I/O surfaces are supported:
+
+- JSON (via :func:`autoconf.output_to_json` / :func:`autoconf.from_json`) — exact
+  round-trip, one file per ``PointDataset``; the canonical modeling input.
+- CSV (via :meth:`PointDataset.to_csv` / :meth:`PointDataset.from_csv` and the
+  module-level :func:`output_to_csv` / :func:`list_from_csv`) — one row per observed
+  image, grouped by ``name``, so that tens or hundreds of cluster-scale point sources
+  can be edited in a single spreadsheet.
 """
+import csv
+from collections import OrderedDict
 from typing import List, Tuple, Optional, Union
 
 import autoarray as aa
+
+
+_BASE_HEADERS = ["name", "y", "x", "positions_noise"]
+_FLUX_HEADERS = ["flux", "flux_noise"]
+_TIME_DELAY_HEADERS = ["time_delay", "time_delay_noise"]
 
 
 class PointDataset:
@@ -121,3 +135,214 @@ class PointDataset:
         x_min = min(self.positions[:, 1]) - buffer
 
         return [y_min, y_max, x_min, x_max]
+
+    def to_csv(self, file_path: str):
+        """
+        Write this dataset to ``file_path`` as a CSV with one row per image.
+
+        Optional flux / time-delay columns are included only when this dataset carries
+        the corresponding values.  For multi-dataset output use :func:`output_to_csv`.
+        """
+        output_to_csv([self], file_path)
+
+    @classmethod
+    def from_csv(
+        cls, file_path: str, name: Optional[str] = None
+    ) -> "PointDataset":
+        """
+        Load a single ``PointDataset`` from a CSV written by :meth:`to_csv` or
+        :func:`output_to_csv`.
+
+        Parameters
+        ----------
+        file_path
+            Path to a CSV file with at minimum the columns
+            ``name, y, x, positions_noise``.
+        name
+            The ``name`` group to load.  Must be provided when the CSV contains more
+            than one ``name``; when the CSV contains exactly one group it is picked
+            automatically.
+        """
+        datasets = list_from_csv(file_path)
+
+        if not datasets:
+            raise ValueError(
+                f"CSV file {file_path!r} contained no PointDataset rows."
+            )
+
+        if name is None:
+            if len(datasets) > 1:
+                available = [d.name for d in datasets]
+                raise ValueError(
+                    f"CSV file {file_path!r} contains {len(datasets)} groups "
+                    f"({available!r}); pass name= to select one."
+                )
+            return datasets[0]
+
+        for dataset in datasets:
+            if dataset.name == name:
+                return dataset
+
+        available = [d.name for d in datasets]
+        raise ValueError(
+            f"CSV file {file_path!r} has no group named {name!r}. "
+            f"Available groups: {available!r}."
+        )
+
+
+def _optional_values(dataset: PointDataset, attr: str) -> Optional[List[float]]:
+    values = getattr(dataset, attr)
+    if values is None:
+        return None
+    return [float(v) for v in values]
+
+
+def output_to_csv(datasets: List[PointDataset], file_path: str):
+    """
+    Write a list of ``PointDataset`` objects to a single CSV with one row per observed
+    image.
+
+    The base columns (``name, y, x, positions_noise``) are always written.  The
+    optional ``flux``/``flux_noise`` and ``time_delay``/``time_delay_noise`` columns
+    are included when *any* dataset in ``datasets`` carries those values; datasets
+    that do not carry them leave those cells blank.
+
+    This is the hand-editable / spreadsheet form preferred for strong-lens cluster
+    workflows with tens or hundreds of multiply-imaged sources.  For exact
+    round-trip serialisation use ``output_to_json`` / ``from_json``.
+    """
+    include_flux = any(d.fluxes is not None for d in datasets)
+    include_time_delay = any(d.time_delays is not None for d in datasets)
+
+    headers = list(_BASE_HEADERS)
+    if include_flux:
+        headers += _FLUX_HEADERS
+    if include_time_delay:
+        headers += _TIME_DELAY_HEADERS
+
+    with open(file_path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=headers)
+        writer.writeheader()
+
+        for dataset in datasets:
+            positions = dataset.positions
+            positions_noise = _optional_values(dataset, "positions_noise_map")
+            fluxes = _optional_values(dataset, "fluxes")
+            fluxes_noise = _optional_values(dataset, "fluxes_noise_map")
+            time_delays = _optional_values(dataset, "time_delays")
+            time_delays_noise = _optional_values(dataset, "time_delays_noise_map")
+
+            for i in range(len(positions)):
+                row = {
+                    "name": dataset.name,
+                    "y": float(positions[i][0]),
+                    "x": float(positions[i][1]),
+                    "positions_noise": positions_noise[i],
+                }
+                if include_flux:
+                    row["flux"] = "" if fluxes is None else fluxes[i]
+                    row["flux_noise"] = (
+                        "" if fluxes_noise is None else fluxes_noise[i]
+                    )
+                if include_time_delay:
+                    row["time_delay"] = (
+                        "" if time_delays is None else time_delays[i]
+                    )
+                    row["time_delay_noise"] = (
+                        "" if time_delays_noise is None else time_delays_noise[i]
+                    )
+                writer.writerow(row)
+
+
+def _float_column(
+    group_rows: List[dict], column: str, group_name: str
+) -> Optional[List[float]]:
+    raw = [row.get(column, "") for row in group_rows]
+    populated = [v for v in raw if v not in ("", None)]
+
+    if not populated:
+        return None
+
+    if len(populated) != len(raw):
+        raise ValueError(
+            f"CSV group {group_name!r} has partially populated column "
+            f"{column!r}; every row in the group must have a value or all be blank."
+        )
+
+    return [float(v) for v in raw]
+
+
+def list_from_csv(file_path: str) -> List[PointDataset]:
+    """
+    Load a list of ``PointDataset`` objects from a CSV written by
+    :func:`output_to_csv` (or :meth:`PointDataset.to_csv`).
+
+    Rows are grouped by their ``name`` column — one ``PointDataset`` per distinct
+    name, preserving the order of first appearance.  Optional columns
+    (``flux``/``flux_noise``, ``time_delay``/``time_delay_noise``) are carried through
+    per-group: if every row in a group populates the column the values are loaded,
+    if every row leaves it blank the corresponding attribute is set to ``None``, and
+    any partial-population is rejected with a ``ValueError``.
+    """
+    with open(file_path, newline="") as f:
+        reader = csv.DictReader(f)
+        headers = reader.fieldnames or []
+        rows = list(reader)
+
+    for required in _BASE_HEADERS:
+        if required not in headers:
+            raise ValueError(
+                f"CSV file {file_path!r} is missing required column {required!r}; "
+                f"expected headers starting with {_BASE_HEADERS!r}."
+            )
+
+    groups: "OrderedDict[str, List[dict]]" = OrderedDict()
+    for row in rows:
+        groups.setdefault(row["name"], []).append(row)
+
+    has_flux_column = "flux" in headers
+    has_flux_noise_column = "flux_noise" in headers
+    has_time_delay_column = "time_delay" in headers
+    has_time_delay_noise_column = "time_delay_noise" in headers
+
+    datasets: List[PointDataset] = []
+    for name, group_rows in groups.items():
+        positions = [(float(r["y"]), float(r["x"])) for r in group_rows]
+        positions_noise_map = [
+            float(r["positions_noise"]) for r in group_rows
+        ]
+
+        fluxes = (
+            _float_column(group_rows, "flux", name)
+            if has_flux_column
+            else None
+        )
+        fluxes_noise_map = (
+            _float_column(group_rows, "flux_noise", name)
+            if has_flux_noise_column
+            else None
+        )
+        time_delays = (
+            _float_column(group_rows, "time_delay", name)
+            if has_time_delay_column
+            else None
+        )
+        time_delays_noise_map = (
+            _float_column(group_rows, "time_delay_noise", name)
+            if has_time_delay_noise_column
+            else None
+        )
+
+        datasets.append(
+            PointDataset(
+                name=name,
+                positions=positions,
+                positions_noise_map=positions_noise_map,
+                fluxes=fluxes,
+                fluxes_noise_map=fluxes_noise_map,
+                time_delays=time_delays,
+                time_delays_noise_map=time_delays_noise_map,
+            )
+        )
+
+    return datasets
