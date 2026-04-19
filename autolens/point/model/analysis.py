@@ -151,6 +151,10 @@ class AnalysisPoint(AgAnalysis, AnalysisLens):
         -------
         The fit of the lens model to the point source dataset.
         """
+
+        if self._use_jax:
+            self._register_fit_point_pytrees()
+
         tracer = self.tracer_via_instance_from(
             instance=instance,
         )
@@ -162,6 +166,45 @@ class AnalysisPoint(AgAnalysis, AnalysisLens):
             fit_positions_cls=self.fit_positions_cls,
             xp=self._xp,
         )
+
+    @staticmethod
+    def _register_fit_point_pytrees() -> None:
+        """Register every type reachable from a ``FitPointDataset`` return value
+        so ``jax.jit(fit_from)`` can flatten its output.
+
+        ``dataset`` and ``solver`` are constants per analysis — ride as aux so
+        JAX does not recurse into them. ``fit_positions_cls`` is a class reference
+        (not a value) so must also ride as aux. ``tracer`` is dynamic per fit.
+        """
+        from autoarray.abstract_ndarray import register_instance_pytree
+        from autolens.lens.tracer import Tracer
+        from autolens.point.fit.positions.image.pair_all import FitPositionsImagePairAll
+        from autolens.point.fit.positions.image.pair_repeat import FitPositionsImagePairRepeat
+        from autolens.point.fit.positions.image.pair import FitPositionsImagePair
+        import autogalaxy as ag
+
+        register_instance_pytree(
+            FitPointDataset,
+            no_flatten=("dataset", "solver", "fit_positions_cls"),
+        )
+        register_instance_pytree(Tracer, no_flatten=("cosmology",))
+        # fit-point-pytree: observed data/noise are per-analysis constants; solver/name/use_jax are non-JAX
+        register_instance_pytree(
+            FitPositionsImagePairAll,
+            no_flatten=("solver", "name", "use_jax", "_data", "_noise_map"),
+        )
+        # fit-point-pytree
+        register_instance_pytree(
+            FitPositionsImagePairRepeat,
+            no_flatten=("solver", "name", "use_jax", "_data", "_noise_map"),
+        )
+        # fit-point-pytree
+        register_instance_pytree(
+            FitPositionsImagePair,
+            no_flatten=("solver", "name", "use_jax", "_data", "_noise_map"),
+        )
+        # fit-point-pytree: ag.ps.Point / PointFlux are handled by
+        # autofit.jax.pytrees.register_model before jit is called; skip here.
 
     def save_attributes(self, paths: af.DirectoryPaths):
         """
