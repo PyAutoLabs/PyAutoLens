@@ -94,7 +94,7 @@ class VisualizerImaging(af.Visualizer):
             An instance of the model that is being fitted to the data by this analysis (whose parameters have been set
             via a non-linear search).
         """
-        fit = analysis.fit_from(instance=instance)
+        fit = analysis.fit_for_visualization(instance=instance)
         tracer = fit.tracer_linear_light_profiles_to_light_profiles
 
         plotter = PlotterImaging(
@@ -236,7 +236,7 @@ class VisualizerImaging(af.Visualizer):
         )
 
         fit_list = [
-            analysis.fit_from(instance=single_instance)
+            analysis.fit_for_visualization(instance=single_instance)
             for analysis, single_instance in zip(analyses, instance)
         ]
 
