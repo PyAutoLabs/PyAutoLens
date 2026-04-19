@@ -22,8 +22,7 @@ Two I/O surfaces are supported:
   image, grouped by ``name``, so that tens or hundreds of cluster-scale point sources
   can be edited in a single spreadsheet.
 """
-import csv
-from collections import OrderedDict
+from autoconf import csvable
 from typing import List, Tuple, Optional, Union
 
 import autoarray as aa
@@ -220,38 +219,37 @@ def output_to_csv(datasets: List[PointDataset], file_path: str):
     if include_time_delay:
         headers += _TIME_DELAY_HEADERS
 
-    with open(file_path, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=headers)
-        writer.writeheader()
+    rows = []
+    for dataset in datasets:
+        positions = dataset.positions
+        positions_noise = _optional_values(dataset, "positions_noise_map")
+        fluxes = _optional_values(dataset, "fluxes")
+        fluxes_noise = _optional_values(dataset, "fluxes_noise_map")
+        time_delays = _optional_values(dataset, "time_delays")
+        time_delays_noise = _optional_values(dataset, "time_delays_noise_map")
 
-        for dataset in datasets:
-            positions = dataset.positions
-            positions_noise = _optional_values(dataset, "positions_noise_map")
-            fluxes = _optional_values(dataset, "fluxes")
-            fluxes_noise = _optional_values(dataset, "fluxes_noise_map")
-            time_delays = _optional_values(dataset, "time_delays")
-            time_delays_noise = _optional_values(dataset, "time_delays_noise_map")
+        for i in range(len(positions)):
+            row = {
+                "name": dataset.name,
+                "y": float(positions[i][0]),
+                "x": float(positions[i][1]),
+                "positions_noise": positions_noise[i],
+            }
+            if include_flux:
+                row["flux"] = "" if fluxes is None else fluxes[i]
+                row["flux_noise"] = (
+                    "" if fluxes_noise is None else fluxes_noise[i]
+                )
+            if include_time_delay:
+                row["time_delay"] = (
+                    "" if time_delays is None else time_delays[i]
+                )
+                row["time_delay_noise"] = (
+                    "" if time_delays_noise is None else time_delays_noise[i]
+                )
+            rows.append(row)
 
-            for i in range(len(positions)):
-                row = {
-                    "name": dataset.name,
-                    "y": float(positions[i][0]),
-                    "x": float(positions[i][1]),
-                    "positions_noise": positions_noise[i],
-                }
-                if include_flux:
-                    row["flux"] = "" if fluxes is None else fluxes[i]
-                    row["flux_noise"] = (
-                        "" if fluxes_noise is None else fluxes_noise[i]
-                    )
-                if include_time_delay:
-                    row["time_delay"] = (
-                        "" if time_delays is None else time_delays[i]
-                    )
-                    row["time_delay_noise"] = (
-                        "" if time_delays_noise is None else time_delays_noise[i]
-                    )
-                writer.writerow(row)
+    csvable.output_to_csv(rows, file_path, headers=headers)
 
 
 def _float_column(
@@ -284,10 +282,12 @@ def list_from_csv(file_path: str) -> List[PointDataset]:
     if every row leaves it blank the corresponding attribute is set to ``None``, and
     any partial-population is rejected with a ``ValueError``.
     """
-    with open(file_path, newline="") as f:
-        reader = csv.DictReader(f)
-        headers = reader.fieldnames or []
-        rows = list(reader)
+    rows = csvable.list_from_csv(file_path)
+
+    if not rows:
+        return []
+
+    headers = list(rows[0].keys())
 
     for required in _BASE_HEADERS:
         if required not in headers:
@@ -296,7 +296,7 @@ def list_from_csv(file_path: str) -> List[PointDataset]:
                 f"expected headers starting with {_BASE_HEADERS!r}."
             )
 
-    groups: "OrderedDict[str, List[dict]]" = OrderedDict()
+    groups: "dict[str, List[dict]]" = {}
     for row in rows:
         groups.setdefault(row["name"], []).append(row)
 
