@@ -109,8 +109,8 @@ def test__lp_linear_func_galaxy_dict_from(masked_imaging_7x7):
 
     assert lp_linear_func_list[0].light_profile_list[0] == lp_linear_0
     assert lp_linear_func_list[0].light_profile_list[1] == lp_linear_1
-    assert lp_linear_func_list[1].light_profile_list[0] == lp_linear_3
-    assert lp_linear_func_list[2].light_profile_list[0] == lp_linear_4
+    assert lp_linear_func_list[1].light_profile_list[0] == lp_linear_2
+    assert lp_linear_func_list[2].light_profile_list[0] == lp_linear_3
 
 
 def test__cls_pg_list_from(masked_imaging_7x7, grid_2d_7x7):
