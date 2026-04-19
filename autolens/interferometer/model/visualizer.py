@@ -93,7 +93,7 @@ class VisualizerInterferometer(af.Visualizer):
             An instance of the model that is being fitted to the data by this analysis (whose parameters have been set
             via a non-linear search).
         """
-        fit = analysis.fit_from(instance=instance)
+        fit = analysis.fit_for_visualization(instance=instance)
         tracer = fit.tracer_linear_light_profiles_to_light_profiles
 
         plotter = PlotterInterferometer(
