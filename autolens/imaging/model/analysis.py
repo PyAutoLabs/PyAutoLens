@@ -108,6 +108,9 @@ class AnalysisImaging(AnalysisDataset):
             The fit of the plane to the imaging dataset, which includes the log likelihood.
         """
 
+        if self._use_jax:
+            self._register_fit_imaging_pytrees()
+
         tracer = self.tracer_via_instance_from(
             instance=instance,
         )
@@ -124,4 +127,26 @@ class AnalysisImaging(AnalysisDataset):
             settings=self.settings,
             xp=self._xp
         )
+
+    @staticmethod
+    def _register_fit_imaging_pytrees() -> None:
+        """Register every type reachable from a ``FitImaging`` return value
+        so ``jax.jit(fit_from)`` can flatten its output.
+
+        ``dataset``, ``adapt_images`` and ``settings`` are constants per
+        analysis — ride as aux so JAX does not recurse into them. Everything
+        else (``tracer``, ``dataset_model`` and the autoarray wrappers they
+        carry) is dynamic per fit.
+        """
+        from autoarray.abstract_ndarray import register_instance_pytree
+        from autoarray.dataset.dataset_model import DatasetModel
+        from autolens.lens.tracer import Tracer
+
+        register_instance_pytree(
+            FitImaging,
+            no_flatten=("dataset", "adapt_images", "settings"),
+        )
+        register_instance_pytree(DatasetModel)
+        # ``cosmology`` is a fixed physical constant per fit; ride as aux.
+        register_instance_pytree(Tracer, no_flatten=("cosmology",))
 

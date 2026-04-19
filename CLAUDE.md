@@ -121,9 +121,9 @@ The `xp` parameter pattern controls the backend:
 
 ### JAX and the `jax.jit` boundary
 
-Autoarray types (`Array2D`, `ArrayIrregular`, `VectorYX2DIrregular`, etc.) are **not registered as JAX pytrees**. They can be constructed inside a JIT trace, but **cannot be returned** as the output of a `jax.jit`-compiled function.
+Two patterns coexist for crossing the JIT boundary:
 
-Functions intended to be called directly inside `jax.jit` must guard autoarray wrapping with `if xp is np:`:
+**Pattern 1: `if xp is np:` guard (raw `jax.Array` return).** Functions intended to be called directly inside `jax.jit` as the outermost op — where no wrapper is needed on the JAX path — guard their autoarray wrapping:
 
 ```python
 def convergence_2d_via_hessian_from(self, grid, xp=np):
@@ -134,7 +134,9 @@ def convergence_2d_via_hessian_from(self, grid, xp=np):
     return convergence                                  # jax: raw jax.Array
 ```
 
-Functions that are only called as intermediate steps (e.g. `deflections_yx_2d_from`) do not need this guard — they are consumed by downstream Python before the JIT boundary.
+All `LensCalc` hessian-derived methods use this pattern. Intermediate helpers (e.g. `deflections_yx_2d_from`) don't need the guard — they're consumed by downstream Python before the JIT boundary.
+
+**Pattern 2: pytree-registered wrapper return.** Functions that must return a real autoarray wrapper (or a structured object built from them) opt in to JAX pytree registration. `AbstractNDArray` auto-registers its subclass with `jax.tree_util` the first time an instance is built with `xp=jnp` (via `autoarray.abstract_ndarray._register_as_pytree`). Higher-level types (`FitImaging`, `Tracer`, `DatasetModel`) use `autoarray.abstract_ndarray.register_instance_pytree(cls, no_flatten=...)`, which flattens `__dict__` and carries `no_flatten` names through `aux_data` for per-analysis constants (dataset, settings, cosmology). `AnalysisImaging._register_fit_imaging_pytrees` wires these up when `use_jax=True`, so `jax.jit(analysis.fit_from)(instance)` returns a real `FitImaging` with `jax.Array` leaves.
 
 ### `LensCalc` (autogalaxy)
 
