@@ -101,6 +101,8 @@ from .interferometer.fit_interferometer import FitInterferometer
 from .interferometer.model.analysis import AnalysisInterferometer
 from .interferometer.model.visualizer import VisualizerInterferometer
 from .point.dataset import PointDataset
+from .point.dataset import list_from_csv
+from .point.dataset import output_to_csv
 from .point.fit.dataset import FitPointDataset
 from .point.fit.fluxes import FitFluxes
 from .point.fit.times_delays import FitTimeDelays
