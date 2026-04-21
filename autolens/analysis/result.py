@@ -104,7 +104,7 @@ class Result(AgResultDataset):
         grid = self.analysis.dataset.mask.derive_grid.all_false
 
         solver = PointSolver.for_grid(
-            grid=grid, pixel_scale_precision=0.001, xp=self.analysis._xp
+            grid=grid, pixel_scale_precision=0.001
         )
 
         source_plane_centre = self.source_plane_centre_from(
@@ -114,6 +114,7 @@ class Result(AgResultDataset):
         multiple_images = solver.solve(
             tracer=self.max_log_likelihood_tracer,
             source_plane_coordinate=source_plane_centre.in_list[0],
+            xp=self.analysis._xp,
             plane_redshift=plane_redshift,
         )
 
@@ -166,7 +167,7 @@ class Result(AgResultDataset):
         centre = self.source_plane_centre_from(plane_redshift=plane_redshift).in_list[0]
 
         solver = PointSolver.for_grid(
-            grid=grid, pixel_scale_precision=0.001, xp=self.analysis._xp
+            grid=grid, pixel_scale_precision=0.001
         )
 
         for i in range(1, increments):
@@ -175,6 +176,7 @@ class Result(AgResultDataset):
             multiple_images = solver.solve(
                 tracer=self.max_log_likelihood_tracer,
                 source_plane_coordinate=(centre[0] * factor, centre[1] * factor),
+                xp=self.analysis._xp,
                 plane_redshift=plane_redshift,
             )
 
