@@ -57,9 +57,10 @@ See `here <https://pyautolens.readthedocs.io/en/latest/advanced/slam.html>`_ for
 HowToLens
 ---------
 
-The **HowToLens** lecture series are a collection of Jupyter notebooks describing how to build a **PyAutoLens** model
-fitting project and giving illustrations of different statistical methods and techniques.
+The **HowToLens** lecture series is a collection of Jupyter notebooks describing how to build a **PyAutoLens** model
+fitting project and giving illustrations of different statistical methods and techniques. It ships as a standalone
+repository at `PyAutoLabs/HowToLens <https://github.com/PyAutoLabs/HowToLens>`_ (separate from the workspace).
 
 Checkout the
-`tutorials section <file:///Users/Jammy/Code/PyAutoLabs/PyAutoLens/docs/_build/tutorials/howtolens.html>`_ for a
+`tutorials section <https://pyautolens.readthedocs.io/en/latest/howtolens/howtolens.html>`_ for a
 full description of the lectures and online examples of every notebook.

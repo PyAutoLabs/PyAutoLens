@@ -3,8 +3,8 @@
 HowToLens Lectures
 ==================
 
-The best way to learn **PyAutoLens** is by going through the **HowToLens** lecture series on the
-`autolens workspace <https://github.com/Jammy2211/autolens_workspace>`_.
+The best way to learn **PyAutoLens** is by going through the **HowToLens** lecture series, which lives in its own
+repository at `PyAutoLabs/HowToLens <https://github.com/PyAutoLabs/HowToLens>`_.
 
 The lectures are provided as Jupyter notebooks (and Python scripts), and they are linked to via this readthedocs. The
 lectures are composed of five chapters
@@ -23,7 +23,8 @@ later chapters are pretty challenging, and familiarity and lens modeling is desi
 tackle them.
 
 Therefore, we recommend that you complete chapters 1 & 2 and then apply what you've learnt to the modeling of simulated
-and real strong lenses imaging, using the scripts found in the 'autolens_workspace' `modeling` packages. Once you're
+and real strong lenses imaging, using the scripts found in the
+`autolens_workspace <https://github.com/PyAutoLabs/autolens_workspace>`_ ``modeling`` packages. Once you're
 confident with your use of **PyAutoLens**, you can then begin to cover the advanced functionality covered in chapters
 3, 4 & 5.
 
@@ -57,8 +58,8 @@ Notebooks are a different way to write, view and use Python code. Compared to th
 This makes them an ideal way for us to present the HowToFit lecture series, therefore I recommend you get yourself
 a Jupyter notebook viewer (https://jupyter.org/) if you haven't done so already.
 
-If you *really* want to use Python scripts, all tutorials are supplied a .py python files in the 'scripts' folder of
-the workspace.
+If you *really* want to use Python scripts, all tutorials are also supplied as ``.py`` files in the ``scripts`` folder
+of the `HowToLens repository <https://github.com/PyAutoLabs/HowToLens>`_.
 
 Code Style and Formatting
 -------------------------

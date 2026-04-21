@@ -61,7 +61,9 @@ The following links are useful for new starters:
 
 - `The introduction Jupyter Notebook on Google Colab <https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.4.13.6/start_here.ipynb>`_: try **PyAutoLens** in a web browser (without installation).
 
-- `The autolens_workspace GitHub repository <https://github.com/Jammy2211/autolens_workspace>`_: example scripts and the HowToLens Jupyter notebook lectures.
+- `The autolens_workspace GitHub repository <https://github.com/PyAutoLabs/autolens_workspace>`_: example scripts covering every **PyAutoLens** use case.
+
+- `The HowToLens GitHub repository <https://github.com/PyAutoLabs/HowToLens>`_: a Jupyter notebook lecture series teaching strong lensing and lens modeling from the ground up.
 
 Community & Support
 -------------------
@@ -80,7 +82,7 @@ For users less familiar with gravitational lensing, Bayesian inference and scien
 you may wish to read through the **HowToLens** lectures. These teach you the basic principles of gravitational lensing
 and Bayesian inference, with the content pitched at undergraduate level and above.
 
-A complete overview of the lectures `is provided on the HowToLens readthedocs page <https://pyautolens.readthedocs.io/en/latest/howtolens/howtolens.html>`_.
+A complete overview of the lectures `is provided on the HowToLens readthedocs page <https://pyautolens.readthedocs.io/en/latest/howtolens/howtolens.html>`_, and the notebooks themselves live in the `PyAutoLabs/HowToLens <https://github.com/PyAutoLabs/HowToLens>`_ repository.
 
 Citations
 ---------

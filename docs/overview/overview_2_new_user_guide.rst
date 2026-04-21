@@ -78,7 +78,7 @@ used in modeling and ultimately will allow you to undertake scientific research 
 To complete thoroughly, they'll probably take 2-4 days, so you may want try moving ahead to the examples but can
 go back to these lectures if you find them hard to follow.
 
-If this sounds like it suits you, checkout the `HowToLens <https://github.com/Jammy2211/autolens_workspace/tree/release/notebooks/howtolens>`_ package now.
+If this sounds like it suits you, checkout the `HowToLens <https://github.com/PyAutoLabs/HowToLens>`_ repository now.
 
 Wrap Up
 -------
