@@ -36,6 +36,7 @@ class PointSolver(AbstractSolver):
         self,
         tracer: Tracer,
         source_plane_coordinate: Tuple[float, float],
+        xp=np,
         plane_redshift: Optional[float] = None,
         remove_infinities: bool = True,
     ) -> aa.Grid2DIrregular:
@@ -57,11 +58,14 @@ class PointSolver(AbstractSolver):
 
         Parameters
         ----------
+        tracer
+            The tracer that traces the image plane coordinates to the source plane.
         source_plane_coordinate
             The plane coordinate to trace to the image plane, which by default in the source-plane coordinate
             but could be a coordinate in another plane is `plane_redshift` is input.
-        tracer
-            The tracer that traces the image plane coordinates to the source plane
+        xp
+            The array module (``numpy`` or ``jax.numpy``) the solve runs in. ``AnalysisPoint``
+            passes ``jax.numpy`` when ``use_jax=True`` is set on the analysis.
         plane_redshift
             The redshift of the plane coordinate, which for multi-plane systems may not be the source-plane.
 
@@ -73,23 +77,24 @@ class PointSolver(AbstractSolver):
         kept_triangles = super().solve_triangles(
             tracer=tracer,
             shape=Point(*source_plane_coordinate),
+            xp=xp,
             plane_redshift=plane_redshift,
         )
 
         filtered_means = self._filter_low_magnification(
-            tracer=tracer, points=kept_triangles.means
+            tracer=tracer, points=kept_triangles.means, xp=xp
         )
 
         solution = aa.Grid2DIrregular(
-            [pair for pair in filtered_means], xp=self._xp
+            [pair for pair in filtered_means], xp=xp
         ).array
 
-        is_nan = self._xp.isnan(solution).any(axis=1)
-        sentinel = self._xp.full_like(solution[0], fill_value=self._xp.inf)
-        solution = self._xp.where(is_nan[:, None], sentinel, solution)
+        is_nan = xp.isnan(solution).any(axis=1)
+        sentinel = xp.full_like(solution[0], fill_value=xp.inf)
+        solution = xp.where(is_nan[:, None], sentinel, solution)
 
         if remove_infinities:
 
-            solution = solution[~self._xp.isinf(solution).any(axis=1)]
+            solution = solution[~xp.isinf(solution).any(axis=1)]
 
         return aa.Grid2DIrregular(solution)
