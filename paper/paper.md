@@ -85,9 +85,9 @@ matter, cosmology and the most distant Universe. `PyAutoLens` is an open-source 
 gravitational lensing, with core features including fully automated strong lens modeling of galaxies and galaxy 
 clusters, support for direct imaging and interferometer datasets and comprehensive tools for simulating samples of 
 strong lenses. The API allows users to perform ray-tracing by using analytic light and mass profiles to build strong 
-lens systems. Accompanying `PyAutoLens` is the [autolens workspace](https://github.com/Jammy2211/autolens_workspace), which 
-includes example scripts, lens datasets and the `HowToLens`
-lectures in Jupyter notebook format which introduce non-experts to strong lensing using `PyAutoLens`. Readers can 
+lens systems. Accompanying `PyAutoLens` is the [autolens workspace](https://github.com/PyAutoLabs/autolens_workspace), which 
+includes example scripts and lens datasets covering every use case. The [`HowToLens`](https://github.com/PyAutoLabs/HowToLens)
+repository provides a separate Jupyter notebook lecture series which introduces non-experts to strong lensing using `PyAutoLens`. Readers can 
 try `PyAutoLens` right now by going to [the introduction Jupyter notebook on Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.4.13.6/start_here.ipynb) 
 or checkout the [readthedocs](https://pyautolens.readthedocs.io/en/latest/) for a complete overview of `PyAutoLens`'s features.
 
@@ -176,13 +176,14 @@ provided on how to set this up.
  
 # Workspace and HowToLens Tutorials
 
-`PyAutoLens` is distributed with the [autolens workspace](https://github.com/Jammy2211/autolens_workspace>), which 
+`PyAutoLens` is distributed with the [autolens workspace](https://github.com/PyAutoLabs/autolens_workspace), which 
 contains example scripts for modeling and simulating strong lenses and tutorials on how to preprocess imaging and 
-interferometer datasets before a `PyAutoLens` analysis. Also included are the `HowToLens` tutorials, a five chapter 
-lecture series composed of over 30 Jupyter notebooks aimed at non-experts, introducing them to strong gravitational 
-lensing, Bayesian inference and teaching them how to use `PyAutoLens` for their scientific study. The lectures 
-are available on our [Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.4.13.6/start_here.ipynb) and may therefore be 
-taken without a local `PyAutoLens` installation.
+interferometer datasets before a `PyAutoLens` analysis. The [`HowToLens`](https://github.com/PyAutoLabs/HowToLens)
+tutorials — a standalone repository separate from the workspace — are a five chapter lecture series composed of over
+30 Jupyter notebooks aimed at non-experts, introducing them to strong gravitational lensing, Bayesian inference and
+teaching them how to use `PyAutoLens` for their scientific study. The lectures are available on
+[Colab](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.4.13.6/notebooks/chapter_1_introduction/tutorial_1_grids_and_galaxies.ipynb)
+and may therefore be taken without a local `PyAutoLens` installation.
 
 # Software Citations
 
