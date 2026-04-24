@@ -1206,6 +1206,15 @@ class Tracer(ABC, ag.OperateImageGalaxies):
             The psf of the simulated imaging which can change the S/N of the light profile due to spreading out
             the emission.
         """
+        has_snr_profile = any(
+            isinstance(light_profile, LightProfileSNR)
+            for galaxies in self.planes
+            for galaxy in galaxies
+            for light_profile in galaxy.cls_list_from(cls=ag.LightProfile)
+        )
+        if not has_snr_profile:
+            return
+
         grid = aa.Grid2D.uniform(
             shape_native=grid.shape_native,
             pixel_scales=grid.pixel_scales,
