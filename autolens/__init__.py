@@ -117,6 +117,8 @@ from .point.solver import PointSolver
 from .point.solver.shape_solver import ShapeSolver
 from .quantity.fit_quantity import FitQuantity
 from .quantity.model.analysis import AnalysisQuantity
+from .weak.dataset import WeakDataset
+from .weak.simulator import SimulatorShearYX
 
 from . import exc
 from . import mock as m
