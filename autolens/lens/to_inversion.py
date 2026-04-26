@@ -270,24 +270,12 @@ class TracerToInversion(ag.AbstractToInversion):
                 )
 
                 for galaxy in galaxies_with_pixelization_list:
-                    try:
-                        image = self.adapt_images.galaxy_image_dict[galaxy]
-                    except (AttributeError, KeyError, TypeError):
+                    if self.adapt_images is None:
                         image = None
-
-                    # Bug fix whereby for certain models the galaxy doesnt pair correctly.
-
-                    if image is None and len(galaxies_with_pixelization_list) == 1:
-                        galaxy_list = self.adapt_images.galaxy_image_dict.keys()
-                        galaxy_with_pixelization = [
-                            galaxy
-                            for galaxy in galaxy_list
-                            if galaxy.has(cls=aa.Pixelization)
-                        ][0]
-
-                        image = self.adapt_images.galaxy_image_dict[
-                            galaxy_with_pixelization
-                        ]
+                    else:
+                        image = self.adapt_images.image_for_galaxy(
+                            galaxy, self.tracer.galaxies
+                        )
 
                     plane_image_list.append(image)
 
@@ -330,6 +318,7 @@ class TracerToInversion(ag.AbstractToInversion):
                 adapt_images=self.adapt_images,
                 settings=self.settings,
                 xp=self._xp,
+                path_galaxies=self.tracer.galaxies,
             )
 
             image_plane_mesh_grid_list = to_inversion.image_plane_mesh_grid_list

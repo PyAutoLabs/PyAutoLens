@@ -180,7 +180,9 @@ class AnalysisInterferometer(AnalysisDataset):
             instance=instance,
         )
 
-        adapt_images = self.adapt_images_via_instance_from(instance=instance)
+        adapt_images = self.adapt_images_via_instance_from(
+            instance=instance, galaxies=tracer.galaxies
+        )
 
         return FitInterferometer(
             dataset=self.dataset,
