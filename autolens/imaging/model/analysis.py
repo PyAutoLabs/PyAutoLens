@@ -117,7 +117,9 @@ class AnalysisImaging(AnalysisDataset):
 
         dataset_model = self.dataset_model_via_instance_from(instance=instance)
 
-        adapt_images = self.adapt_images_via_instance_from(instance=instance)
+        adapt_images = self.adapt_images_via_instance_from(
+            instance=instance, galaxies=tracer.galaxies
+        )
 
         return FitImaging(
             dataset=self.dataset,
