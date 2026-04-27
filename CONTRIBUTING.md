@@ -10,6 +10,25 @@ This project uses an AI-first development workflow. Most features, bug fixes, an
 
 3. **Human review** — All AI-generated pull requests are reviewed by maintainers before merging.
 
+## Maintainer Workflow
+
+Maintainer-driven dev work starts as a prompt file in
+**[PyAutoPrompt](https://github.com/PyAutoLabs/PyAutoPrompt)** — the public
+workflow repo that hosts the PyAuto task registry and the prompt-coupled
+Claude Code skills. The pipeline:
+
+1. Write the task as `PyAutoPrompt/<category>/<name>.md` (free-form markdown
+   describing what to do, with `@RepoName/path/to/file.py` references).
+2. `/start_dev <category>/<name>.md` — reads the prompt, audits the code,
+   drafts the GitHub issue you see in this repo, and files it.
+3. `/start_library` or `/start_workspace` — opens a feature worktree under
+   `~/Code/PyAutoLabs-wt/<task-name>/`.
+4. `/ship_library` / `/ship_workspace` — runs tests, opens the PR, and
+   tracks state in `PyAutoPrompt/active.md`.
+
+External contributors don't need PyAutoPrompt access — open an issue using
+the templates in this repo and the same machinery handles it on our end.
+
 ## Creating an Issue
 
 When opening an issue, please use the provided issue templates. The **Feature / Task Request** template follows our standard format:
