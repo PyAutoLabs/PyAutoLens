@@ -17,6 +17,7 @@ sentinel value ``inf`` for JAX compatibility — these ``inf`` entries are strip
 default but can be retained for use inside a ``jax.jit``-traced function.
 """
 import logging
+import os
 from typing import Tuple, Optional
 
 import numpy as np
@@ -73,7 +74,22 @@ class PointSolver(AbstractSolver):
         -------
         A ``Grid2DIrregular`` of image-plane coordinates, always numpy-backed even when the
         solver uses a JAX backend internally.
+
+        Notes
+        -----
+        Smoke-test short-circuit (``PYAUTO_SMALL_DATASETS``): the triangle-tiling solve
+        is the dominant cost in many simulator scripts and is meaningless on the
+        downsized grids used for fast smoke tests. When ``PYAUTO_SMALL_DATASETS=1`` is
+        set the solver returns the fixed pair ``[(1.0, 0.0), (0.0, 1.0)]`` immediately,
+        skipping ``solve_triangles`` entirely. The two coordinates are well separated
+        so any downstream ``positions_likelihood_from`` / threshold calculation behaves
+        normally. ``PYAUTO_SMALL_DATASETS`` is a smoke-test-only flag and is never set
+        inside a ``jax.jit`` trace, so a plain numpy-backed ``Grid2DIrregular`` is safe
+        here even when the surrounding analysis uses ``xp=jnp``.
         """
+        if os.environ.get("PYAUTO_SMALL_DATASETS") == "1":
+            return aa.Grid2DIrregular(values=[(1.0, 0.0), (0.0, 1.0)])
+
         kept_triangles = super().solve_triangles(
             tracer=tracer,
             shape=Point(*source_plane_coordinate),
