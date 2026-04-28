@@ -1,0 +1,80 @@
+{
+    "description": "Release of PyAutoLens, open-source software for strong gravitational lens modeling.",
+    "license": "other-open",
+    "title": "PyAutoLens: Open-Source Strong Gravitational Lensing",
+    "upload_type": "software",
+    "creators": [
+        {
+            "affiliation": "Institute for Computational Cosmology, Stockton Rd, Durham DH1 3LE",
+            "name": "James W. Nightingale"
+        },
+        {
+            "affiliation": "Institute for Computational Cosmology, Stockton Rd, Durham DH1 3LE",
+            "name": "Richard G. Hayes"
+        },
+        {
+            "name": "Ashley Kelly"
+        },
+        {
+            "affiliation": "Institute for Computational Cosmology, Stockton Rd, Durham DH1 3LE",
+            "name": "Aristeidis Amvrosiadis"
+        },
+        {
+            "affiliation": "Institute for Computational Cosmology, Stockton Rd, Durham DH1 3LE",
+            "name": "Amy Etherington"
+        },
+        {
+            "affiliation": "Institute for Computational Cosmology, Stockton Rd, Durham DH1 3LE",
+            "name": "Qiuhan He"
+        },
+        {
+            "name": "Nan Li"
+        },
+        {
+            "affiliation": "National Astronomical Observatories, Chinese Academy of Sciences, 20A Datun Road, Chaoyang District, Beijing 100012, China",
+            "name": "XiaoYue Cao"
+        },
+        {
+            "affiliation": "Advanced Research Computing, Durham University, Durham DH1 3LE",
+            "name": "Jonathan Frawley"
+        },
+        {
+            "affiliation": "Institute for Computational Cosmology, Stockton Rd, Durham DH1 3LE",
+            "name": "Shaun Cole"
+        },
+        {
+            "name": "Andrea Enia"
+        },
+        {
+            "affiliation": "Institute for Computational Cosmology, Stockton Rd, Durham DH1 3LE",
+            "name": "Carlos S. Frenk"
+        },
+        {
+            "name": "David R. Harvey"
+        },
+        {
+            "affiliation": "National Astronomical Observatories, Chinese Academy of Sciences, 20A Datun Road, Chaoyang District, Beijing 100012, China",
+            "name": "Ran Li"
+        },
+        {
+            "affiliation": "Institute for Computational Cosmology, Stockton Rd, Durham DH1 3LE",
+            "name": "Richard J. Massey"
+        },
+        {
+            "affiliation": "School of Physics and Astronomy, Cardiff University, The Parade, Cardiff CF24 3AA, UK",
+            "name": "Mattia Negrello"
+        },
+        {
+            "affiliation": "Institute for Computational Cosmology, Stockton Rd, Durham DH1 3LE",
+            "name": "Andrew Robertson"
+        }
+    ],
+    "access_right": "open",
+    "related_identifiers": [
+        {
+            "scheme": "doi",
+            "identifier": "10.5281/zenodo.4548697",
+            "relation": "isVersionOf"
+        }
+    ]
+}

@@ -23,6 +23,10 @@ PyAutoLens-JAX: Open-Source Strong Lensing
 .. |JOSS| image:: https://joss.theoj.org/papers/10.21105/joss.02825/status.svg
    :target: https://doi.org/10.21105/joss.02825
 
+.. |DOI| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4548697.svg
+   :target: https://doi.org/10.5281/zenodo.4548697
+   :alt: Zenodo DOI
+
 .. |arXiv| image:: https://img.shields.io/badge/arXiv-1708.07377-blue
     :target: https://arxiv.org/abs/1708.07377
 
@@ -38,7 +42,7 @@ PyAutoLens-JAX: Open-Source Strong Lensing
     :target: https://pypi.org/project/autolens/
     :alt: PyPI Version
 
-|colab| |RTD| |Tests| |Build| |code-style| |JOSS| |arXiv|
+|colab| |RTD| |Tests| |Build| |code-style| |JOSS| |DOI| |arXiv|
 
 `Installation Guide <https://pyautolens.readthedocs.io/en/latest/installation/overview.html>`_ |
 `readthedocs <https://pyautolens.readthedocs.io/en/latest/index.html>`_ |
