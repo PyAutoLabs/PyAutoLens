@@ -31,7 +31,7 @@ from autolens.point.max_separation import (
 )
 from autolens.lens.tracer import Tracer
 from autolens.point.solver import PointSolver
-from autoconf.test_mode import skip_checks
+from autoconf.test_mode import is_test_mode, skip_checks
 
 logger = logging.getLogger(__name__)
 
@@ -301,6 +301,19 @@ class Result(AgResultDataset):
             system is being analysed where the specific plane via its redshift is required to define whihch source
             galaxy is used to compute the multiple images.
 
+        Notes
+        -----
+        Test-mode safeguard (``PYAUTO_TEST_MODE``): integration tests intentionally fit
+        random / unphysical mass models and the resulting tracer often back-traces to
+        zero, NaN, or inf image-plane positions. Computing a position threshold from
+        such positions raises ``ValueError: zero-size array to reduction operation
+        fmax`` (or propagates NaN) inside ``positions_threshold_from``. When test mode
+        is active and the resolved positions are empty, contain NaN, or contain inf,
+        we substitute the synthetic pair ``[(1.0, 0.0), (-1.0, 0.0)]`` so the threshold
+        and ``PositionsLH`` still build cleanly and the script runs end-to-end.
+        Outside test mode this branch is never taken — bad positions still surface as
+        the original error, so production fits are not silently masked.
+
         Returns
         -------
         The `PositionsLH` object used to apply a likelihood penalty or resample the positions.
@@ -329,6 +342,15 @@ class Result(AgResultDataset):
         positions = aa.Grid2DIrregular(
             np.asarray(positions.array if hasattr(positions, "array") else positions)
         )
+
+        if is_test_mode():
+            arr = positions.array
+            if arr.shape[0] < 2 or np.isnan(arr).any() or np.isinf(arr).any():
+                logger.warning(
+                    "positions_likelihood_from: empty/NaN/inf positions in PYAUTO_TEST_MODE — "
+                    "substituting synthetic fallback [(1.0, 0.0), (-1.0, 0.0)]."
+                )
+                positions = aa.Grid2DIrregular(values=[(1.0, 0.0), (-1.0, 0.0)])
 
         threshold = self.positions_threshold_from(
             factor=factor,
