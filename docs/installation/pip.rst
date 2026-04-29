@@ -3,6 +3,11 @@
 Installation with pip
 =====================
 
+.. note::
+   **PyAutoLens** requires **Python 3.12 or later**. If you are on Python
+   3.9, 3.10, or 3.11, ``pip install autolens`` will fail with a "no matching
+   distribution" error. Upgrade Python to 3.12+ before installing.
+
 JAX & GPU
 ---------
 
@@ -107,3 +112,20 @@ do interferometer analysis.
 
 If you run interferometer code a message explaining that you need to install these libraries will be printed, therefore
 it is safe not to install them initially.
+
+Legacy Python versions
+----------------------
+
+We dropped support for Python 3.9, 3.10, and 3.11 in release ``2026.4.5.3``
+(April 2026). Pre-``2026.4.5.3`` releases on PyPI have been yanked, so they
+will not install via the standard ``pip install autolens`` command.
+
+If you have an existing project that requires a pre-``2026.4.5.3`` version,
+you can still install it explicitly by pinning the version, e.g.:
+
+.. code-block:: bash
+
+    pip install autolens==2025.10.6.1
+
+Yanked releases remain available for explicit pins; only resolver-driven
+fallback is blocked.
