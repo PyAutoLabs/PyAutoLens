@@ -84,8 +84,7 @@ the ``autolens_workspace``, reducing the download size):
 .. code-block:: bash
 
    cd /path/on/your/computer/you/want/to/put/the/autolens_workspace
-   AUTOLENS_VERSION=$(python -c "import autolens; print(autolens.__version__)")
-   git clone https://github.com/Jammy2211/autolens_workspace --branch $AUTOLENS_VERSION --depth 1
+   git clone https://github.com/Jammy2211/autolens_workspace --depth 1
    cd autolens_workspace
 
 Run the ``welcome.py`` script to get started!
