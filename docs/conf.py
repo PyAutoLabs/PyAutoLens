@@ -13,8 +13,6 @@ import datetime
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 
-from pyprojroot import here
-
 import os
 import sys
 
