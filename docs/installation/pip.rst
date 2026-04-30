@@ -42,17 +42,32 @@ the installation has clean dependencies):
 
     pip install autolens
 
-You may get warnings which state something like:
+If pip prints warnings about dependency version conflicts, these can usually be ignored — the instructions below
+will identify clearly if the installation is a success.
+
+If there are no errors **PyAutoLens** is installed!
+
+If there is an error check out the `troubleshooting section <https://pyautolens.readthedocs.io/en/latest/installation/troubleshooting.html>`_.
+
+Workspace
+---------
+
+Next, clone the ``autolens workspace`` (the line ``--depth 1`` clones only the most recent branch on
+the ``autolens_workspace``, reducing the download size):
 
 .. code-block:: bash
 
-    ERROR: autoarray 2026.4.5.3 has requirement numpy<=1.22.1, but you'll have numpy 1.22.2 which is incompatible.
-    ERROR: numba 0.53.1 has requirement llvmlite<0.37,>=0.36.0rc1, but you'll have llvmlite 0.38.0 which is incompatible.
+   cd /path/on/your/computer/you/want/to/put/the/autolens_workspace
+   git clone https://github.com/Jammy2211/autolens_workspace --depth 1
+   cd autolens_workspace
 
-If you see these messages, they do not mean that the installation has failed and the instructions below will
-identify clearly if the installation is a success.
+Run the ``welcome.py`` script to get started!
 
-If there are no errors (but only the warnings above) **PyAutoLens** is installed! 
+.. code-block:: bash
+
+   python3 welcome.py
+
+It should be clear that **PyAutoLens** runs without issue.
 
 If there is an error check out the `troubleshooting section <https://pyautolens.readthedocs.io/en/latest/installation/troubleshooting.html>`_.
 
@@ -74,28 +89,6 @@ with the software and determine if it is the right software for you.
 
 If you decide that **PyAutoLens** is the right software, then I recommend you commit the time to getting a
 successful numba install working, with more information provided `at this readthedocs page <https://pyautolens.readthedocs.io/en/latest/installation/numba.html>`_
-
-Workspace
----------
-
-Next, clone the ``autolens workspace`` (the line ``--depth 1`` clones only the most recent branch on
-the ``autolens_workspace``, reducing the download size):
-
-.. code-block:: bash
-
-   cd /path/on/your/computer/you/want/to/put/the/autolens_workspace
-   git clone https://github.com/Jammy2211/autolens_workspace --depth 1
-   cd autolens_workspace
-
-Run the ``welcome.py`` script to get started!
-
-.. code-block:: bash
-
-   python3 welcome.py
-
-It should be clear that **PyAutoLens** runs without issue. 
-
-If there is an error check out the `troubleshooting section <https://pyautolens.readthedocs.io/en/latest/installation/troubleshooting.html>`_.
 
 Optional
 --------
