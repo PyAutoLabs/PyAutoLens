@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
+        python-version: ['3.12', '3.13']
     steps:
     - name: Checkout PyAutoConf
       uses: actions/checkout@v2
@@ -68,13 +68,7 @@ jobs:
         pip3 install setuptools
         pip3 install wheel
         pip3 install pytest coverage pytest-cov
-        if [ "${{ matrix.python-version }}" = "3.12" ]; then
-          pip install ./PyAutoConf ./PyAutoFit ./PyAutoArray ./PyAutoGalaxy ./PyAutoLens
-          pip install "./PyAutoArray[optional]" "./PyAutoGalaxy[optional]" "./PyAutoLens[optional]"
-        else
-          pip install ./PyAutoConf ./PyAutoFit ./PyAutoArray ./PyAutoGalaxy ./PyAutoLens
-          pip install numba
-        fi
+        pip install ./PyAutoConf ./PyAutoFit "./PyAutoArray[optional]" "./PyAutoGalaxy[optional]" "./PyAutoLens[optional]"
     - name: Run tests
       run: |
         export ROOT_DIR=`pwd`
