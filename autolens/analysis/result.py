@@ -314,12 +314,33 @@ class Result(AgResultDataset):
         Outside test mode this branch is never taken — bad positions still surface as
         the original error, so production fits are not silently masked.
 
+        Skip-checks safeguard (``PYAUTO_SKIP_CHECKS``): when validation checks are
+        skipped *and* test mode is active, we return a ``PositionsLH`` built from the
+        same synthetic ``[(1.0, 0.0), (-1.0, 0.0)]`` pair (with threshold set to
+        ``minimum_threshold`` or 0.5 if unset). This avoids the expensive
+        multiple-image-position computation while still giving callers a usable
+        ``PositionsLH``, so workspace scripts that chain ``.positions`` continue to
+        work end-to-end. With skip-checks alone (no test mode) the function still
+        returns ``None`` — the production opt-out behaviour is unchanged.
+
         Returns
         -------
         The `PositionsLH` object used to apply a likelihood penalty or resample the positions.
         """
 
         if skip_checks():
+            if is_test_mode():
+                synthetic_positions = aa.Grid2DIrregular(
+                    values=[(1.0, 0.0), (-1.0, 0.0)]
+                )
+                synthetic_threshold = (
+                    minimum_threshold if minimum_threshold is not None else 0.5
+                )
+                return PositionsLH(
+                    positions=synthetic_positions,
+                    threshold=synthetic_threshold,
+                    plane_redshift=plane_redshift,
+                )
             return
 
         positions = (
