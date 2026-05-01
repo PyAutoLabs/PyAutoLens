@@ -1,10 +1,3 @@
-try:
-    import jax
-
-    JAX_INSTALLED = True
-except ImportError:
-    JAX_INSTALLED = False
-
 import numpy as np
 import pytest
 
