@@ -441,12 +441,16 @@ class ResultDataset(Result):
                             redshift=plane_redshift
                         )
                     )
+                    # plane_indexes_with_pixelizations is a list of plane indices that
+                    # have a pixelization, in mapper order. The mapper index for a given
+                    # plane is the position of that plane index within the list, not the
+                    # element at [plane_index].
                     mapper_index = (
-                        self.max_log_likelihood_tracer.plane_indexes_with_pixelizations[
+                        self.max_log_likelihood_tracer.plane_indexes_with_pixelizations.index(
                             plane_index
-                        ]
+                        )
                     )
-                except TypeError:
+                except (TypeError, ValueError):
                     mapper_index = 0
 
                 inversion = self.max_log_likelihood_fit.inversion
