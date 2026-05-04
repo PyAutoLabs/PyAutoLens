@@ -3,7 +3,7 @@
 **PyAutoLens** uses a number of configuration files that customize the default behaviour of the non-linear searches,
 visualization and other aspects of **PyAutoLens**.
 
-Descriptions of every configuration file and their input parameters are provided in the `README.rst` in
+Descriptions of every configuration file and their input parameters are provided in the `README.md` in
 the [config directory of the workspace](https://github.com/Jammy2211/autolens_workspace/tree/release/config)
 
 ## Setup

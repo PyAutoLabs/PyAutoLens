@@ -7,7 +7,7 @@ when you installed **PyAutoLens**. If you didn't, checkout the
 [installation instructions](https://pyautolens.readthedocs.io/en/latest/general/installation.html#installation-with-pip)
 for how to downloaded and configure the workspace.
 
-The `README.rst` files distributed throughout the workspace describe every folder and file, and specify if
+The `README.md` files distributed throughout the workspace describe every folder and file, and specify if
 examples are for beginner or advanced users.
 
 New users should begin by checking out the following parts of the workspace.
@@ -17,7 +17,7 @@ New users should begin by checking out the following parts of the workspace.
 There are numerous example describing how to perform lensing calculations, lens modeling, and many other
 **PyAutoLens** features. All examples are provided as Python scripts and Jupyter notebooks.
 
-Descriptions of every configuration file and their input parameters are provided in the `README.rst` in
+Descriptions of every configuration file and their input parameters are provided in the `README.md` in
 the [config directory of the workspace](https://github.com/Jammy2211/autolens_workspace/tree/release/config)
 
 ## Config
