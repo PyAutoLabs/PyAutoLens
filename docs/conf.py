@@ -101,8 +101,7 @@ exclude_patterns = [
     ".DS_Store",
     "CODE_OF_CONDUCT.md",
     "CONTRIBUTING.md",
-    "CITATIONS.rst",
-    "README.rst",
+    "CITATIONS.md",
     "README.md",
 ]
 
