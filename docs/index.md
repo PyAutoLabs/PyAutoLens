@@ -13,7 +13,7 @@ This is called strong gravitational lensing and **PyAutoLens** makes it simple t
 The following links are useful for new starters:
 
 - [The PyAutoLens readthedocs](https://pyautolens.readthedocs.io/en/latest): which includes [an overview of PyAutoLens's core features](https://pyautolens.readthedocs.io/en/latest/overview/overview_1_start_here.html), [a new user starting guide](https://pyautolens.readthedocs.io/en/latest/overview/overview_2_new_user_guide.html) and [an installation guide](https://pyautolens.readthedocs.io/en/latest/installation/overview.html).
-- [The introduction Jupyter Notebook on Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.4.13.6/start_here.ipynb), where you can try **PyAutoLens** in a web browser (without installation).
+- [The introduction Jupyter Notebook on Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.5.1.4/start_here.ipynb), where you can try **PyAutoLens** in a web browser (without installation).
 - [The autolens_workspace GitHub repository](https://github.com/PyAutoLabs/autolens_workspace), which includes example scripts covering every **PyAutoLens** use case.
 - [The HowToLens GitHub repository](https://github.com/PyAutoLabs/HowToLens): a Jupyter notebook lecture series teaching strong lensing and lens modeling from the ground up.
 

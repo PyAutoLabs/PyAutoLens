@@ -5,7 +5,7 @@ PyAutoLens-JAX: Open-Source Strong Lensing
     :trim:
 
 .. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
-   :target: https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.4.13.6/start_here.ipynb
+   :target: https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.5.1.4/start_here.ipynb
 
 .. |RTD| image:: https://readthedocs.org/projects/pyautolens/badge/?version=latest
     :target: https://pyautolens.readthedocs.io/en/latest/?badge=latest
@@ -46,7 +46,7 @@ PyAutoLens-JAX: Open-Source Strong Lensing
 
 `Installation Guide <https://pyautolens.readthedocs.io/en/latest/installation/overview.html>`_ |
 `readthedocs <https://pyautolens.readthedocs.io/en/latest/index.html>`_ |
-`Introduction on Colab <https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.4.13.6/start_here.ipynb>`_ |
+`Introduction on Colab <https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.5.1.4/start_here.ipynb>`_ |
 `HowToLens <https://pyautolens.readthedocs.io/en/latest/howtolens/howtolens.html>`_
 
 .. image:: https://github.com/Jammy2211/PyAutoLogo/blob/main/gifs/pyautolens.gif?raw=true
@@ -63,7 +63,7 @@ The following links are useful for new starters:
 
 - `The PyAutoLens readthedocs <https://pyautolens.readthedocs.io/en/latest>`_: which includes `an overview of PyAutoLens's core features <https://pyautolens.readthedocs.io/en/latest/overview/overview_1_start_here.html>`_, `a new user starting guide <https://pyautolens.readthedocs.io/en/latest/overview/overview_2_new_user_guide.html>`_ and `an installation guide <https://pyautolens.readthedocs.io/en/latest/installation/overview.html>`_.
 
-- `The introduction Jupyter Notebook on Google Colab <https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.4.13.6/start_here.ipynb>`_: try **PyAutoLens** in a web browser (without installation).
+- `The introduction Jupyter Notebook on Google Colab <https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.5.1.4/start_here.ipynb>`_: try **PyAutoLens** in a web browser (without installation).
 
 - `The autolens_workspace GitHub repository <https://github.com/PyAutoLabs/autolens_workspace>`_: example scripts covering every **PyAutoLens** use case.
 

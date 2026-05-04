@@ -248,6 +248,38 @@ def test__positions_likelihood_from(analysis_imaging_7x7):
     assert positions_likelihood.threshold == pytest.approx(0.2, 1.0e-4)
 
 
+def test__positions_likelihood_from__skip_checks_returns_none_outside_test_mode(
+    monkeypatch, analysis_imaging_7x7,
+):
+    monkeypatch.setenv("PYAUTO_SKIP_CHECKS", "1")
+    monkeypatch.delenv("PYAUTO_TEST_MODE", raising=False)
+
+    samples_summary = al.m.MockSamplesSummary(max_log_likelihood_instance=al.Tracer(galaxies=[]))
+    result = res.Result(samples_summary=samples_summary, analysis=analysis_imaging_7x7)
+
+    assert result.positions_likelihood_from(factor=0.1, minimum_threshold=0.2) is None
+
+
+def test__positions_likelihood_from__skip_checks_returns_synthetic_in_test_mode(
+    monkeypatch, analysis_imaging_7x7,
+):
+    monkeypatch.setenv("PYAUTO_SKIP_CHECKS", "1")
+    monkeypatch.setenv("PYAUTO_TEST_MODE", "2")
+
+    samples_summary = al.m.MockSamplesSummary(max_log_likelihood_instance=al.Tracer(galaxies=[]))
+    result = res.Result(samples_summary=samples_summary, analysis=analysis_imaging_7x7)
+
+    positions_likelihood = result.positions_likelihood_from(
+        factor=0.1, minimum_threshold=0.2
+    )
+
+    assert isinstance(positions_likelihood, al.PositionsLH)
+    assert positions_likelihood.threshold == pytest.approx(0.2, 1.0e-4)
+    assert len(positions_likelihood.positions) == 2
+    assert positions_likelihood.positions[0] == pytest.approx((1.0, 0.0))
+    assert positions_likelihood.positions[1] == pytest.approx((-1.0, 0.0))
+
+
 def test__positions_likelihood_from__test_mode_fallback(
     monkeypatch, analysis_imaging_7x7,
 ):
