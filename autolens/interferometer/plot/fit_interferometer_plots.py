@@ -328,6 +328,102 @@ def subplot_fit_dirty_images(
     save_figure(fig, path=output_path, filename="fit_dirty_images", format=output_format)
 
 
+def subplot_fit_interferometer_combined(
+    fit_list,
+    output_path: Optional[str] = None,
+    output_format: str = None,
+    colormap: Optional[str] = None,
+    title_prefix: str = None,
+):
+    """
+    Produce a combined multi-row subplot for a list of `FitInterferometer` objects.
+
+    Each row corresponds to one channel of a datacube (or one dataset of a multi-band
+    interferometer fit) and contains four panels:
+
+    * Dirty Image (data)
+    * Dirty Model Image (with critical curves)
+    * Source Plane (reconstruction)
+    * Dirty Normalised Residual Map
+
+    The layout mirrors :func:`subplot_fit_combined` for imaging — same purpose,
+    different panel choice because interferometer fits are most informatively
+    visualised in dirty-image space.
+
+    Parameters
+    ----------
+    fit_list : list of FitInterferometer
+        The interferometer fits to display. Each fit occupies one row of the figure.
+    output_path : str, optional
+        Directory in which to save the figure. If ``None`` the figure is not saved.
+    output_format : str, optional
+        Image format passed to :func:`~autoarray.plot.utils.save_figure`.
+    colormap : str, optional
+        Matplotlib colormap name applied to all image panels.
+    title_prefix : str, optional
+        Optional prefix prepended to every panel title.
+    """
+    n_fits = len(fit_list)
+    n_cols = 4
+    fig, axes = subplots(n_fits, n_cols, figsize=conf_subplot_figsize(n_fits, n_cols))
+    if n_fits == 1:
+        all_axes = [list(axes)]
+    else:
+        all_axes = [list(axes[i]) for i in range(n_fits)]
+
+    final_plane_index = len(fit_list[0].tracer.planes) - 1
+
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
+    for row, fit in enumerate(fit_list):
+        row_axes = all_axes[row]
+
+        tracer = fit.tracer_linear_light_profiles_to_light_profiles
+        cc_grid = fit.dataset.real_space_mask.derive_grid.all_false
+        ip_lines, ip_colors, sp_lines, sp_colors = _compute_critical_curve_lines(
+            tracer, cc_grid
+        )
+
+        plot_array(
+            array=fit.dirty_image,
+            ax=row_axes[0],
+            title=_pf(f"Dirty Image (ch {row})"),
+            colormap=colormap,
+        )
+
+        plot_array(
+            array=fit.dirty_model_image,
+            ax=row_axes[1],
+            title=_pf("Dirty Model Image"),
+            colormap=colormap,
+            lines=ip_lines,
+            line_colors=ip_colors,
+        )
+
+        try:
+            _plot_source_plane(
+                fit,
+                row_axes[2],
+                final_plane_index,
+                colormap=colormap,
+                title=_pf(f"Source Plane {final_plane_index}"),
+                lines=sp_lines,
+                line_colors=sp_colors,
+            )
+        except Exception:
+            row_axes[2].axis("off")
+
+        plot_array(
+            array=fit.dirty_normalized_residual_map,
+            ax=row_axes[3],
+            title=_pf("Dirty Norm Residual"),
+            colormap=colormap,
+            cb_unit=r"$\sigma$",
+        )
+
+    tight_layout()
+    save_figure(fig, path=output_path, filename="fit_combined", format=output_format)
+
+
 def subplot_fit_real_space(
     fit,
     output_path: Optional[str] = None,

@@ -13,6 +13,7 @@ from autolens.interferometer.fit_interferometer import FitInterferometer
 from autolens.interferometer.plot.fit_interferometer_plots import (
     subplot_fit,
     subplot_fit_dirty_images,
+    subplot_fit_interferometer_combined,
     subplot_fit_real_space,
     subplot_tracer_from_fit,
     _compute_critical_curve_lines,
@@ -106,3 +107,40 @@ class PlotterInterferometer(Plotter):
 
         if should_plot("fits_dirty_images"):
             fits_dirty_images(fit=fit, output_path=self.image_path)
+
+    def fit_interferometer_combined(
+        self,
+        fit_list,
+        quick_update: bool = False,
+    ):
+        """
+        Output visualization of all `FitInterferometer` objects in a summed combined
+        analysis (e.g. an ALMA datacube modelled as a list of channels via
+        `af.FactorGraphModel`).
+
+        Outputs ``fit_combined.png`` in the visualisation directory: a row-per-channel
+        subplot showing dirty image, dirty model image, source-plane reconstruction
+        and dirty normalised residual map for every channel side by side.
+
+        Parameters
+        ----------
+        fit_list
+            The list of interferometer fits which are visualized.
+        quick_update
+            If ``True``, only the combined dirty-image subplot is written (no extra
+            log-stretched variants), so this is safe to call from the search's
+            quick-update hook.
+        """
+        def should_plot(name):
+            return plot_setting(section=["fit", "fit_interferometer"], name=name)
+
+        output_path = str(self.image_path)
+        fmt = self.fmt
+
+        if should_plot("subplot_fit") or quick_update:
+            subplot_fit_interferometer_combined(
+                fit_list,
+                output_path=output_path,
+                output_format=fmt,
+                title_prefix=self.title_prefix,
+            )

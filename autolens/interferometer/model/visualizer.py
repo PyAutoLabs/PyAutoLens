@@ -161,3 +161,56 @@ class VisualizerInterferometer(af.Visualizer):
                 )
             except IndexError:
                 pass
+
+    @staticmethod
+    def visualize_combined(
+        analyses,
+        paths: af.AbstractPaths,
+        instance: af.ModelInstance,
+        during_analysis: bool,
+        quick_update: bool = False,
+    ):
+        """
+        Performs visualization during the non-linear search of information that is
+        shared across all per-channel interferometer analyses, on a single multi-row
+        figure. Used for ALMA-style datacube fits where each channel is its own
+        ``Interferometer`` dataset wrapped in an ``af.AnalysisFactor``.
+
+        Outputs ``fit_combined.png``: a row-per-channel subplot showing dirty image,
+        dirty model image, source-plane reconstruction and dirty normalised residual
+        map. The plot makes it easy to see how an emission line's source-plane
+        morphology shifts across the cube while the lens model stays fixed.
+
+        Parameters
+        ----------
+        analyses
+            The list of all per-channel ``AnalysisInterferometer`` objects.
+        paths
+            The paths object which manages where visualisation is written to.
+        instance
+            A ``Collection`` of per-factor model instances. Iterating it yields one
+            ``ModelInstance`` per channel, in the same order as ``analyses``.
+        during_analysis
+            ``True`` when called during the non-linear search, ``False`` when
+            called after the search completes.
+        quick_update
+            ``True`` when called from the search's quick-update hook between
+            iterations; only the headline combined plot is written in that case.
+        """
+
+        if analyses is None:
+            return
+
+        plotter = PlotterInterferometer(
+            image_path=paths.image_path, title_prefix=analyses[0].title_prefix
+        )
+
+        fit_list = [
+            analysis.fit_for_visualization(instance=single_instance)
+            for analysis, single_instance in zip(analyses, instance)
+        ]
+
+        plotter.fit_interferometer_combined(
+            fit_list=fit_list,
+            quick_update=quick_update,
+        )
