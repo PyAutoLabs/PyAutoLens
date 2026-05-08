@@ -86,11 +86,23 @@ class Tracer(ABC, ag.OperateImageGalaxies):
         planes of increasing redshift. Thus, the galaxies are sorted by redshift in ascending order to aid this
         calculation.
 
+        When any galaxy has a JAX-traced ``redshift`` (e.g. a free-parameter
+        subhalo redshift under ``jax.jit``), Python's ``sorted`` cannot order
+        the list because the key comparator would coerce a traced boolean.
+        In that case, we trust the input order — the caller (typically
+        ``af.Collection(galaxies=...)``) is expected to declare galaxies in
+        ascending-redshift order, with each traced-redshift galaxy placed at
+        its intended plane position. See ``tracer_util.plane_redshifts_from``
+        for the matching rule.
+
         Returns
         -------
         The galaxies in the tracer in ascending redshift order.
         """
-        return sorted(self.galaxies, key=lambda galaxy: galaxy.redshift)
+        if not tracer_util._any_traced(self.galaxies):
+            return sorted(self.galaxies, key=lambda galaxy: galaxy.redshift)
+
+        return list(self.galaxies)
 
     @property
     def plane_redshifts(self) -> List[float]:

@@ -21,6 +21,33 @@ import autogalaxy.plot as aplt
 from autolens import exc
 
 
+def _redshift_is_traced(redshift) -> bool:
+    """
+    Return True if ``redshift`` is a JAX traced scalar that cannot be coerced to a
+    Python float without raising under ``jax.jit``.
+
+    Galaxy redshifts are normally Python ``float`` / ``int`` values, but when a
+    ``af.UniformPrior`` is bound to a ``Galaxy.redshift`` field (e.g. for a free-
+    parameter subhalo redshift; see PyAutoLens issue #498), the value passed in at
+    likelihood-evaluation time becomes a traced scalar under ``jax.jit``. Most
+    sort-and-compare helpers in this module need to fall back to a JAX-aware path
+    in that case rather than calling ``sorted`` / ``float()`` / ``<=`` on the value.
+    """
+    if isinstance(redshift, (int, float)):
+        return False
+    if isinstance(redshift, np.ndarray) and redshift.shape == ():
+        return False
+    try:
+        float(redshift)
+    except Exception:
+        return True
+    return False
+
+
+def _any_traced(galaxies: List[ag.Galaxy]) -> bool:
+    return any(_redshift_is_traced(g.redshift) for g in galaxies)
+
+
 def plane_redshifts_from(galaxies: List[ag.Galaxy]) -> List[float]:
     """
     Returns a list of plane redshifts from a list of galaxies, using the redshifts of the galaxies to determine the
@@ -33,6 +60,14 @@ def plane_redshifts_from(galaxies: List[ag.Galaxy]) -> List[float]:
     For example, if the input is three galaxies, two at redshift 1.0 and one at redshift 2.0, the returned list of
     redshifts would be [1.0, 2.0].
 
+    When one or more galaxies have a JAX-traced redshift (e.g. a free-parameter
+    subhalo redshift under ``jax.jit``), the function cannot Python-sort or
+    ``float()``-coerce the values. It instead walks the input list in order,
+    deduplicating *concrete* redshifts only and treating each traced redshift as a
+    unique plane at its input position. The caller must pass galaxies in
+    ascending-redshift order in this case (which ``af.Collection(galaxies=...)``
+    naturally does when the user declares them as ``lens, subhalo, source``).
+
     Parameters
     ----------
     galaxies
@@ -43,12 +78,27 @@ def plane_redshifts_from(galaxies: List[ag.Galaxy]) -> List[float]:
     The list of unique redshifts of the planes.
     """
 
-    galaxies_ascending_redshift = sorted(galaxies, key=lambda galaxy: galaxy.redshift)
+    if not _any_traced(galaxies):
+        galaxies_ascending_redshift = sorted(galaxies, key=lambda galaxy: galaxy.redshift)
 
-    # Coerce to float to avoid issues with other float types not being hashable.
-    plane_redshifts = [float(galaxy.redshift) for galaxy in galaxies_ascending_redshift]
+        # Coerce to float to avoid issues with other float types not being hashable.
+        plane_redshifts = [float(galaxy.redshift) for galaxy in galaxies_ascending_redshift]
 
-    return list(dict.fromkeys(plane_redshifts))
+        return list(dict.fromkeys(plane_redshifts))
+
+    plane_redshifts: List = []
+    seen_concrete: set = set()
+    for galaxy in galaxies:
+        z = galaxy.redshift
+        if _redshift_is_traced(z):
+            plane_redshifts.append(z)
+        else:
+            zf = float(z)
+            if zf not in seen_concrete:
+                seen_concrete.add(zf)
+                plane_redshifts.append(zf)
+
+    return plane_redshifts
 
 
 def planes_from(
@@ -68,6 +118,12 @@ def planes_from(
     For example, if the input is three galaxies, two at redshift 1.0 and one at redshift 2.0, the returned list of
     list of galaxies would be [[g1, g2], g3]].
 
+    When any galaxy has a JAX-traced redshift, planes are built by walking the
+    input galaxies in order and grouping by *concrete* redshift equality only;
+    each traced-redshift galaxy gets its own dedicated plane in input position.
+    See ``plane_redshifts_from`` for the matching rule and assumption on input
+    ordering.
+
     Parameters
     ----------
     galaxies
@@ -81,21 +137,38 @@ def planes_from(
     The list of list of galaxies grouped into their planes.
     """
 
-    galaxies_ascending_redshift = sorted(galaxies, key=lambda galaxy: galaxy.redshift)
+    if not _any_traced(galaxies):
+        galaxies_ascending_redshift = sorted(galaxies, key=lambda galaxy: galaxy.redshift)
 
-    if plane_redshifts is None:
-        plane_redshifts = plane_redshifts_from(galaxies=galaxies_ascending_redshift)
+        if plane_redshifts is None:
+            plane_redshifts = plane_redshifts_from(galaxies=galaxies_ascending_redshift)
 
-    planes = [[] for i in range(len(plane_redshifts))]
+        planes = [[] for i in range(len(plane_redshifts))]
 
-    for galaxy in galaxies_ascending_redshift:
-        index = (np.abs(np.asarray(plane_redshifts) - galaxy.redshift)).argmin()
-        planes[index].append(galaxy)
+        for galaxy in galaxies_ascending_redshift:
+            index = (np.abs(np.asarray(plane_redshifts) - galaxy.redshift)).argmin()
+            planes[index].append(galaxy)
 
-    for index in range(len(planes)):
-        planes[index] = ag.Galaxies(galaxies=planes[index])
+        for index in range(len(planes)):
+            planes[index] = ag.Galaxies(galaxies=planes[index])
 
-    return planes
+        return planes
+
+    plane_groups: List = []  # list of (key, [galaxies])
+    for galaxy in galaxies:
+        z = galaxy.redshift
+        if _redshift_is_traced(z):
+            plane_groups.append((z, [galaxy]))
+        else:
+            zf = float(z)
+            for i, (key, _) in enumerate(plane_groups):
+                if not _redshift_is_traced(key) and float(key) == zf:
+                    plane_groups[i][1].append(galaxy)
+                    break
+            else:
+                plane_groups.append((zf, [galaxy]))
+
+    return [ag.Galaxies(galaxies=group) for _, group in plane_groups]
 
 
 def traced_grid_2d_list_from(
@@ -243,6 +316,40 @@ def grid_2d_at_redshift_from(
         The cosmology used for ray-tracing from which angular diameter distances between planes are computed.
     """
     cosmology = cosmology or ag.cosmo.Planck15()
+
+    if _redshift_is_traced(redshift) or _any_traced(galaxies):
+        # JAX path: the requested redshift always matches the redshift of one of
+        # the input galaxies (this is how AnalysisLens.tracer_via_instance_from
+        # invokes the function — it passes ``redshift=instance.galaxies.subhalo.
+        # redshift`` and the subhalo galaxy is in ``galaxies`` too). So we just
+        # need to identify which plane that galaxy lives in (via Python identity,
+        # not value comparison) and return the traced grid at that plane.
+        planes = planes_from(galaxies=galaxies)
+
+        plane_index_match = None
+        for plane_index, plane_galaxies in enumerate(planes):
+            for plane_galaxy in plane_galaxies:
+                if plane_galaxy.redshift is redshift:
+                    plane_index_match = plane_index
+                    break
+            if plane_index_match is not None:
+                break
+
+        if plane_index_match is None:
+            raise exc.RayTracingException(
+                "grid_2d_at_redshift_from was called under JAX with a traced "
+                "redshift that does not match any galaxy in the input list by "
+                "Python identity. The current implementation only supports the "
+                "case where the requested redshift is the same object as one of "
+                "the galaxy redshifts (e.g. instance.galaxies.subhalo.redshift). "
+                "Insertion at an arbitrary traced redshift is not yet supported."
+            )
+
+        traced_grid_list = traced_grid_2d_list_from(
+            planes=planes, grid=grid, cosmology=cosmology, xp=xp
+        )
+
+        return traced_grid_list[plane_index_match]
 
     plane_redshifts = plane_redshifts_from(galaxies=galaxies)
 
