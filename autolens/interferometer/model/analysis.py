@@ -47,6 +47,7 @@ class AnalysisInterferometer(AnalysisDataset):
         raise_inversion_positions_likelihood_exception: bool = True,
         title_prefix: str = None,
         use_jax: bool = True,
+        **kwargs,
     ):
         """
         Analysis classes are used by PyAutoFit to fit a model to a dataset via a non-linear search.
@@ -98,6 +99,7 @@ class AnalysisInterferometer(AnalysisDataset):
             raise_inversion_positions_likelihood_exception=raise_inversion_positions_likelihood_exception,
             title_prefix=title_prefix,
             use_jax=use_jax,
+            **kwargs,
         )
 
     @property
