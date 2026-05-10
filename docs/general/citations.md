@@ -39,6 +39,39 @@ If you use the zero-contour method for critical curve and caustic computation (t
 The package is available at <https://github.com/CKrawczyk/Jax-Zero-Contour> and archived at
 <https://doi.org/10.5281/zenodo.15730415>.
 
+## NUFFTax
+
+If you fit interferometer datasets on the JAX path, the non-uniform FFT is performed by
+`nufftax`, a pure-JAX NUFFT implementation by the GragasLab team. Please cite the
+package:
+
+```bibtex
+@software{nufftax,
+  author = {Gragas and Oudoumanessah, Geoffroy and Iollo, Jacopo},
+  title  = {nufftax: Pure JAX implementation of the Non-Uniform Fast Fourier Transform},
+  url    = {https://github.com/GragasLab/nufftax},
+  year   = {2026},
+}
+```
+
+`nufftax`'s algorithm is based on FINUFFT (Flatiron Institute); the upstream paper should
+also be cited:
+
+```bibtex
+@article{finufft,
+  author  = {Barnett, Alexander H. and Magland, Jeremy F. and af Klinteberg, Ludvig},
+  title   = {A parallel non-uniform fast Fourier transform library based on an
+             'exponential of semicircle' kernel},
+  journal = {SIAM J. Sci. Comput.},
+  volume  = {41},
+  number  = {5},
+  pages   = {C479--C504},
+  year    = {2019},
+}
+```
+
+The package is available at <https://github.com/GragasLab/nufftax>.
+
 ## Dynesty
 
 If you used the nested sampling algorithm Dynesty, please follow the citation instructions [on the dynesty readthedocs](https://dynesty.readthedocs.io/en/latest/references.html).
