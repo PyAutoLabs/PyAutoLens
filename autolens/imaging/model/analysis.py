@@ -100,7 +100,16 @@ class AnalysisImaging(AnalysisDataset):
 
         dataset_model = self.dataset_model_via_instance_from(instance=instance)
 
-        adapt_images = self.adapt_images_via_instance_from(instance=instance)
+        # print('dataset_model check')
+        # print(dataset_model.grid_offset)
+        # print(dataset_model.grid_rotation_angle)
+
+        adapt_images = self.adapt_images_via_instance_from(instance=instance, dataset_model=dataset_model, xp=self._xp)
+
+        # if adapt_images is not None:
+        #     print(dir(instance))
+
+        #print(adapt_images.galaxy_image_plane_mesh_grid_dict)
 
         return FitImaging(
             dataset=self.dataset,

@@ -314,6 +314,8 @@ class TracerToInversion(ag.AbstractToInversion):
                 xp=self._xp,
             )
 
+            # print('image_plane_mesh_grid_list:')
+            # print(to_inversion.image_plane_mesh_grid_list)
             image_plane_mesh_grid_list = to_inversion.image_plane_mesh_grid_list
             image_plane_mesh_grid_list_of_planes.append(image_plane_mesh_grid_list)
 

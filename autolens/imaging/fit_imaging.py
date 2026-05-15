@@ -71,6 +71,18 @@ class FitImaging(aa.FitImaging, AbstractFitInversion):
 
         self.tracer = tracer
 
+        
+        # if adapt_images is not None:
+        #     if adapt_images.galaxy_name_image_plane_mesh_grid_dict is not None:
+        #         print('Here')
+        #         image_plane_mesh_grid = adapt_images.galaxy_name_image_plane_mesh_grid_dict["('galaxies', 'source')"]
+        #         moved_image_plane_mesh_grid = image_plane_mesh_grid.subtracted_and_rotated_from(
+        #             offset=dataset_model.grid_offset, 
+        #             angle=dataset_model.grid_rotation,
+        #             xp=xp
+        #         )
+        #         adapt_images.galaxy_name_image_plane_mesh_grid_dict["('galaxies', 'source')"] = moved_image_plane_mesh_grid
+
         self.adapt_images = adapt_images
         self.settings = settings or aa.Settings()
 
