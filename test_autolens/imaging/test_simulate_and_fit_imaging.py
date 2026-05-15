@@ -78,6 +78,209 @@ def test__perfect_fit__chi_squared_0():
         shutil.rmtree(file_path)
 
 
+def _perfect_lens_fit_dataset(tracer, grid):
+    """Helper: simulate noiseless imaging through a tracer and unit noise map."""
+    psf = al.Convolver.from_gaussian(
+        shape_native=(3, 3), pixel_scales=grid.pixel_scales[0], sigma=0.05, normalize=True
+    )
+    simulator = al.SimulatorImaging(
+        exposure_time=300.0, psf=psf, add_poisson_noise_to_data=False
+    )
+    dataset = simulator.via_tracer_from(tracer=tracer, grid=grid)
+    dataset.noise_map = al.Array2D.ones(
+        shape_native=dataset.data.shape_native, pixel_scales=grid.pixel_scales
+    )
+    return dataset
+
+
+def test__perfect_fit__sim_offset_lens_and_source__fit_with_dataset_model_grid_offset__chi_squared_zero():
+    """Sim a lens system shifted away from origin; fit with origin-centred profiles +
+    DatasetModel.grid_offset."""
+    grid = al.Grid2D.uniform(shape_native=(31, 31), pixel_scales=0.2, over_sample_size=1)
+    offset = (0.3, 0.2)
+
+    lens_sim = al.Galaxy(
+        redshift=0.5,
+        light=al.lp.Sersic(centre=offset, intensity=0.1, effective_radius=0.3),
+        mass=al.mp.Isothermal(centre=offset, einstein_radius=1.0),
+    )
+    src_sim = al.Galaxy(
+        redshift=1.0,
+        light=al.lp.Sersic(
+            centre=(offset[0] + 0.05, offset[1] + 0.05),
+            intensity=0.5,
+            effective_radius=0.3,
+        ),
+    )
+    tracer_sim = al.Tracer(galaxies=[lens_sim, src_sim])
+    dataset = _perfect_lens_fit_dataset(tracer_sim, grid)
+    mask = al.Mask2D.circular(
+        shape_native=dataset.data.shape_native, pixel_scales=0.2, radius=2.5
+    )
+    masked = dataset.apply_mask(mask=mask)
+
+    lens_fit = al.Galaxy(
+        redshift=0.5,
+        light=al.lp.Sersic(centre=(0.0, 0.0), intensity=0.1, effective_radius=0.3),
+        mass=al.mp.Isothermal(centre=(0.0, 0.0), einstein_radius=1.0),
+    )
+    src_fit = al.Galaxy(
+        redshift=1.0,
+        light=al.lp.Sersic(
+            centre=(0.05, 0.05), intensity=0.5, effective_radius=0.3
+        ),
+    )
+    tracer_fit = al.Tracer(galaxies=[lens_fit, src_fit])
+    dataset_model = al.DatasetModel(grid_offset=offset)
+    fit = al.FitImaging(
+        dataset=masked, tracer=tracer_fit, dataset_model=dataset_model
+    )
+
+    assert fit.chi_squared == pytest.approx(0.0, abs=1e-4)
+
+
+def test__perfect_fit__sim_rotated_lens_mass__fit_with_dataset_model_grid_rotation__chi_squared_zero():
+    """Sim a strong lens with a rotated mass ellipse; fit with axis-aligned mass +
+    DatasetModel.grid_rotation_angle. The source centre is pre-rotated by -theta about
+    the origin to compensate for the grid rotation."""
+    import numpy as np
+
+    grid = al.Grid2D.uniform(shape_native=(51, 51), pixel_scales=0.1, over_sample_size=1)
+    theta = 10.0
+    src_centre = (0.05, 0.05)
+
+    lens_sim = al.Galaxy(
+        redshift=0.5,
+        mass=al.mp.Isothermal(
+            centre=(0.0, 0.0),
+            einstein_radius=1.2,
+            ell_comps=al.convert.ell_comps_from(axis_ratio=0.7, angle=theta),
+        ),
+    )
+    src_sim = al.Galaxy(
+        redshift=1.0,
+        light=al.lp.SersicCore(
+            centre=src_centre,
+            ell_comps=al.convert.ell_comps_from(axis_ratio=0.8, angle=theta + 30.0),
+            intensity=0.5,
+            effective_radius=0.1,
+        ),
+    )
+    tracer_sim = al.Tracer(galaxies=[lens_sim, src_sim])
+    dataset = _perfect_lens_fit_dataset(tracer_sim, grid)
+    mask = al.Mask2D.circular(
+        shape_native=dataset.data.shape_native, pixel_scales=0.1, radius=2.0
+    )
+    masked = dataset.apply_mask(mask=mask)
+
+    # Rotate the source centre by -theta about the origin (compensating for the
+    # grid rotation by +theta).
+    cos_t = np.cos(-np.deg2rad(theta))
+    sin_t = np.sin(-np.deg2rad(theta))
+    src_centre_rotated = (
+        src_centre[1] * sin_t + src_centre[0] * cos_t,
+        src_centre[1] * cos_t - src_centre[0] * sin_t,
+    )
+
+    lens_fit = al.Galaxy(
+        redshift=0.5,
+        mass=al.mp.Isothermal(
+            centre=(0.0, 0.0),
+            einstein_radius=1.2,
+            ell_comps=al.convert.ell_comps_from(axis_ratio=0.7, angle=0.0),
+        ),
+    )
+    src_fit = al.Galaxy(
+        redshift=1.0,
+        light=al.lp.SersicCore(
+            centre=src_centre_rotated,
+            ell_comps=al.convert.ell_comps_from(axis_ratio=0.8, angle=30.0),
+            intensity=0.5,
+            effective_radius=0.1,
+        ),
+    )
+    tracer_fit = al.Tracer(galaxies=[lens_fit, src_fit])
+    dataset_model = al.DatasetModel(grid_rotation_angle=-theta)
+    fit = al.FitImaging(
+        dataset=masked, tracer=tracer_fit, dataset_model=dataset_model
+    )
+
+    assert fit.chi_squared == pytest.approx(0.0, abs=1e-4)
+
+
+def test__perfect_fit__sim_offset_and_rotated_lens__fit_with_dataset_model_offset_and_rotation__chi_squared_zero():
+    """Combined offset + rotation for the strong-lens use case relevant to Hannah's
+    multi-band JWST fits: sim with shifted-and-rotated lens, fit at identity profiles +
+    DatasetModel carrying both transforms."""
+    import numpy as np
+
+    grid = al.Grid2D.uniform(shape_native=(51, 51), pixel_scales=0.1, over_sample_size=1)
+    offset = (0.2, 0.1)
+    theta = 8.0
+
+    # In the simulated data frame: profiles have centres at (cy+oy, cx+ox) where
+    # the (cy, cx) is the "model frame" centre rotated by +theta about the offset.
+    cos_t = np.cos(np.deg2rad(theta))
+    sin_t = np.sin(np.deg2rad(theta))
+
+    def to_sim_frame(model_centre):
+        # Rotate by +theta about origin, then add offset.
+        y_rot = model_centre[1] * sin_t + model_centre[0] * cos_t
+        x_rot = model_centre[1] * cos_t - model_centre[0] * sin_t
+        return (y_rot + offset[0], x_rot + offset[1])
+
+    model_lens_centre = (0.0, 0.0)
+    model_src_centre = (0.05, 0.05)
+
+    lens_sim = al.Galaxy(
+        redshift=0.5,
+        mass=al.mp.Isothermal(
+            centre=to_sim_frame(model_lens_centre),
+            einstein_radius=1.0,
+            ell_comps=al.convert.ell_comps_from(axis_ratio=0.7, angle=theta),
+        ),
+    )
+    src_sim = al.Galaxy(
+        redshift=1.0,
+        light=al.lp.SersicCore(
+            centre=to_sim_frame(model_src_centre),
+            ell_comps=al.convert.ell_comps_from(axis_ratio=0.8, angle=theta + 20.0),
+            intensity=0.4,
+            effective_radius=0.1,
+        ),
+    )
+    tracer_sim = al.Tracer(galaxies=[lens_sim, src_sim])
+    dataset = _perfect_lens_fit_dataset(tracer_sim, grid)
+    mask = al.Mask2D.circular(
+        shape_native=dataset.data.shape_native, pixel_scales=0.1, radius=2.0
+    )
+    masked = dataset.apply_mask(mask=mask)
+
+    lens_fit = al.Galaxy(
+        redshift=0.5,
+        mass=al.mp.Isothermal(
+            centre=model_lens_centre,
+            einstein_radius=1.0,
+            ell_comps=al.convert.ell_comps_from(axis_ratio=0.7, angle=0.0),
+        ),
+    )
+    src_fit = al.Galaxy(
+        redshift=1.0,
+        light=al.lp.SersicCore(
+            centre=model_src_centre,
+            ell_comps=al.convert.ell_comps_from(axis_ratio=0.8, angle=20.0),
+            intensity=0.4,
+            effective_radius=0.1,
+        ),
+    )
+    tracer_fit = al.Tracer(galaxies=[lens_fit, src_fit])
+    dataset_model = al.DatasetModel(grid_offset=offset, grid_rotation_angle=-theta)
+    fit = al.FitImaging(
+        dataset=masked, tracer=tracer_fit, dataset_model=dataset_model
+    )
+
+    assert fit.chi_squared == pytest.approx(0.0, abs=1e-4)
+
 
 def test__simulate_imaging_data_and_fit__known_likelihood():
 
