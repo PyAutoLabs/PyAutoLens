@@ -1,6 +1,6 @@
 **Insert in the main body of the paper:**
 
-We use the lens modeling software `PyAutoLens` https://github.com/Jammy2211/PyAutoLens) [@pyautolens] [@Nightingale2015] [@Nightingale2018] to...
+We use the lens modeling software `PyAutoLens` https://github.com/PyAutoLabs/PyAutoLens) [@pyautolens] [@Nightingale2015] [@Nightingale2018] to...
 
 **At the end of the paper (delete as appropriate, see https://pyautofit.readthedocs.io/en/latest/general/citations.html):**
 
@@ -16,9 +16,9 @@ This work uses the following software packages:
 - `matplotlib` https://github.com/matplotlib/matplotlib [@matplotlib]
 - `numba` https://github.com/numba/numba [@numba]
 - `NumPy` https://github.com/numpy/numpy [@numpy]
-- `PyAutoFit` https://github.com/rhayes777/PyAutoFit [@pyautofit]
-- `PyAutoGalaxy` https://github.com/Jammy2211/PyAutoGalaxy [@Nightingale2018] [@pyautogalaxy]
-- `PyAutoLens` https://github.com/Jammy2211/PyAutoLens [@Nightingale2015] [@Nightingale2018] [@pyautolens]
+- `PyAutoFit` https://github.com/PyAutoLabs/PyAutoFit [@pyautofit]
+- `PyAutoGalaxy` https://github.com/PyAutoLabs/PyAutoGalaxy [@Nightingale2018] [@pyautogalaxy]
+- `PyAutoLens` https://github.com/PyAutoLabs/PyAutoLens [@Nightingale2015] [@Nightingale2018] [@pyautolens]
 - `PyNUFFT` https://github.com/jyhmiinlin/pynufft [@pynufft]
 - `PySwarms` https://github.com/ljvmiranda921/pyswarms [@pyswarms]
 - `Python` https://www.python.org/ [@python]

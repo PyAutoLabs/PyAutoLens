@@ -53,7 +53,7 @@ the `autolens_workspace`, reducing the download size):
 
 ```bash
 cd /path/on/your/computer/you/want/to/put/the/autolens_workspace
-git clone https://github.com/Jammy2211/autolens_workspace --depth 1
+git clone https://github.com/PyAutoLabs/autolens_workspace --depth 1
 cd autolens_workspace
 ```
 

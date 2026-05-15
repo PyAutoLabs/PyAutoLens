@@ -74,7 +74,7 @@ Contributions are welcome and greatly appreciated!
 
 ### Report Bugs
 
-Report bugs at https://github.com/Jammy2211/PyAutoLens/issues
+Report bugs at https://github.com/PyAutoLabs/PyAutoLens/issues
 
 If you are playing with the PyAutoLens library and find a bug, please
 reporting it including:
@@ -86,7 +86,7 @@ reporting it including:
 ### Propose New Features
 
 The best way to send feedback is to open an issue at
-https://github.com/Jammy2211/PyAutoLens
+https://github.com/PyAutoLabs/PyAutoLens
 with tag *enhancement*.
 
 If you are proposing a nnew feature:

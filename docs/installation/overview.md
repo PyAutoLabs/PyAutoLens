@@ -34,10 +34,10 @@ If you install **PyAutoLens** without a proper GPU setup, a warning will be disp
 
 **PyAutoLens** uses the following parent packages:
 
-**PyAutoConf** <https://github.com/rhayes777/PyAutoConf>
+**PyAutoConf** <https://github.com/PyAutoLabs/PyAutoConf>
 
-**PyAutoFit** <https://github.com/rhayes777/PyAutoFit>
+**PyAutoFit** <https://github.com/PyAutoLabs/PyAutoFit>
 
-**PyAutoArray** <https://github.com/Jammy2211/PyAutoArray>
+**PyAutoArray** <https://github.com/PyAutoLabs/PyAutoArray>
 
-**PyAutoGalaxy** <https://github.com/Jammy2211/PyAutoGalaxy>
+**PyAutoGalaxy** <https://github.com/PyAutoLabs/PyAutoGalaxy>

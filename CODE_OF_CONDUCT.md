@@ -301,7 +301,7 @@ the situation is not yet resolved.
 
 ## License
 
-This code of conduct has been adapted from [*NUMFOCUS code of conduct*](https://github.com/numfocus/numfocus/blob/main/manual/numfocus-coc.md#the-short-version),
-which is adapted from numerous sources, including the [*Geek Feminism wiki, created by the Ada Initiative and other volunteers, which is under a Creative Commons Zero license*](http://geekfeminism.wikia.com/wiki/Conference_anti-harassment/Policy), the [*Contributor Covenant version 1.2.0*](http://contributor-covenant.org/version/1/2/0/), the [*Bokeh Code of Conduct*](https://github.com/bokeh/bokeh/blob/main/CODE_OF_CONDUCT.md), the [*SciPy Code of Conduct*](https://github.com/jupyter/governance/blob/main/conduct/enforcement.md), the [*Carpentries Code of Conduct*](https://docs.carpentries.org/topic_folders/policies/code-of-conduct.html#enforcement-manual), and the [*NeurIPS Code of Conduct*](https://neurips.cc/public/CodeOfConduct).
+This code of conduct has been adapted from [*NUMFOCUS code of conduct*](https://numfocus.org/code-of-conduct),
+which is adapted from numerous sources, including the [*Geek Feminism wiki, created by the Ada Initiative and other volunteers, which is under a Creative Commons Zero license*](http://geekfeminism.wikia.com/wiki/Conference_anti-harassment/Policy), the [*Contributor Covenant version 1.2.0*](http://contributor-covenant.org/version/1/2/0/), the [*Bokeh Code of Conduct*](https://github.com/bokeh/bokeh/blob/main/docs/CODE_OF_CONDUCT.md), the [*SciPy Code of Conduct*](https://github.com/jupyter/governance/blob/main/conduct/enforcement.md), the [*Carpentries Code of Conduct*](https://docs.carpentries.org/topic_folders/policies/code-of-conduct.html#enforcement-manual), and the [*NeurIPS Code of Conduct*](https://neurips.cc/public/CodeOfConduct).
 
 **PyAutoLens Code of Conduct is licensed under the [Creative Commons Attribution 3.0 Unported License](https://creativecommons.org/licenses/by/3.0/).**

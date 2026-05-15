@@ -5,12 +5,12 @@ Plotting
 **PyAutoLens** custom visualization library.
 
 Step-by-step Juypter notebook guides illustrating all objects listed on this page are 
-provided on the `autolens_workspace: plot tutorials <https://github.com/Jammy2211/autolens_workspace/tree/release/notebooks/plot>`_ and
+provided on the `autolens_workspace: plot tutorials <https://github.com/PyAutoLabs/autolens_workspace/tree/main/notebooks/guides/plot>`_ and
 it is strongly recommended you use those to learn plot customization.
 
 **Examples / Tutorials:**
 
-- `autolens_workspace: plot tutorials <https://github.com/Jammy2211/autolens_workspace/tree/release/notebooks/plot>`_
+- `autolens_workspace: plot tutorials <https://github.com/PyAutoLabs/autolens_workspace/tree/main/notebooks/guides/plot>`_
 
 Plotters [aplt]
 ---------------

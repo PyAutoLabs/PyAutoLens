@@ -21,7 +21,7 @@ instead, or visa versa.
 ## Support
 
 If you are still having issues with installation, please raise an issue on the
-[autolens_workspace issues page](https://github.com/Jammy2211/autolens_workspace/issues) with a description of the
+[autolens_workspace issues page](https://github.com/PyAutoLabs/autolens_workspace/issues) with a description of the
 problem and your system setup (operating system, Python version, etc.).
 
 ## Current Working Directory

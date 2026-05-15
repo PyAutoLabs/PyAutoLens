@@ -10,12 +10,12 @@ models to be estimated.
 This is due to demagnified source reconstructions, where the source is reconstructed as the lensed source galaxy
 (without any lensing):
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/general/images/data.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/general/images/data.png
 :alt: Alternative text
 :width: 400
 ```
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/general/images/model_image.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/general/images/model_image.png
 :alt: Alternative text
 :width: 400
 ```
@@ -30,14 +30,14 @@ models with **too much mass**, such that the ray-tracing inverts in on itself.
 The following schematic is from the paper Maresca et al 2021 (<https://arxiv.org/abs/2012.04665>) and illustrates
 this beautifully:
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/general/images/maresca_fig1.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/general/images/maresca_fig1.png
 :alt: Alternative text
 :width: 400
 ```
 
 The source reconstructions and model-fits of these solutions are also illustrated by Maresca et al 2021:
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/general/images/maresca_fig2.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/general/images/maresca_fig2.png
 :alt: Alternative text
 :width: 400
 ```
@@ -64,13 +64,13 @@ positions = al.Grid2DIrregular(
 Here is where the multiple images appear for an example strong lens, where multiple images are drawn on with black
 stars:
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/general/images/lensed_source.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/general/images/lensed_source.png
 :alt: Alternative text
 :width: 400
 ```
 
 The `autolens_workspace` also includes a Graphical User Interface for drawing lensed source positions via
-mouse click (<https://github.com/Jammy2211/autolens_workspace/blob/release/scripts/imaging/preprocess/gui/positions.py>).
+mouse click (<https://github.com/PyAutoLabs/autolens_workspace/blob/main/scripts/imaging/preprocess/gui/positions.py>).
 
 Next, we create `PositionsLH` object, which has an input `threshold`.
 

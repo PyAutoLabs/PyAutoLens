@@ -6,7 +6,7 @@
 
 [James Nightingale](https://github.com/Jammy2211): Lead developer & PyAutoLens guru.
 
-[Richard Hayes](https://github.com/rhayes777): Lead developer & [PyAutoFit](https://github.com/rhayes777/PyAutoFit) guru.
+[Richard Hayes](https://github.com/rhayes777): Lead developer & [PyAutoFit](https://github.com/PyAutoLabs/PyAutoFit) guru.
 
 [Aristeidis Amvrosiadis](https://github.com/Sketos): Interferometer Analysis.
 

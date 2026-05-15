@@ -2,7 +2,7 @@
 
 # Workspace Tour
 
-You should have downloaded and configured the [autolens workspace](https://github.com/Jammy2211/autolens_workspace)
+You should have downloaded and configured the [autolens workspace](https://github.com/PyAutoLabs/autolens_workspace)
 when you installed **PyAutoLens**. If you didn't, checkout the
 [installation instructions](https://pyautolens.readthedocs.io/en/latest/general/installation.html#installation-with-pip)
 for how to downloaded and configure the workspace.
@@ -18,7 +18,7 @@ There are numerous example describing how to perform lensing calculations, lens 
 **PyAutoLens** features. All examples are provided as Python scripts and Jupyter notebooks.
 
 Descriptions of every configuration file and their input parameters are provided in the `README.md` in
-the [config directory of the workspace](https://github.com/Jammy2211/autolens_workspace/tree/release/config)
+the [config directory of the workspace](https://github.com/PyAutoLabs/autolens_workspace/tree/main/config)
 
 ## Config
 

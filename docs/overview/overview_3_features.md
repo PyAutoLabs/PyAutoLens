@@ -36,7 +36,7 @@ The image below shows a pixelized source reconstruction of the strong lens SLACS
 reconstructed on a Voronoi mesh adapted to the source morphology, revealing it to be a grand-design face on spiral
 galaxy:
 
-```{image} https://github.com/Jammy2211/PyAutoLens/blob/main/files/imageaxis.png?raw=true
+```{image} https://github.com/PyAutoLabs/PyAutoLens/blob/main/files/imageaxis.png?raw=true
 :alt: Alternative text
 :width: 600
 ```
@@ -58,27 +58,27 @@ surface brightness distribution.
 Instead, we assume that our source is a point source with a centre (y,x), and ray-trace triangles at iteratively
 higher resolutions to determine the source's exact locations in the image-plane:
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_3/point_0.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/point_0.png
 :alt: Alternative text
 :width: 400
 ```
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_3/point_1.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/point_1.png
 :alt: Alternative text
 :width: 400
 ```
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_3/point_2.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/point_2.png
 :alt: Alternative text
 :width: 400
 ```
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_3/point_3.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/point_3.png
 :alt: Alternative text
 :width: 400
 ```
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_3/point_4.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/point_4.png
 :alt: Alternative text
 :width: 400
 ```
@@ -92,7 +92,7 @@ Checkout the `autolens_workspace/*/point_source` package to get started.
 
 Modeling of interferometer data from submillimeter (e.g. ALMA) and radio (e.g. LOFAR) observatories:
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoGalaxy/main/paper/almacombined.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoGalaxy/main/paper/almacombined.png
 :alt: Alternative text
 :width: 600
 ```
@@ -107,7 +107,7 @@ Checkout the `autolens_workspace/*/interferometer` package to get started.
 
 An MGE decomposes the light of a galaxy into tens or hundreds of two dimensional Gaussians:
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_3/mge.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/mge.png
 :alt: Alternative text
 :width: 600
 ```
@@ -131,7 +131,7 @@ Checkout `autolens_workspace/notebooks/features/multi_gaussian_expansion.ipynb` 
 The strong lenses we've discussed so far have just a single lens galaxy responsible for the lensing. Group-scale
 strong lenses are systems where there two or more lens galaxies deflecting one or more background sources:
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_3/group.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/group.png
 :alt: Alternative text
 :width: 600
 ```
@@ -147,12 +147,12 @@ The `autolens_workspace/*/group` package has example scripts for simulating data
 Modeling imaging datasets observed at different wavelengths (e.g. HST F814W and F150W) simultaneously or simultaneously
 analysing imaging and interferometer data:
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_3/g_image.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/g_image.png
 :alt: Alternative text
 :width: 600
 ```
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_3/r_image.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/r_image.png
 :alt: Alternative text
 :width: 600
 ```
@@ -169,7 +169,7 @@ feature and it is recommended you first get to grips with the core API.
 Ellipse fitting is a technique which fits many ellipses to a galaxy's emission to determine its ellipticity, position
 angle and centre, without assuming a parametric form for its light (e.g. like a Seisc profile):
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_3/ellipse.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/ellipse.png
 :alt: Alternative text
 :width: 600
 ```
@@ -188,7 +188,7 @@ Checkout `autolens_workspace/notebooks/features/ellipse_fitting.ipynb` to learn 
 
 Shapelets are a set of orthogonal basis functions that can be combined the represent galaxy structures:
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_3/shapelets.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/shapelets.png
 :alt: Alternative text
 :width: 600
 ```

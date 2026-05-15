@@ -9,7 +9,7 @@ It uses **JAX** to **accelerate lensing calculations**, with the example code be
 
 Here is a schematic of a strong gravitational lens:
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_1/schematic.jpg
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_1/schematic.jpg
 :alt: Alternative text
 :width: 600
 ```
@@ -52,7 +52,7 @@ aplt.plot_grid(grid=grid, title="")
 
 The `Grid2D` looks like this:
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_1/0_grid.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_1/0_grid.png
 :alt: Alternative text
 :width: 600
 ```
@@ -103,7 +103,7 @@ for fits to large datasets.
 aplt.plot_array(array=sersic_light_profile.image_2d_from(grid=grid), title="Image")
 ```
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_1/1_image_2d.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_1/1_image_2d.png
 :alt: Alternative text
 :width: 600
 ```
@@ -144,12 +144,12 @@ aplt.plot_array(array=isothermal_mass_profile.convergence_2d_from(grid=grid), ti
 aplt.plot_array(array=isothermal_mass_profile.potential_2d_from(grid=grid), title="Potential")
 ```
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_1/2_deflections_y_2d.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_1/2_deflections_y_2d.png
 :alt: Alternative text
 :width: 600
 ```
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_1/3_deflections_x_2d.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_1/3_deflections_x_2d.png
 :alt: Alternative text
 :width: 600
 ```
@@ -192,22 +192,22 @@ aplt.plot_array(array=lens_galaxy.image_2d_from(grid=grid), title="Lens Galaxy I
 aplt.plot_array(array=source_galaxy.image_2d_from(grid=grid), title="Source Galaxy Image")
 ```
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_1/4_image_2d.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_1/4_image_2d.png
 :alt: Alternative text
 :width: 400
 ```
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_1/7_image_2d.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_1/7_image_2d.png
 :alt: Alternative text
 :width: 400
 ```
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_1/5_deflections_y_2d.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_1/5_deflections_y_2d.png
 :alt: Alternative text
 :width: 400
 ```
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_1/6_deflections_x_2d.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_1/6_deflections_x_2d.png
 :alt: Alternative text
 :width: 400
 ```
@@ -218,7 +218,7 @@ The individual light profiles of the galaxy can be plotted on a subplot:
 aplt.subplot_galaxy_light_profiles(galaxy=lens_galaxy, grid=grid)
 ```
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_1/8_subplot_image.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_1/8_subplot_image.png
 :alt: Alternative text
 :width: 600
 ```
@@ -240,7 +240,7 @@ tracer = al.Tracer(galaxies=[lens_galaxy, source_galaxy], cosmology=al.cosmo.Pla
 aplt.plot_array(array=tracer.image_2d_from(grid=grid), title="Image")
 ```
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_1/9_image_2d.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_1/9_image_2d.png
 :alt: Alternative text
 :width: 600
 ```
@@ -324,7 +324,7 @@ tracer = al.Tracer(galaxies=[lens_galaxy_0, lens_galaxy_1, source_galaxy])
 aplt.plot_array(array=tracer.image_2d_from(grid=grid), title="Image")
 ```
 
-```{image} https://raw.githubusercontent.com/Jammy2211/PyAutoLens/main/docs/overview/images/overview_1/10_image_2d.png
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_1/10_image_2d.png
 :alt: Alternative text
 :width: 600
 ```

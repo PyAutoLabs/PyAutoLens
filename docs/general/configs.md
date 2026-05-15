@@ -4,7 +4,7 @@
 visualization and other aspects of **PyAutoLens**.
 
 Descriptions of every configuration file and their input parameters are provided in the `README.md` in
-the [config directory of the workspace](https://github.com/Jammy2211/autolens_workspace/tree/release/config)
+the [config directory of the workspace](https://github.com/PyAutoLabs/autolens_workspace/tree/main/config)
 
 ## Setup
 
