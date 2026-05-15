@@ -1,0 +1,43 @@
+# Known broken URLs grandfathered for url_check_live.sh.
+# Format: one URL per line. Lines starting with '#' and blank lines are ignored.
+# Sample location follows each URL as a trailing comment.
+#
+# This file is referenced by .github/workflows/url_check.yml (weekly cron).
+# url_check_live.sh fails CI when a URL is broken AND not in this file.
+# To accept new breakage: append the URL here. To force a fix: leave it out.
+
+# Academic citations (paywall / DOI / journal)
+https://academic.oup.com/mnras/article-abstract/478/4/4738/5001434?redirectedFrom=fulltext  # CITATIONS.md:11
+https://academic.oup.com/mnras/article-abstract/489/2/2049/5550746  # docs/index.md:35
+https://academic.oup.com/mnras/article/442/3/2017/1048278  # docs/index.md:36
+https://academic.oup.com/mnras/article/452/3/2940/1749640  # CITATIONS.md:11
+https://academic.oup.com/mnras/article/468/3/2590/3055701  # docs/index.md:37
+https://academic.oup.com/mnras/article/488/1/1387/5526256  # CITATIONS.md:22
+
+# Code of Conduct boilerplate
+http://geekfeminism.wikia.com/wiki/Conference_anti-harassment/Policy  # CODE_OF_CONDUCT.md:305
+
+# Colab refs to notebooks no longer in HowTo/workspace
+https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.5.14.2/notebooks/chapter_3_search_chaining/tutorial_4_complex_source.ipynb  # docs/howtolens/chapter_3_search_chaining.md:20
+https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.5.14.2/notebooks/chapter_4_pixelizations/tutorial_11_adapt_regularization.py.ipynb  # docs/howtolens/chapter_4_pixelizations.md:37
+https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.5.14.2/notebooks/chapter_optional/tutorial_sub_grids.ipynb  # docs/howtolens/chapter_optional.md:7
+
+# External dead / paywalled / departmental pages
+http://www.ita.uni-heidelberg.de/~massimo/sub/Lectures/gl_all.pdf  # docs/howtolens/howtolens.md:36
+https://bitbucket.org/bdiemer/colossus/src/main/  # files/citations.md:12
+
+# GitHub refs (workspaces / removed tutorials)
+https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/advanced/chaining/start_here.ipynb  # docs/general/model_cookbook.md:384
+https://github.com/PyAutoLabs/autolens_workspace/blob/main/scripts/imaging/preprocess/gui/positions.py  # docs/general/demagnified_solutions.md:73
+
+# Internal PyAuto docs — pages renamed, need editorial fix
+https://pyautolens.readthedocs.io/en/latest/advanced/slam.html  # docs/general/workspace.md:49
+https://pyautolens.readthedocs.io/en/latest/general/installation.html#installation-with-pip  # docs/general/workspace.md:7
+https://pyautolens.readthedocs.io/en/latest/installation/numba.html  # docs/installation/pip.md:86
+
+# Internal image refs missing from main
+https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/general/images/data.png  # docs/general/demagnified_solutions.md:13
+https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/general/images/lensed_source.png  # docs/general/demagnified_solutions.md:67
+https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/general/images/model_image.png  # docs/general/demagnified_solutions.md:18
+https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/g_image.png  # docs/overview/overview_3_features.md:150
+https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/r_image.png  # docs/overview/overview_3_features.md:155

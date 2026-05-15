@@ -4,9 +4,16 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: '0 4 * * 1'  # Mondays 04:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  url_check:
+  url_check_patterns:
+    name: Offline regex guard
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -21,3 +28,68 @@ jobs:
           path: PyAutoBuild
       - name: Run url_check.sh
         run: bash PyAutoBuild/autobuild/url_check.sh repo
+
+  url_check_live:
+    name: Live HTTP audit (weekly)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          path: repo
+      - name: Checkout PyAutoBuild
+        uses: actions/checkout@v4
+        with:
+          repository: PyAutoLabs/PyAutoBuild
+          ref: main
+          path: PyAutoBuild
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install requests
+        run: pip install --quiet requests
+      - name: Run live URL audit
+        id: audit
+        run: |
+          set +e
+          body=$(bash PyAutoBuild/autobuild/url_check_live.sh repo)
+          rc=$?
+          printf '%s\n' "$body" > /tmp/url_audit_body.md
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          cat /tmp/url_audit_body.md
+          exit 0
+      - name: Open or update [url-check] tracking issue
+        if: steps.audit.outputs.rc != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd repo
+          existing=$(gh issue list --search '"[url-check]"' --state open --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            echo "Updating existing tracking issue #$existing"
+            gh issue comment "$existing" --body-file /tmp/url_audit_body.md
+          else
+            echo "Opening new tracking issue"
+            gh issue create \
+              --title "[url-check] New broken URLs detected" \
+              --body-file /tmp/url_audit_body.md \
+              --label url-check 2>/dev/null \
+              || gh issue create \
+                --title "[url-check] New broken URLs detected" \
+                --body-file /tmp/url_audit_body.md
+          fi
+      - name: Close stale tracking issue if audit is clean
+        if: steps.audit.outputs.rc == '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd repo
+          for n in $(gh issue list --search '"[url-check]"' --state open --json number --jq '.[].number'); do
+            echo "Closing now-clean tracking issue #$n"
+            gh issue close "$n" --comment "Weekly URL audit is clean — closing automatically."
+          done
