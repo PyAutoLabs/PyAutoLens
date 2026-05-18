@@ -12,7 +12,6 @@ Total [ag.mp]
    :template: custom-class-template.rst
    :recursive:
 
-   PointMass
    PowerLawCore
    PowerLawCoreSph
    PowerLawBroken
@@ -23,6 +22,11 @@ Total [ag.mp]
    PowerLawSph
    Isothermal
    IsothermalSph
+   dPIEMass
+   dPIEMassSph
+   PIEMass
+   dPIEPotential
+   dPIEPotentialSph
 
 Mass Sheets [ag.mp]
 -------------------
@@ -35,6 +39,7 @@ Mass Sheets [ag.mp]
    :recursive:
 
    ExternalShear
+   ExternalPotential
    MassSheet
 
 Multipoles [ag.mp]
@@ -49,6 +54,20 @@ Multipoles [ag.mp]
 
    PowerLawMultipole
 
+Point Mass [ag.mp]
+------------------
+
+.. currentmodule:: autogalaxy.profiles.mass
+
+.. autosummary::
+   :toctree: _autosummary
+   :template: custom-class-template.rst
+   :recursive:
+
+   PointMass
+   SMBH
+   SMBHBinary
+
 Stellar [ag.mp]
 ---------------
 
@@ -60,8 +79,11 @@ Stellar [ag.mp]
    :recursive:
 
    Gaussian
+   GaussianGradient
    Sersic
    SersicSph
+   SersicCore
+   SersicCoreSph
    Exponential
    ExponentialSph
    DevVaucouleurs
@@ -83,15 +105,85 @@ Dark [ag.mp]
 
    gNFW
    gNFWSph
+   gNFWMCRLudlow
+   gNFWVirialMassConcSph
+   gNFWVirialMassgNFWConcSph
+   NFW
+   NFWSph
+   NFWMCRDuffySph
+   NFWMCRLudlow
+   NFWMCRLudlowSph
+   NFWMCRScatterLudlow
+   NFWMCRScatterLudlowSph
+   NFWVirialMassConcSph
    NFWTruncatedSph
    NFWTruncatedMCRDuffySph
    NFWTruncatedMCRLudlowSph
    NFWTruncatedMCRScatterLudlowSph
-   NFW
-   NFWSph
-   NFWMCRDuffySph
-   NFWMCRLudlowSph
-   NFWMCRScatterLudlow
-   NFWMCRScatterLudlowSph
-   NFWMCRLudlow
-   gNFWMCRLudlow
+   cNFW
+   cNFWSph
+   cNFWMCRLudlow
+   cNFWMCRLudlowSph
+   cNFWMCRScatterLudlow
+   cNFWMCRScatterLudlowSph
+
+Stellar Light+Mass [ag.lmp]
+---------------------------
+
+Combined light-and-mass profiles whose ``image_2d_from`` and ``convergence_2d_from`` share
+a single parametric shape via a ``mass_to_light_ratio`` parameter.
+
+.. currentmodule:: autogalaxy.profiles.light_and_mass_profiles
+
+.. autosummary::
+   :toctree: _autosummary
+   :template: custom-class-template.rst
+   :recursive:
+
+   Gaussian
+   GaussianGradient
+   Sersic
+   SersicSph
+   SersicCore
+   SersicCoreSph
+   SersicGradient
+   SersicGradientSph
+   Exponential
+   ExponentialSph
+   ExponentialGradient
+   ExponentialGradientSph
+   DevVaucouleurs
+   DevVaucouleursSph
+   Chameleon
+   ChameleonSph
+
+Linear Light+Mass [ag.lmp_linear]
+---------------------------------
+
+The inversion-aware variants of ``ag.lmp.*`` — same parametric shapes and
+``mass_to_light_ratio`` semantics, with ``intensity`` solved analytically via the linear
+inversion during each likelihood evaluation rather than as a free non-linear parameter.
+
+.. currentmodule:: autogalaxy.profiles.light_linear_and_mass_profiles
+
+.. autosummary::
+   :toctree: _autosummary
+   :template: custom-class-template.rst
+   :recursive:
+
+   Gaussian
+   GaussianGradient
+   Sersic
+   SersicSph
+   SersicCore
+   SersicCoreSph
+   SersicGradient
+   SersicGradientSph
+   Exponential
+   ExponentialSph
+   ExponentialGradient
+   ExponentialGradientSph
+   DevVaucouleurs
+   DevVaucouleursSph
+   Chameleon
+   ChameleonSph
