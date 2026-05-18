@@ -98,7 +98,8 @@ from autolens.lens.plot.tracer_plots import plane_image_from
 
 def _plot_source_plane(fit, ax, plane_index, zoom_to_brightest=True,
                        colormap=None, use_log10=False, title=None,
-                       lines=None, line_colors=None, vmax=None):
+                       lines=None, line_colors=None, vmax=None,
+                       zoom_extent_scale: float = 1.0):
     """
     Plot the source-plane image (or a blank inversion placeholder) into an axes.
 
@@ -142,10 +143,20 @@ def _plot_source_plane(fit, ax, plane_index, zoom_to_brightest=True,
                 extent=zoom.extent_from(buffer=0),
                 shape_native=zoom.shape_native,
             )
+        zoom_extent_bounds = None
+        if zoom_extent_scale != 1.0:
+            zoom = aa.Zoom2D(mask=fit.mask)
+            no_zoom_grid = aa.Grid2D.from_extent(
+                extent=zoom.extent_from(buffer=0),
+                shape_native=zoom.shape_native,
+            )
+            zoom_extent_bounds = no_zoom_grid.geometry.extent
         image = plane_image_from(
             galaxies=tracer.planes[plane_index],
             grid=grid,
             zoom_to_brightest=zoom_to_brightest,
+            zoom_extent_scale=zoom_extent_scale,
+            zoom_extent_bounds=zoom_extent_bounds,
         )
         plot_array(
             array=image, ax=ax,
@@ -169,6 +180,7 @@ def _plot_source_plane(fit, ax, plane_index, zoom_to_brightest=True,
                 use_log10=use_log10,
                 vmax=vmax,
                 zoom_to_brightest=zoom_to_brightest,
+                zoom_extent_scale=zoom_extent_scale,
                 lines=lines,
                 line_colors=line_colors,
             )
@@ -196,13 +208,15 @@ def subplot_fit(
 
     Arranges the following panels in a 3 × 4 grid:
 
-    * Data (full scale and source scale)
-    * Signal-to-noise map
+    * Data
     * Model image
+    * Signal-to-noise map
+    * Source plane image (max zoom)
     * Lens-light model image
     * Lens-light-subtracted image (source scale)
     * Source model image (source scale)
-    * Source plane image (zoomed)
+    * Source plane image (mid zoom — 2× wider than max zoom, square, shrunk
+      uniformly so all edges stay inside the no-zoom extent)
     * Normalised residual map (symmetric scale)
     * Normalised residual map clipped to ± 1 σ
     * Chi-squared map
@@ -250,15 +264,18 @@ def subplot_fit(
 
     plot_array(array=fit.data, ax=axes_flat[0], title=_pf("Data"), colormap=colormap)
 
-    # Data at source scale
-    plot_array(array=fit.data, ax=axes_flat[1], title=_pf("Data (Source Scale)"),
-               colormap=colormap, vmax=source_vmax)
+    plot_array(array=fit.model_data, ax=axes_flat[1], title=_pf("Model Image"),
+               colormap=colormap, lines=image_plane_lines,
+               line_colors=image_plane_line_colors)
 
     plot_array(array=fit.signal_to_noise_map, ax=axes_flat[2],
                title=_pf("Signal-To-Noise Map"), colormap=colormap)
-    plot_array(array=fit.model_data, ax=axes_flat[3], title=_pf("Model Image"),
-               colormap=colormap, lines=image_plane_lines,
-               line_colors=image_plane_line_colors)
+
+    # Source plane (max zoom)
+    _plot_source_plane(fit, axes_flat[3], final_plane_index, zoom_to_brightest=True,
+                       colormap=colormap, title=_pf("Source Plane (Max Zoom)"),
+                       lines=source_plane_lines, line_colors=source_plane_line_colors,
+                       vmax=source_vmax)
 
     # Lens model image
     try:
@@ -295,11 +312,11 @@ def subplot_fit(
     else:
         axes_flat[6].axis("off")
 
-    # Source plane zoomed
+    # Source plane (mid zoom) — same centre as Max Zoom, 2.5x wider extent
     _plot_source_plane(fit, axes_flat[7], final_plane_index, zoom_to_brightest=True,
-                       colormap=colormap, title=_pf("Source Plane (Zoomed)"),
+                       colormap=colormap, title=_pf("Source Plane (Mid Zoom)"),
                        lines=source_plane_lines, line_colors=source_plane_line_colors,
-                       vmax=source_vmax)
+                       vmax=source_vmax, zoom_extent_scale=2.0)
 
     # Normalized residual map (symmetric)
     norm_resid = fit.normalized_residual_map
@@ -411,7 +428,10 @@ def subplot_fit_log10(
     positive-valued panels (data, model image, lens-light model, subtracted
     image, source model image, chi-squared map, source plane images).
     Residual panels are left on a linear scale because they contain negative
-    values.
+    values.  Includes Source Plane (Max Zoom) and Source Plane (Mid Zoom)
+    panels — Mid Zoom shares the Max Zoom centre with extents 2x larger,
+    kept square and shrunk uniformly so all edges stay inside the No Zoom
+    extent.
 
     For single-plane tracers the function delegates to
     :func:`subplot_fit_log10_x1_plane`.
@@ -455,11 +475,9 @@ def subplot_fit_log10(
     plot_array(array=fit.data, ax=axes_flat[0], title=_pf("Data"), colormap=colormap,
                use_log10=True)
 
-    try:
-        plot_array(array=fit.data, ax=axes_flat[1], title=_pf("Data (Source Scale)"),
-                   colormap=colormap, use_log10=True)
-    except ValueError:
-        axes_flat[1].axis("off")
+    plot_array(array=fit.model_data, ax=axes_flat[1], title=_pf("Model Image"),
+               colormap=colormap, use_log10=True, lines=image_plane_lines,
+               line_colors=image_plane_line_colors)
 
     try:
         plot_array(array=fit.signal_to_noise_map, ax=axes_flat[2],
@@ -467,9 +485,12 @@ def subplot_fit_log10(
     except ValueError:
         axes_flat[2].axis("off")
 
-    plot_array(array=fit.model_data, ax=axes_flat[3], title=_pf("Model Image"),
-               colormap=colormap, use_log10=True, lines=image_plane_lines,
-               line_colors=image_plane_line_colors)
+    # Source plane (max zoom)
+    _plot_source_plane(fit, axes_flat[3], final_plane_index, zoom_to_brightest=True,
+                       colormap=colormap, use_log10=True,
+                       title=_pf("Source Plane (Max Zoom)"),
+                       lines=source_plane_lines, line_colors=source_plane_line_colors,
+                       vmax=source_vmax)
 
     try:
         lens_model_img = fit.model_images_of_planes_list[0]
@@ -493,11 +514,12 @@ def subplot_fit_log10(
     except (IndexError, AttributeError):
         axes_flat[6].axis("off")
 
+    # Source plane (mid zoom) — same centre as Max Zoom, 2.5x wider extent
     _plot_source_plane(fit, axes_flat[7], final_plane_index, zoom_to_brightest=True,
                        colormap=colormap, use_log10=True,
-                       title=_pf("Source Plane (Zoomed)"),
+                       title=_pf("Source Plane (Mid Zoom)"),
                        lines=source_plane_lines, line_colors=source_plane_line_colors,
-                       vmax=source_vmax)
+                       vmax=source_vmax, zoom_extent_scale=2.0)
 
     norm_resid = fit.normalized_residual_map
     _abs_max = _symmetric_vmax(norm_resid)

@@ -32,6 +32,17 @@ def test__subplot_fit__two_plane_tracer__output_file_created(
     assert str(plot_path / "fit.png") in plot_patch.paths
 
 
+def test__subplot_fit__inversion_source__mid_zoom_panel_renders(
+    fit_imaging_x2_plane_inversion_7x7, plot_path, plot_patch
+):
+    subplot_fit(
+        fit=fit_imaging_x2_plane_inversion_7x7,
+        output_path=plot_path,
+        output_format="png",
+    )
+    assert str(plot_path / "fit.png") in plot_patch.paths
+
+
 def test__subplot_fit__single_plane_tracer__delegates_to_x1_plane_and_creates_file(
     fit_imaging_x1_plane_7x7, plot_path, plot_patch
 ):
