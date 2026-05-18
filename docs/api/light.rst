@@ -14,8 +14,10 @@ Standard [``ag.lp``]
 
    Gaussian
    GaussianSph
+   GaussianMultipole
    Sersic
    SersicSph
+   SersicMultipole
    Exponential
    ExponentialSph
    DevVaucouleurs
