@@ -14,6 +14,8 @@ def plane_image_from(
     grid: aa.Grid2D,
     buffer: float = 1.0e-2,
     zoom_to_brightest: bool = True,
+    zoom_extent_scale: float = 1.0,
+    zoom_extent_bounds: Optional[tuple] = None,
 ) -> aa.Array2D:
     """
     Return the unlensed source-plane image of a list of galaxies.
@@ -79,6 +81,34 @@ def plane_image_from(
                 grid_native[y_max_pix, 0][0] + buffer,
             )
             extent = aa.util.geometry.extent_symmetric_from(extent=extent)
+
+            if zoom_extent_scale != 1.0:
+                x_min, x_max, y_min, y_max = extent
+                x_centre = 0.5 * (x_min + x_max)
+                y_centre = 0.5 * (y_min + y_max)
+                target_half = 0.5 * max(x_max - x_min, y_max - y_min) * zoom_extent_scale
+
+                if zoom_extent_bounds is not None:
+                    max_allowable_half = min(
+                        x_centre - zoom_extent_bounds[0],
+                        zoom_extent_bounds[1] - x_centre,
+                        y_centre - zoom_extent_bounds[2],
+                        zoom_extent_bounds[3] - y_centre,
+                    )
+                    bound_cap_half = 0.7 * 0.5 * min(
+                        zoom_extent_bounds[1] - zoom_extent_bounds[0],
+                        zoom_extent_bounds[3] - zoom_extent_bounds[2],
+                    )
+                    final_half = min(target_half, max_allowable_half, bound_cap_half)
+                else:
+                    final_half = target_half
+
+                extent = (
+                    x_centre - final_half,
+                    x_centre + final_half,
+                    y_centre - final_half,
+                    y_centre + final_half,
+                )
 
             pixel_scales = (
                 float((extent[3] - extent[2]) / shape[0]),
