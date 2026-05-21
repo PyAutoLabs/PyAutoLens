@@ -49,7 +49,22 @@ def _compute_critical_curve_lines(tracer, grid):
             ["white"] * len(_tan_ca_lines) + ["yellow"] * len(_rad_ca_lines)
         )
         return image_plane_lines, image_plane_line_colors, source_plane_lines, source_plane_line_colors
+    except (ModuleNotFoundError, ValueError):
+        # ModuleNotFoundError: jax_zero_contour missing — already warned upstream in
+        # plot_utils._critical_curves_method().
+        # ValueError: no zero crossings in the eigenvalue grid (e.g. slope >= 2
+        # isothermal where lambda_r > 0 everywhere). Curves don't exist for this
+        # model, so rendering without overlays is correct.
+        return None, None, None, None
     except Exception:
+        # Anything else — log loudly with traceback so the next regression of the
+        # "ZeroSolver raised inside model-fit, viz fell back to all-zero" failure
+        # mode (PyAutoGalaxy abd7b717, PyAutoFit #1280) does not stay silent.
+        logger.warning(
+            "Critical-curve computation failed unexpectedly; rendering without "
+            "overlays. Investigate — this used to be a silent fallback.",
+            exc_info=True,
+        )
         return None, None, None, None
 
 

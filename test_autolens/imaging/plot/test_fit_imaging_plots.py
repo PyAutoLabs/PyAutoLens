@@ -1,8 +1,11 @@
+import logging
 from pathlib import Path
 
 import pytest
 
+from autolens.imaging.plot import fit_imaging_plots
 from autolens.imaging.plot.fit_imaging_plots import (
+    _compute_critical_curve_lines,
     subplot_fit,
     subplot_fit_log10,
     subplot_fit_x1_plane,
@@ -156,3 +159,58 @@ def test__subplot_fit_combined_log10__list_of_two_fits__output_file_created(
         output_format="png",
     )
     assert str(plot_path / "fit_combined_log10.png") in plot_patch.paths
+
+
+@pytest.mark.parametrize(
+    "exc_cls",
+    [ModuleNotFoundError, ValueError],
+    ids=["jax_zero_contour_missing", "no_zero_crossings"],
+)
+def test__compute_critical_curve_lines__known_recoverable_exceptions__silent(
+    monkeypatch, caplog, exc_cls
+):
+    """
+    Two failure modes are expected and pre-handled upstream: ``jax_zero_contour``
+    not installed (``ModuleNotFoundError``) and a model with no zero crossings
+    (``ValueError`` raised by ``_init_guess_from_coarse_grid``). These must
+    fall through silently — no WARNING log — so plot-time noise stays clean
+    when the absence of critical curves is the correct rendering.
+    """
+    def boom(*args, **kwargs):
+        raise exc_cls("synthetic failure for test")
+
+    monkeypatch.setattr(fit_imaging_plots, "_critical_curves_from", boom)
+
+    with caplog.at_level(logging.WARNING, logger=fit_imaging_plots.__name__):
+        result = _compute_critical_curve_lines(tracer=None, grid=None)
+
+    assert result == (None, None, None, None)
+    assert caplog.records == [], (
+        "known-recoverable failure must not emit a WARNING log"
+    )
+
+
+def test__compute_critical_curve_lines__unexpected_exception__logs_warning(
+    monkeypatch, caplog
+):
+    """
+    Anything OTHER than ``ModuleNotFoundError`` / ``ValueError`` is treated as
+    an unexpected failure (the silent failure mode that caused the
+    2026-04-19 PyAutoGalaxy zero_contour revert and the 2026-05-16 Euclid
+    pipeline regression). Such failures must surface as a WARNING log with
+    a traceback — never silently swallowed.
+    """
+    def boom(*args, **kwargs):
+        raise RuntimeError("synthetic unexpected failure for test")
+
+    monkeypatch.setattr(fit_imaging_plots, "_critical_curves_from", boom)
+
+    with caplog.at_level(logging.WARNING, logger=fit_imaging_plots.__name__):
+        result = _compute_critical_curve_lines(tracer=None, grid=None)
+
+    assert result == (None, None, None, None)
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.levelno == logging.WARNING
+    assert record.exc_info is not None, "traceback must be attached"
+    assert isinstance(record.exc_info[1], RuntimeError)
