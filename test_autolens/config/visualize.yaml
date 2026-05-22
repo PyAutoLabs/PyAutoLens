@@ -21,8 +21,6 @@ plots:
     subplot_fit_dirty_images: true
     fits_dirty_images: true                 # output dirty_images.fits showing the dirty image, noise-map, model-data, resiual-map, normalized residual map and chi-squared map?
   fit_point_dataset: {}
-  fit_quantity:
-    subplot_fit: true
   galaxies:
     subplot_galaxies: true
     subplot_galaxy_images: true

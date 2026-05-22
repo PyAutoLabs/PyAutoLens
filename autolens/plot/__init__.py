@@ -34,7 +34,6 @@ from autogalaxy.plot import (
     subplot_fit_imaging_of_galaxy,
     subplot_fit_dirty_images,
     subplot_fit_real_space,
-    subplot_fit_quantity,
     subplot_fit_ellipse,
     subplot_ellipse_errors,
 )

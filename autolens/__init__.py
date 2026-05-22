@@ -71,7 +71,6 @@ from autogalaxy.galaxy.galaxy_model_csv import galaxies_from_csv_tables
 from autogalaxy.galaxy.galaxy_model_csv import galaxy_af_models_from_csv_tables
 from autogalaxy.galaxy.redshift import Redshift
 
-from autogalaxy.quantity.dataset_quantity import DatasetQuantity
 from autogalaxy.profiles.geometry_profiles import EllProfile
 from autogalaxy.profiles import (
     point_sources as ps,
@@ -92,7 +91,6 @@ from autogalaxy.profiles.light import (
 from autogalaxy.profiles.light.linear import LightProfileLinearObjFuncList
 from autogalaxy.operate.image import OperateImage
 from autogalaxy.operate.lens_calc import LensCalc
-from autogalaxy.quantity.dataset_quantity import DatasetQuantity
 from autogalaxy import convert
 
 from . import aggregator as agg
@@ -125,8 +123,6 @@ from .point.max_separation import SourceMaxSeparation
 from .point.model.analysis import AnalysisPoint
 from .point.solver import PointSolver
 from .point.solver.shape_solver import ShapeSolver
-from .quantity.fit_quantity import FitQuantity
-from .quantity.model.analysis import AnalysisQuantity
 from .weak.dataset import WeakDataset
 from .weak.fit import FitWeak
 from .weak.simulator import SimulatorShearYX

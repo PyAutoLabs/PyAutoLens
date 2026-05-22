@@ -18,7 +18,6 @@ It acts as an interface between the data, model and the non-linear search.
 
    AnalysisImaging
    AnalysisInterferometer
-   AnalysisQuantity
 
 Non-linear Searches
 -------------------

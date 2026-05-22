@@ -17,17 +17,3 @@ imaging or interferometer dataset.
 
    FitImaging
    FitInterferometer
-
-Quantity
---------
-
-For fitting a derived lensing quantity (e.g. convergence, deflection angles, potential)
-predicted by one mass or light model against the same quantity predicted by another, to
-enable model comparison between different profile families.
-
-.. autosummary::
-   :toctree: _autosummary
-   :template: custom-class-template.rst
-   :recursive:
-
-   FitQuantity
