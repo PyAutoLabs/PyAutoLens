@@ -8,6 +8,10 @@ When two or more galaxies are aligned perfectly down our line-of-sight, the back
 
 This is called strong gravitational lensing and **PyAutoLens** makes it simple to model strong gravitational lenses, using JAX to **accelerate lens modeling on GPUs**.
 
+```{note}
+🤖 **Prototype:** [autolens_assistant](https://github.com/PyAutoLabs/autolens_assistant) is an early-stage AI assistant you talk to in natural language to do lens modeling end-to-end. It is experimental and **not the recommended starting point** — the readthedocs, autolens_workspace, and HowToLens below remain the canonical entry points. Try it if you'd like to drive PyAutoLens by conversation.
+```
+
 # Getting Started
 
 The following links are useful for new starters:
