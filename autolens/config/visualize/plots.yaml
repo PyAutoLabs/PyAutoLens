@@ -61,9 +61,6 @@ fit_ellipse:                               # Settings for plots of ellipse fitti
   data : true                              # Plot the data of the ellipse fit?
   data_no_ellipse: true                    # Plot the data without the black data ellipses, which obscure noisy data?
 
-fit_quantity:                              # Settings for plots of fit quantities (e.g. FitQuantity).
-  subplot_fit: true
-
 galaxies:                                  # Settings for plots of galaxies (e.g. Galaxies).
   subplot_galaxies: true                   # Plot subplot of all quantities in each galaxies group (e.g. images, convergence)?
   subplot_galaxy_images: false             # Plot subplot of the image of each galaxy in the model?

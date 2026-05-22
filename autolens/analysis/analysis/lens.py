@@ -2,8 +2,8 @@
 Lensing-specific mixin for all **PyAutoLens** ``Analysis`` classes.
 
 ``AnalysisLens`` is a mixin that adds lensing-specific behaviour to any analysis class.
-It is inherited (alongside dataset-specific base classes) by ``AnalysisDataset``,
-``AnalysisPoint``, and ``AnalysisQuantity``.
+It is inherited (alongside dataset-specific base classes) by ``AnalysisDataset``
+and ``AnalysisPoint``.
 
 Key responsibilities:
 

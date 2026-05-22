@@ -82,7 +82,6 @@ autolens/
   imaging/         FitImaging, AnalysisImaging
   interferometer/  FitInterferometer, AnalysisInterferometer
   point/           Point-source datasets, fits, and analysis
-  quantity/        FitQuantity for arbitrary lensing quantities
   analysis/        Shared analysis base classes, adapt images
   aggregator/      Scraping results from autofit output directories
   plot/            Visualisation for all data types
