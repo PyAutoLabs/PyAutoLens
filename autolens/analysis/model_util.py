@@ -13,88 +13,109 @@ Key functions re-exported from ``autogalaxy``:
 - ``hilbert_pixels_from_pixel_scale`` — estimate Hilbert image-mesh pixel count.
 
 PyAutoLens-specific:
-- ``simulator_start_here_model_from`` — builds a default imaging simulator model with
-  optional lens light and point-source components for start_here scripts.
+- ``random_galaxies_for_simulation_from`` — sample concrete (lens, source) ``Galaxy``
+  instances for synthetic-data generation in ``start_here`` scripts.
 """
-import autofit as af
+from typing import Optional, Tuple
+
+import numpy as np
+
 import autolens as al
 
 from autogalaxy.analysis.model_util import mge_model_from
 from autogalaxy.analysis.model_util import mge_point_model_from
 from autogalaxy.analysis.model_util import hilbert_pixels_from_pixel_scale
 
-def simulator_start_here_model_from(
-    include_lens_light: bool = True, use_point_source: bool = False
-):
+
+SIMULATOR_RANDOM_LENS_SUMMARY = (
+    "Each simulated strong lens draws fresh truths from: "
+    "lens bulge SNR in [20, 60] (when included), "
+    "lens mass einstein_radius in [0.2, 1.8] with normal-clipped ellipticity, "
+    "external shear ~ Normal(0, 0.05), "
+    "source bulge SNR in [10, 30] / point-source flux in [0.0, 2.0] (mode dependent)."
+)
+
+
+def _clipped_ell_comp(rng: np.random.Generator) -> float:
+    return float(np.clip(rng.normal(0.0, 0.2), -1.0, 1.0))
+
+
+def random_galaxies_for_simulation_from(
+    include_lens_light: bool = True,
+    use_point_source: bool = False,
+    rng: Optional[np.random.Generator] = None,
+) -> Tuple["al.Galaxy", "al.Galaxy"]:
+    """
+    Sample a ``(lens_galaxy, source_galaxy)`` pair for synthetic strong-lens
+    data generation.
+
+    Each parameter is drawn directly from a numpy ``Generator`` and used to
+    construct concrete profile instances — no ``af.Model`` priors are involved.
+    SNR-normalised Sersic profiles (``lp_snr.Sersic``) are used for diffuse
+    light components so that simulator output lands at a controlled target
+    SNR; the SNR appears as a profile attribute on the *instance*, never as a
+    fitting parameter.
+
+    Do **not** use the returned galaxies as fitting models. They are
+    instances, suitable for ``Tracer`` / ``simulator.via_tracer_from``.
+
+    Parameters
+    ----------
+    include_lens_light
+        If True (default), give the lens galaxy an ``lp_snr.Sersic`` bulge.
+        If False, the lens is mass-only.
+    use_point_source
+        If True, source is a ``PointFlux`` with random centre and flux. If
+        False (default), source is an ``lp_snr.Sersic``.
+    rng
+        Optional ``numpy.random.Generator``. If ``None`` a fresh
+        ``default_rng()`` is created on each call.
+
+    Returns
+    -------
+    (Galaxy, Galaxy)
+        ``(lens_galaxy, source_galaxy)`` at redshifts 0.5 and 1.0 respectively.
+    """
+    rng = rng if rng is not None else np.random.default_rng()
 
     if include_lens_light:
-        bulge = af.Model(al.lp_snr.Sersic)
-
-        bulge.centre = (0.0, 0.0)
-        bulge.ell_comps.ell_comps_0 = af.TruncatedGaussianPrior(
-            mean=0.0, sigma=0.2, lower_limit=-1.0, upper_limit=1.0
-        )
-        bulge.ell_comps.ell_comps_1 = af.TruncatedGaussianPrior(
-            mean=0.0, sigma=0.2, lower_limit=-1.0, upper_limit=1.0
-        )
-        bulge.signal_to_noise_ratio = af.UniformPrior(
-            lower_limit=20.0, upper_limit=60.0
-        )
-        bulge.effective_radius = af.UniformPrior(lower_limit=1.0, upper_limit=5.0)
-        bulge.sersic_index = af.TruncatedGaussianPrior(
-            mean=4.0, sigma=0.5, lower_limit=0.8, upper_limit=5.0
+        lens_bulge = al.lp_snr.Sersic(
+            centre=(0.0, 0.0),
+            ell_comps=(_clipped_ell_comp(rng), _clipped_ell_comp(rng)),
+            effective_radius=float(rng.uniform(1.0, 5.0)),
+            sersic_index=float(rng.uniform(3.5, 4.5)),
+            signal_to_noise_ratio=float(rng.uniform(20.0, 60.0)),
         )
     else:
-        bulge = None
+        lens_bulge = None
 
-    mass = af.Model(al.mp.Isothermal)
-
-    mass.centre = (0.0, 0.0)
-    mass.ell_comps.ell_comps_0 = af.TruncatedGaussianPrior(
-        mean=0.0, sigma=0.2, lower_limit=-1.0, upper_limit=1.0
+    mass = al.mp.Isothermal(
+        centre=(0.0, 0.0),
+        ell_comps=(_clipped_ell_comp(rng), _clipped_ell_comp(rng)),
+        einstein_radius=float(rng.uniform(0.2, 1.8)),
     )
-    mass.ell_comps.ell_comps_1 = af.TruncatedGaussianPrior(
-        mean=0.0, sigma=0.2, lower_limit=-1.0, upper_limit=1.0
+
+    shear = al.mp.ExternalShear(
+        gamma_1=float(rng.normal(0.0, 0.05)),
+        gamma_2=float(rng.normal(0.0, 0.05)),
     )
-    mass.einstein_radius = af.UniformPrior(lower_limit=0.2, upper_limit=1.8)
 
-    shear = af.Model(al.mp.ExternalShear)
-
-    shear.gamma_1 = af.GaussianPrior(mean=0.0, sigma=0.05)
-    shear.gamma_2 = af.GaussianPrior(mean=0.0, sigma=0.05)
-
-    lens = af.Model(al.Galaxy, redshift=0.5, bulge=bulge, mass=mass, shear=shear)
+    lens = al.Galaxy(redshift=0.5, bulge=lens_bulge, mass=mass, shear=shear)
 
     if use_point_source:
-
-        point_0 = af.Model(al.ps.PointFlux)
-
-        point_0.centre.centre_0 = af.GaussianPrior(mean=0.0, sigma=0.3)
-        point_0.centre.centre_1 = af.GaussianPrior(mean=0.0, sigma=0.3)
-        point_0.flux = af.UniformPrior(lower_limit=0.0, upper_limit=2.0)
-
-        source = af.Model(al.Galaxy, redshift=1.0, point_0=point_0)
-
+        point_0 = al.ps.PointFlux(
+            centre=(float(rng.normal(0.0, 0.3)), float(rng.normal(0.0, 0.3))),
+            flux=float(rng.uniform(0.0, 2.0)),
+        )
+        source = al.Galaxy(redshift=1.0, point_0=point_0)
     else:
-
-        bulge = af.Model(al.lp_snr.Sersic)
-
-        bulge.centre_0 = af.GaussianPrior(mean=0.0, sigma=0.3)
-        bulge.centre_1 = af.GaussianPrior(mean=0.0, sigma=0.3)
-        bulge.ell_comps.ell_comps_0 = af.TruncatedGaussianPrior(
-            mean=0.0, sigma=0.2, lower_limit=-1.0, upper_limit=1.0
+        source_bulge = al.lp_snr.Sersic(
+            centre=(float(rng.normal(0.0, 0.3)), float(rng.normal(0.0, 0.3))),
+            ell_comps=(_clipped_ell_comp(rng), _clipped_ell_comp(rng)),
+            effective_radius=float(rng.uniform(0.01, 3.0)),
+            sersic_index=float(rng.uniform(1.5, 2.5)),
+            signal_to_noise_ratio=float(rng.uniform(10.0, 30.0)),
         )
-        bulge.ell_comps.ell_comps_1 = af.TruncatedGaussianPrior(
-            mean=0.0, sigma=0.2, lower_limit=-1.0, upper_limit=1.0
-        )
-        bulge.signal_to_noise_ratio = af.UniformPrior(
-            lower_limit=10.0, upper_limit=30.0
-        )
-        bulge.effective_radius = af.UniformPrior(lower_limit=0.01, upper_limit=3.0)
-        bulge.sersic_index = af.TruncatedGaussianPrior(
-            mean=2.0, sigma=0.5, lower_limit=0.8, upper_limit=5.0
-        )
-
-        source = af.Model(al.Galaxy, redshift=1.0, bulge=bulge)
+        source = al.Galaxy(redshift=1.0, bulge=source_bulge)
 
     return lens, source
