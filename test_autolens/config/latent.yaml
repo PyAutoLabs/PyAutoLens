@@ -1,0 +1,14 @@
+# Test config mirror of `autolens/config/latent.yaml`. Pushed by the
+# autouse `set_config_path` fixture in `test_autolens/conftest.py`,
+# shadowing the library defaults during the test suite.
+#
+# Only `total_lens_flux_mujy` is enabled so the end-to-end test through
+# `AnalysisImaging.compute_latent_variables` has the smallest possible
+# fixture surface (lens galaxy with a single light profile). The other
+# latent functions are exercised directly via their own unit tests with
+# `SimpleNamespace`/`MagicMock`-built fits.
+total_lens_flux_mujy: true
+total_lensed_source_flux_mujy: false
+total_source_flux_mujy: false
+magnification: false
+effective_einstein_radius: false

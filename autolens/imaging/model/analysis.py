@@ -32,6 +32,38 @@ class AnalysisImaging(AnalysisDataset):
     Result = ResultImaging
     Visualizer = VisualizerImaging
 
+    @property
+    def LATENT_KEYS(self):
+        from autolens.analysis.latent import latent_keys_enabled
+        return latent_keys_enabled()
+
+    def compute_latent_variables(self, parameters, model):
+        """
+        Compute the catalogue of lensing latent variables enabled in
+        ``config/latent.yaml`` for the given parameter vector.
+
+        Returns a tuple positionally aligned with :attr:`LATENT_KEYS` —
+        PyAutoFit zips it with the keys at
+        ``autofit/non_linear/analysis/analysis.py:285`` and stacks per
+        sample for the JIT batch path at lines 223-234.
+
+        Raises ``NotImplementedError`` when no latents are enabled so
+        PyAutoFit's outer ``except NotImplementedError`` short-circuits
+        the latent pipeline cleanly (no empty ``latent.csv`` written).
+        """
+        from autolens.analysis.latent import LATENT_FUNCTIONS
+
+        keys = self.LATENT_KEYS
+        if not keys:
+            raise NotImplementedError
+
+        xp = self._xp
+        instance = model.instance_from_vector(vector=parameters)
+        fit = self.fit_from(instance=instance)
+        magzero = self.kwargs.get("magzero", None)
+        context = {"fit": fit, "magzero": magzero, "xp": xp}
+        return tuple(LATENT_FUNCTIONS[k](**context) for k in keys)
+
     def log_likelihood_function(self, instance: af.ModelInstance) -> float:
         """
         Given an instance of the model, where the model parameters are set via a non-linear search, fit the model

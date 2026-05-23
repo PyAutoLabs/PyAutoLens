@@ -1,0 +1,43 @@
+# Toggles for the catalogue of latent variables computed by `AnalysisImaging`
+# (and, when wired in a follow-up, `AnalysisInterferometer`).
+#
+# Each entry maps a registered latent name (see
+# `autolens/analysis/latent.py::LATENT_FUNCTIONS`) to a bool. Setting `false`
+# excludes that latent from `LATENT_KEYS` so it is neither computed nor
+# written to `latent/samples.csv` / `latent/latent_summary.json`.
+#
+# Workspaces should mirror this file in their own `config/latent.yaml` to
+# override defaults locally (workspace values shadow library values).
+#
+# All keys ship `false` because:
+#  - `compute_latent_samples` runs on every fit (`latent_after_fit: true`
+#    in autofit's default output.yaml), so on-by-default would crash any
+#    existing fit that doesn't pass `magzero` to the Analysis.
+#  - autoconf lowercases yaml keys at read time, so the registry/yaml
+#    names must be snake_case-lowercase (this leaks into the `latent.csv`
+#    column header — e.g. `total_lens_flux_mujy`, not `_muJy`).
+
+# `total_lens_flux_mujy` — total integrated flux of the lens galaxy
+# (`fit.tracer.galaxies[0]`) in microjanskies. Requires `magzero` via
+# Analysis kwargs. Returns NaN when the lens has no light profile.
+total_lens_flux_mujy: false
+
+# `total_lensed_source_flux_mujy` — image-plane integrated flux of the
+# source galaxy after lensing (`fit.galaxy_image_dict[tracer.galaxies[-1]]`)
+# in microjanskies. Requires `magzero`.
+total_lensed_source_flux_mujy: false
+
+# `total_source_flux_mujy` — source-plane intrinsic flux of the source
+# galaxy (computed via the source's light profile on `fit.dataset.grids.lp`)
+# in microjanskies. Requires `magzero`.
+total_source_flux_mujy: false
+
+# `magnification` — ratio of image-plane lensed source flux to source-plane
+# intrinsic source flux. Dimensionless; `magzero` is accepted but unused.
+magnification: false
+
+# `effective_einstein_radius` — effective Einstein radius in arcseconds,
+# from the tangential critical curve via
+# `LensCalc.einstein_radius_jit_from` (JAX) or `einstein_radius_from`
+# (numpy). Does NOT require `magzero`.
+effective_einstein_radius: false
