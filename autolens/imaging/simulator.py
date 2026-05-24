@@ -22,7 +22,7 @@ from autolens.lens.tracer import Tracer
 
 class SimulatorImaging(aa.SimulatorImaging):
 
-    def via_tracer_from(self, tracer : Tracer, grid : aa.type.Grid2DLike, xp=np) -> aa.Imaging:
+    def via_tracer_from(self, tracer : Tracer, grid : aa.type.Grid2DLike, xp=None) -> aa.Imaging:
         """
         Simulate an `Imaging` dataset from an input `Tracer` object and a 2D grid of (y,x) coordinates.
 
@@ -49,6 +49,9 @@ class SimulatorImaging(aa.SimulatorImaging):
             The 2D grid of (y,x) coordinates which the mass profiles of the galaxies in the tracer are ray-traced using
             in order to generate the image of the galaxies via their light profiles.
         """
+
+        if xp is None:
+            xp = self._xp
 
         tracer.set_snr_of_snr_light_profiles(
             grid=grid,
