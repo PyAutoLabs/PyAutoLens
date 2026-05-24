@@ -37,9 +37,9 @@ class PointSolver(AbstractSolver):
         self,
         tracer: Tracer,
         source_plane_coordinate: Tuple[float, float],
-        xp=np,
+        xp=None,
         plane_redshift: Optional[float] = None,
-        remove_infinities: bool = True,
+        remove_infinities: Optional[bool] = None,
     ) -> aa.Grid2DIrregular:
         """
         Solve for the image plane coordinates that are traced to the source plane coordinate.
@@ -66,14 +66,21 @@ class PointSolver(AbstractSolver):
             but could be a coordinate in another plane is `plane_redshift` is input.
         xp
             The array module (``numpy`` or ``jax.numpy``) the solve runs in. ``AnalysisPoint``
-            passes ``jax.numpy`` when ``use_jax=True`` is set on the analysis.
+            passes ``jax.numpy`` when ``use_jax=True`` is set on the analysis. When ``None`` (the
+            default), falls back to ``self._xp`` — which is ``jnp`` if the solver was constructed
+            with ``use_jax=True`` and ``np`` otherwise. Pass explicitly to override.
         plane_redshift
             The redshift of the plane coordinate, which for multi-plane systems may not be the source-plane.
+        remove_infinities
+            Whether to strip the ``inf`` sentinel rows from the output. When ``None`` (the default),
+            defaults to ``True`` on the NumPy path and ``False`` on the JAX path. The JAX path
+            keeps the padded static shape so the output crosses a ``jax.jit`` boundary cleanly;
+            strip the infinities outside the jit if needed.
 
         Returns
         -------
-        A ``Grid2DIrregular`` of image-plane coordinates, always numpy-backed even when the
-        solver uses a JAX backend internally.
+        A ``Grid2DIrregular`` of image-plane coordinates. NumPy-backed on the default path,
+        ``jax.Array``-backed when ``use_jax=True`` (or ``xp=jnp``).
 
         Notes
         -----
@@ -87,6 +94,20 @@ class PointSolver(AbstractSolver):
         inside a ``jax.jit`` trace, so a plain numpy-backed ``Grid2DIrregular`` is safe
         here even when the surrounding analysis uses ``xp=jnp``.
         """
+        if xp is None:
+            xp = self._xp
+
+        if remove_infinities is None:
+            remove_infinities = not self.use_jax
+
+        # NOTE: pytree registration is the user's responsibility (call
+        # `autolens.jax.register_tracer_classes(tracer)` once before wrapping
+        # in @jax.jit). Auto-registering inside solve() doesn't help because
+        # JAX flattens function arguments at trace time — before entering
+        # this method — so registration must run before the first jitted
+        # call. See the `lens_calc.py` workspace guide for the canonical
+        # JIT-it-yourself pattern.
+
         if os.environ.get("PYAUTO_SMALL_DATASETS") == "1":
             return aa.Grid2DIrregular(values=[(1.0, 0.0), (0.0, 1.0)])
 

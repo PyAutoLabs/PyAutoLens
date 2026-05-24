@@ -42,6 +42,7 @@ class AbstractSolver:
         pixel_scale_precision: float,
         magnification_threshold=0.1,
         neighbor_degree: int = 1,
+        use_jax: bool = False,
     ):
         """
         Determine the image plane coordinates that are traced to be a source plane coordinate.
@@ -67,6 +68,12 @@ class AbstractSolver:
         neighbor_degree
             The number of times recursively add neighbors for the triangles that contain
             the source plane coordinate.
+        use_jax
+            If ``True``, ``.solve()`` defaults to ``xp=jnp`` and ``remove_infinities=False``
+            (the JAX-static-shape contract), and registers ``Tracer`` plus the concrete
+            galaxy / profile classes it carries as JAX pytrees on the first call. The
+            user wraps the call in their own ``@jax.jit`` — see the ``lens_calc.py``
+            workspace guide for the canonical pattern.
         """
         self.y_min = y_min
         self.y_max = y_max
@@ -76,6 +83,18 @@ class AbstractSolver:
         self.pixel_scale_precision = pixel_scale_precision
         self.magnification_threshold = magnification_threshold
         self.neighbor_degree = neighbor_degree
+        self.use_jax = use_jax
+
+    @property
+    def _xp(self):
+        """The array module the solver runs against by default. ``jnp`` when
+        ``use_jax=True``, ``np`` otherwise. ``.solve()`` falls back to this when
+        the caller does not pass ``xp=`` explicitly."""
+        if self.use_jax:
+            import jax.numpy as jnp
+
+            return jnp
+        return np
 
     def _initial_triangles(self, xp):
         """
@@ -107,6 +126,7 @@ class AbstractSolver:
         pixel_scale_precision: float,
         magnification_threshold=0.1,
         neighbor_degree: int = 1,
+        use_jax: bool = False,
     ):
         """
         Create a solver for a given grid.
@@ -123,6 +143,8 @@ class AbstractSolver:
             The threshold for the magnification under which multiple images are filtered.
         neighbor_degree
             The number of times recursively add neighbors for the triangles that contain
+        use_jax
+            Forwarded to the constructor; see ``__init__``.
 
         Returns
         -------
@@ -142,6 +164,7 @@ class AbstractSolver:
             pixel_scale_precision=pixel_scale_precision,
             magnification_threshold=magnification_threshold,
             neighbor_degree=neighbor_degree,
+            use_jax=use_jax,
         )
 
     @classmethod
@@ -155,6 +178,7 @@ class AbstractSolver:
         pixel_scale_precision: float = 0.001,
         magnification_threshold=0.1,
         neighbor_degree: int = 1,
+        use_jax: bool = False,
     ):
         """
         Create a solver for an explicit image-plane extent.
@@ -171,6 +195,8 @@ class AbstractSolver:
             The threshold for the magnification under which multiple images are filtered.
         neighbor_degree
             The number of times recursively add neighbors for the triangles that contain
+        use_jax
+            Forwarded to the constructor; see ``__init__``.
 
         Returns
         -------
@@ -185,6 +211,7 @@ class AbstractSolver:
             pixel_scale_precision=pixel_scale_precision,
             magnification_threshold=magnification_threshold,
             neighbor_degree=neighbor_degree,
+            use_jax=use_jax,
         )
 
     @property
@@ -384,6 +411,7 @@ class AbstractSolver:
             self.pixel_scale_precision,
             self.magnification_threshold,
             self.neighbor_degree,
+            self.use_jax,
         )
 
     @classmethod
@@ -397,6 +425,7 @@ class AbstractSolver:
             pixel_scale_precision,
             magnification_threshold,
             neighbor_degree,
+            use_jax,
         ) = aux_data
         return cls(
             y_min=y_min,
@@ -407,6 +436,7 @@ class AbstractSolver:
             pixel_scale_precision=pixel_scale_precision,
             magnification_threshold=magnification_threshold,
             neighbor_degree=neighbor_degree,
+            use_jax=use_jax,
         )
 
 
