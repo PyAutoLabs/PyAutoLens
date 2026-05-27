@@ -160,6 +160,27 @@ def plot_chi_squared_map(
     )
 
 
+def subplot_fit_quick(
+    fit,
+    output_path: Optional[str] = None,
+    output_format: Optional[str] = None,
+    title_prefix: Optional[str] = None,
+):
+    """
+    Placeholder quick-update subplot for a ``FitWeak``.
+
+    Currently delegates to the full ``subplot_fit_weak``. Will be
+    replaced with a lighter-weight render in future.
+    """
+    subplot_fit_weak(
+        fit,
+        output_path=output_path,
+        output_filename="fit_quick",
+        output_format=output_format,
+        title_prefix=title_prefix,
+    )
+
+
 def subplot_fit_weak(
     fit,
     output_path: Optional[str] = None,
