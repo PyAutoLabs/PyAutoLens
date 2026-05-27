@@ -120,3 +120,51 @@ def traced_grids_via_scan(
     _, traced_grids = jax.lax.scan(scan_step, init_carry, plane_stack)
 
     return traced_grids
+
+
+def simulate_substructure(
+    grid,
+    image_shape,
+    halo_params,
+    halo_mask,
+    scaling_matrix,
+    macro_deflections_fn,
+    macro_plane_mask,
+    sheet_kappas,
+    source_image_fn,
+    psf_kernel,
+    exposure_time,
+    background_sky_level,
+    prng_key,
+    halo_profile_cls,
+):
+    import jax
+    import jax.numpy as jnp
+
+    traced_grids = traced_grids_via_scan(
+        grid=grid,
+        halo_params=halo_params,
+        halo_mask=halo_mask,
+        scaling_matrix=scaling_matrix,
+        macro_deflections_fn=macro_deflections_fn,
+        macro_plane_mask=macro_plane_mask,
+        sheet_kappas=sheet_kappas,
+        halo_profile_cls=halo_profile_cls,
+    )
+
+    source_grid = traced_grids[-1]
+    image_1d = source_image_fn(source_grid)
+    image_2d = image_1d.reshape(image_shape)
+
+    image_2d = jax.scipy.signal.fftconvolve(image_2d, psf_kernel, mode="same")
+
+    image_2d = image_2d + background_sky_level
+
+    if prng_key is not None:
+        image_counts = image_2d * exposure_time
+        noisy_counts = jax.random.poisson(prng_key, image_counts)
+        image_2d = noisy_counts / exposure_time - background_sky_level
+    else:
+        image_2d = image_2d - background_sky_level
+
+    return image_2d
