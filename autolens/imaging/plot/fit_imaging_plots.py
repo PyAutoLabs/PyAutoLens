@@ -358,28 +358,6 @@ def subplot_fit(
     save_figure(fig, path=output_path, filename=f"fit{plane_index_tag}", format=output_format)
 
 
-def _slim_to_array2d(slim, mask):
-    """Convert a slim (1D masked) array to an ``Array2D.no_mask`` with correct geometry.
-
-    Uses boolean-mask indexing (fast) instead of the numba-accelerated
-    ``array_2d_via_indexes_from`` which has ~0.4s overhead per call.
-    The returned ``Array2D`` carries ``pixel_scales`` and ``origin``
-    so ``plot_array`` shows arcsecond axes.
-    """
-    native = np.zeros(mask.shape_native)
-    native[~np.asarray(mask)] = np.asarray(slim)
-    return aa.Array2D.no_mask(
-        values=native,
-        pixel_scales=mask.pixel_scales,
-        origin=mask.origin,
-    )
-
-
-def _symmetric_vmax_from_slim(slim):
-    finite = slim[np.isfinite(slim)]
-    return float(np.max(np.abs(finite))) if len(finite) > 0 else 1.0
-
-
 def subplot_fit_quick(
     fit,
     output_path: Optional[str] = None,
@@ -403,10 +381,9 @@ def subplot_fit_quick(
     * Source model image
     * Source plane image
 
-    Pre-converts fit arrays to ``Array2D.no_mask`` via fast boolean-mask
-    indexing (avoids the slow numba ``array_2d_via_indexes_from`` path)
-    and uses the standard ``plot_array`` / ``_plot_source_plane`` for
-    consistent styling with arcsecond axes.
+    Uses the standard ``plot_array`` / ``_plot_source_plane`` for
+    consistent styling with arcsecond axes. Fit properties are now
+    ``@cached_property`` so repeated access is cheap.
 
     For single-plane tracers the function delegates to
     :func:`subplot_fit_x1_plane`.
@@ -419,31 +396,6 @@ def subplot_fit_quick(
         )
 
     final_plane_index = len(fit.tracer.planes) - 1
-    mask = fit.mask
-
-    # Access model_images_of_planes_list once — this triggers model_data
-    # internally and the result is now @cached_property. Derive subtracted
-    # and residuals from the per-plane slim arrays to avoid redundant
-    # property recomputation.
-    data_slim = np.asarray(fit.data)
-    noise_slim = np.asarray(fit.noise_map)
-
-    try:
-        plane_images = fit.model_images_of_planes_list
-        lens_model_slim = np.asarray(plane_images[0])
-        source_model_slim = np.asarray(plane_images[final_plane_index])
-        model_slim = lens_model_slim + source_model_slim
-    except (IndexError, AttributeError):
-        model_slim = np.asarray(fit.model_data)
-        lens_model_slim = None
-        source_model_slim = None
-
-    resid_slim = data_slim - model_slim
-    with np.errstate(divide="ignore", invalid="ignore"):
-        norm_resid_slim = resid_slim / noise_slim
-    norm_resid_slim = np.where(np.isfinite(norm_resid_slim), norm_resid_slim, 0.0)
-    _abs_max = _symmetric_vmax_from_slim(norm_resid_slim)
-
     source_vmax = _get_source_vmax(fit)
 
     _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
@@ -451,29 +403,36 @@ def subplot_fit_quick(
     axes_flat = list(axes.flatten())
 
     # Top row: Data, Model Image, Normalized Residual Map
-    plot_array(array=_slim_to_array2d(data_slim, mask), ax=axes_flat[0],
+    plot_array(array=fit.data, ax=axes_flat[0],
                title=_pf("Data"), colormap=colormap)
 
-    plot_array(array=_slim_to_array2d(model_slim, mask), ax=axes_flat[1],
+    plot_array(array=fit.model_data, ax=axes_flat[1],
                title=_pf("Model Image"), colormap=colormap)
 
-    plot_array(array=_slim_to_array2d(norm_resid_slim, mask), ax=axes_flat[2],
+    plot_array(array=fit.normalized_residual_map, ax=axes_flat[2],
                title=_pf("Normalized Residual"), colormap=colormap,
                symmetric=True)
 
     # Bottom row: Lens Light Subtracted, Source Model Image, Source Plane
-    if lens_model_slim is not None:
-        plot_array(array=_slim_to_array2d(data_slim - lens_model_slim, mask),
-                   ax=axes_flat[3], title=_pf("Lens Light Subtracted"),
-                   colormap=colormap,
+    try:
+        subtracted = fit.subtracted_images_of_planes_list[final_plane_index]
+    except (IndexError, AttributeError):
+        subtracted = None
+    if subtracted is not None:
+        plot_array(array=subtracted, ax=axes_flat[3],
+                   title=_pf("Lens Light Subtracted"), colormap=colormap,
                    vmin=0.0 if source_vmax else None, vmax=source_vmax)
     else:
         axes_flat[3].axis("off")
 
-    if source_model_slim is not None:
-        plot_array(array=_slim_to_array2d(source_model_slim, mask),
-                   ax=axes_flat[4], title=_pf("Source Model Image"),
-                   colormap=colormap, vmax=source_vmax)
+    try:
+        source_model = fit.model_images_of_planes_list[final_plane_index]
+    except (IndexError, AttributeError):
+        source_model = None
+    if source_model is not None:
+        plot_array(array=source_model, ax=axes_flat[4],
+                   title=_pf("Source Model Image"), colormap=colormap,
+                   vmax=source_vmax)
     else:
         axes_flat[4].axis("off")
 
