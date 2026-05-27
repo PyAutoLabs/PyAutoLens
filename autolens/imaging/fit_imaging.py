@@ -19,6 +19,7 @@ lens mass distribution:
 The ``TracerToInversion`` helper is used to assemble the linear system in step 4.
 """
 import copy
+import functools
 import numpy as np
 from typing import Dict, List, Optional
 
@@ -94,7 +95,7 @@ class FitImaging(aa.FitImaging, AbstractFitInversion):
         self.adapt_images = adapt_images
         self.settings = settings or aa.Settings()
 
-    @property
+    @functools.cached_property
     def blurred_image(self) -> aa.Array2D:
         """
         Returns the image of all light profiles in the fit's tracer convolved with the imaging dataset's PSF.
@@ -115,7 +116,7 @@ class FitImaging(aa.FitImaging, AbstractFitInversion):
             xp=self._xp,
         )
 
-    @property
+    @functools.cached_property
     def profile_subtracted_image(self) -> aa.Array2D:
         """
         Returns the dataset's image with all blurred light profile images in the fit's tracer subtracted.
@@ -155,7 +156,7 @@ class FitImaging(aa.FitImaging, AbstractFitInversion):
 
             return self.tracer_to_inversion.inversion
 
-    @property
+    @functools.cached_property
     def model_data(self) -> aa.Array2D:
         """
         Returns the model-image that is used to fit the data.
@@ -226,7 +227,7 @@ class FitImaging(aa.FitImaging, AbstractFitInversion):
 
         return {**galaxy_blurred_image_2d_dict, **galaxy_linear_obj_image_dict}
 
-    @property
+    @functools.cached_property
     def subtracted_images_of_galaxies_dict(self) -> Dict[ag.Galaxy, np.ndarray]:
         """
         A dictionary which associates every galaxy in the tracer with its `subtracted image`.
@@ -249,7 +250,7 @@ class FitImaging(aa.FitImaging, AbstractFitInversion):
 
         return subtracted_images_of_galaxies_dict
 
-    @property
+    @functools.cached_property
     def subtracted_signal_to_noise_maps_of_galaxies_dict(self) -> Dict[ag.Galaxy, np.ndarray]:
         """
         A dictionary which associates every galaxy in the tracer with its `subtracted image`.
@@ -299,7 +300,7 @@ class FitImaging(aa.FitImaging, AbstractFitInversion):
 
         return model_images_of_planes_list
 
-    @property
+    @functools.cached_property
     def subtracted_images_of_planes_list(self) -> List[aa.Array2D]:
         """
         A list of the subtracted image of every plane.
