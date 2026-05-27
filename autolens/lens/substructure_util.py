@@ -74,8 +74,9 @@ def traced_grids_via_scan(
     halo_params,
     halo_mask,
     scaling_matrix,
-    macro_deflections_fn,
-    macro_plane_mask,
+    lens_mass_fn,
+    lens_mass_params,
+    lens_plane_mask,
     sheet_kappas,
     halo_profile_cls,
 ):
@@ -89,7 +90,7 @@ def traced_grids_via_scan(
 
     def scan_step(carry, plane_inputs):
         grid_0, defl_buffer, plane_idx = carry
-        halo_p, halo_m, scaling_row, is_macro, sheet_kappa = plane_inputs
+        halo_p, halo_m, scaling_row, is_lens, sheet_kappa = plane_inputs
 
         scaled = jnp.einsum("p,pmd->md", scaling_row, defl_buffer)
         current_grid = grid_0 - scaled
@@ -98,12 +99,12 @@ def traced_grids_via_scan(
             current_grid, halo_p, halo_m
         )
 
-        macro_defl = macro_deflections_fn(current_grid)
-        macro_defl = is_macro * macro_defl
+        lens_defl = lens_mass_fn(current_grid, lens_mass_params)
+        lens_defl = is_lens * lens_defl
 
         sheet_defl = sheet_kappa * current_grid
 
-        total_defl = halo_defl + macro_defl + sheet_defl
+        total_defl = halo_defl + lens_defl + sheet_defl
         defl_buffer = defl_buffer.at[plane_idx].set(total_defl)
 
         return (grid_0, defl_buffer, plane_idx + 1), current_grid
@@ -112,7 +113,7 @@ def traced_grids_via_scan(
         halo_params,
         halo_mask,
         scaling_matrix,
-        macro_plane_mask,
+        lens_plane_mask,
         sheet_kappas,
     )
 
@@ -128,15 +129,20 @@ def simulate_substructure(
     halo_params,
     halo_mask,
     scaling_matrix,
-    macro_deflections_fn,
-    macro_plane_mask,
+    lens_mass_fn,
+    lens_mass_params,
+    lens_plane_mask,
     sheet_kappas,
-    source_image_fn,
+    source_light_fn,
+    source_light_params,
     psf_kernel,
     exposure_time,
     background_sky_level,
     prng_key,
     halo_profile_cls,
+    lens_light_fn=None,
+    lens_light_params=None,
+    lens_plane_idx=None,
 ):
     import jax
     import jax.numpy as jnp
@@ -146,14 +152,19 @@ def simulate_substructure(
         halo_params=halo_params,
         halo_mask=halo_mask,
         scaling_matrix=scaling_matrix,
-        macro_deflections_fn=macro_deflections_fn,
-        macro_plane_mask=macro_plane_mask,
+        lens_mass_fn=lens_mass_fn,
+        lens_mass_params=lens_mass_params,
+        lens_plane_mask=lens_plane_mask,
         sheet_kappas=sheet_kappas,
         halo_profile_cls=halo_profile_cls,
     )
 
-    source_grid = traced_grids[-1]
-    image_1d = source_image_fn(source_grid)
+    image_1d = source_light_fn(traced_grids[-1], source_light_params)
+
+    if lens_light_fn is not None:
+        lens_image = lens_light_fn(traced_grids[lens_plane_idx], lens_light_params)
+        image_1d = image_1d + lens_image
+
     image_2d = image_1d.reshape(image_shape)
 
     image_2d = jax.scipy.signal.fftconvolve(image_2d, psf_kernel, mode="same")
@@ -202,15 +213,20 @@ def batched_simulate_substructure(
     halo_params_batch,
     halo_mask_batch,
     scaling_matrix,
-    macro_deflections_fn,
-    macro_plane_mask,
+    lens_mass_fn,
+    lens_mass_params_batch,
+    lens_plane_mask,
     sheet_kappas_batch,
-    source_image_fn,
+    source_light_fn,
+    source_light_params_batch,
     psf_kernel,
     exposure_time,
     background_sky_level,
     prng_keys,
     halo_profile_cls,
+    lens_light_fn=None,
+    lens_light_params_batch=None,
+    lens_plane_idx=None,
 ):
     import jax
     import functools
@@ -220,23 +236,34 @@ def batched_simulate_substructure(
         grid=grid,
         image_shape=image_shape,
         scaling_matrix=scaling_matrix,
-        macro_deflections_fn=macro_deflections_fn,
-        macro_plane_mask=macro_plane_mask,
-        source_image_fn=source_image_fn,
+        lens_mass_fn=lens_mass_fn,
+        lens_plane_mask=lens_plane_mask,
+        source_light_fn=source_light_fn,
         psf_kernel=psf_kernel,
         exposure_time=exposure_time,
         background_sky_level=background_sky_level,
         halo_profile_cls=halo_profile_cls,
+        lens_light_fn=lens_light_fn,
+        lens_plane_idx=lens_plane_idx,
     )
 
-    def call(halo_params, halo_mask, sheet_kappas, prng_key):
+    def call(hp, hm, sk, lmp, slp, llp, key):
         return single_fn(
-            halo_params=halo_params,
-            halo_mask=halo_mask,
-            sheet_kappas=sheet_kappas,
-            prng_key=prng_key,
+            halo_params=hp,
+            halo_mask=hm,
+            sheet_kappas=sk,
+            lens_mass_params=lmp,
+            source_light_params=slp,
+            lens_light_params=llp,
+            prng_key=key,
         )
 
     return jax.vmap(call)(
-        halo_params_batch, halo_mask_batch, sheet_kappas_batch, prng_keys,
+        halo_params_batch,
+        halo_mask_batch,
+        sheet_kappas_batch,
+        lens_mass_params_batch,
+        source_light_params_batch,
+        lens_light_params_batch,
+        prng_keys,
     )
