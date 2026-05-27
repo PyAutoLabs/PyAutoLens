@@ -991,6 +991,28 @@ def subplot_fit_combined(
     save_figure(fig, path=output_path, filename="fit_combined", format=output_format)
 
 
+def subplot_fit_combined_quick(
+    fit_list: List,
+    output_path: Optional[str] = None,
+    output_format: str = None,
+    colormap: Optional[str] = None,
+    title_prefix: str = None,
+):
+    """
+    Placeholder quick-update subplot for combined multi-dataset imaging fits.
+
+    Currently delegates to :func:`subplot_fit_combined` but writes
+    ``fit_quick.png`` so the live display picks it up.
+    """
+    subplot_fit_combined(
+        fit_list,
+        output_path=output_path,
+        output_format=output_format,
+        colormap=colormap,
+        title_prefix=title_prefix,
+    )
+
+
 def subplot_fit_combined_log10(
     fit_list: List,
     output_path: Optional[str] = None,
