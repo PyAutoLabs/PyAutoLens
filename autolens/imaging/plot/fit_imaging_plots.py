@@ -358,6 +358,108 @@ def subplot_fit(
     save_figure(fig, path=output_path, filename=f"fit{plane_index_tag}", format=output_format)
 
 
+def subplot_fit_quick(
+    fit,
+    output_path: Optional[str] = None,
+    output_format: str = None,
+    colormap: Optional[str] = None,
+    image_plane_lines=None,
+    image_plane_line_colors=None,
+    source_plane_lines=None,
+    source_plane_line_colors=None,
+    title_prefix: str = None,
+):
+    """
+    Produce a 6-panel quick-update subplot summarising an imaging fit.
+
+    Arranges the following panels in a 2 × 3 grid:
+
+    * Data
+    * Model image
+    * Normalised residual map (symmetric scale)
+    * Lens-light-subtracted image
+    * Source model image
+    * Source plane image (mid zoom)
+
+    This is a lighter alternative to :func:`subplot_fit` (12 panels)
+    intended for the quick-update visualization path during sampling,
+    where render speed matters more than completeness.
+
+    For single-plane tracers the function delegates to
+    :func:`subplot_fit_x1_plane`.
+    """
+    if len(fit.tracer.planes) == 1:
+        return subplot_fit_x1_plane(
+            fit, output_path=output_path,
+            output_format=output_format, colormap=colormap,
+            title_prefix=title_prefix,
+        )
+
+    final_plane_index = len(fit.tracer.planes) - 1
+    source_vmax = _get_source_vmax(fit)
+
+    _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
+    fig, axes = subplots(2, 3, figsize=conf_subplot_figsize(2, 3))
+    axes_flat = list(axes.flatten())
+
+    # Top row: Data, Model Image, Normalized Residual Map
+    plot_array(
+        array=fit.data, ax=axes_flat[0], title=_pf("Data"), colormap=colormap,
+    )
+
+    plot_array(
+        array=fit.model_data, ax=axes_flat[1], title=_pf("Model Image"),
+        colormap=colormap, lines=image_plane_lines,
+        line_colors=image_plane_line_colors,
+    )
+
+    norm_resid = fit.normalized_residual_map
+    _abs_max = _symmetric_vmax(norm_resid)
+    plot_array(
+        array=norm_resid, ax=axes_flat[2], title=_pf("Normalized Residual Map"),
+        colormap=colormap, vmin=-_abs_max, vmax=_abs_max,
+    )
+
+    # Bottom row: Lens Light Subtracted, Source Model Image, Source Plane (Mid Zoom)
+    try:
+        subtracted_img = fit.subtracted_images_of_planes_list[final_plane_index]
+    except (IndexError, AttributeError):
+        subtracted_img = None
+    if subtracted_img is not None:
+        plot_array(
+            array=subtracted_img, ax=axes_flat[3],
+            title=_pf("Lens Light Subtracted"), colormap=colormap,
+            vmin=0.0 if source_vmax is not None else None, vmax=source_vmax,
+        )
+    else:
+        axes_flat[3].axis("off")
+
+    try:
+        source_model_img = fit.model_images_of_planes_list[final_plane_index]
+    except (IndexError, AttributeError):
+        source_model_img = None
+    if source_model_img is not None:
+        plot_array(
+            array=source_model_img, ax=axes_flat[4],
+            title=_pf("Source Model Image"), colormap=colormap,
+            vmax=source_vmax, lines=image_plane_lines,
+            line_colors=image_plane_line_colors,
+        )
+    else:
+        axes_flat[4].axis("off")
+
+    _plot_source_plane(
+        fit, axes_flat[5], final_plane_index, zoom_to_brightest=True,
+        colormap=colormap, title=_pf("Source Plane (Mid Zoom)"),
+        lines=source_plane_lines, line_colors=source_plane_line_colors,
+        vmax=source_vmax, zoom_extent_scale=2.0,
+    )
+
+    hide_unused_axes(axes_flat)
+    tight_layout()
+    save_figure(fig, path=output_path, filename="fit_quick", format=output_format, dpi=200)
+
+
 def subplot_fit_x1_plane(
     fit,
     output_path: Optional[str] = None,
