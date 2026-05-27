@@ -84,3 +84,47 @@ def subplot_fit(
 
     tight_layout()
     save_figure(fig, path=output_path, filename="fit", format=output_format)
+
+
+def subplot_fit_quick(
+    fit,
+    output_path: Optional[str] = None,
+    output_format: str = None,
+    title_prefix: str = None,
+):
+    """
+    Produce a single-panel quick-update subplot for a `FitPointDataset`.
+
+    Shows the observed positions with the model-predicted positions
+    overlaid in red. A minimal progress view for quick updates during
+    sampling — will be expanded in future.
+    """
+    from autogalaxy.util.plot_utils import plot_grid
+
+    obs_grid = np.array(
+        fit.dataset.positions.array
+        if hasattr(fit.dataset.positions, "array")
+        else fit.dataset.positions
+    )
+    model_grid = np.array(
+        fit.positions.model_data.array
+        if hasattr(fit.positions.model_data, "array")
+        else fit.positions.model_data
+    )
+
+    _prefix = f"{title_prefix.rstrip()} " if title_prefix else ""
+    fig, ax = subplots(1, 1, figsize=conf_subplot_figsize(1, 1))
+
+    plot_grid(
+        grid=obs_grid,
+        ax=ax,
+        title=f"{_prefix}{fit.dataset.name} Positions",
+        output_path=None,
+        output_filename=None,
+        output_format=output_format,
+    )
+    ax.scatter(model_grid[:, 1], model_grid[:, 0], c="r", s=20, zorder=5, label="Model")
+    ax.legend(fontsize=7, loc="upper right")
+
+    tight_layout()
+    save_figure(fig, path=output_path, filename="fit_quick", format=output_format, dpi=100)
