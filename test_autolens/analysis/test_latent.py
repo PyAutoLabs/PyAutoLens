@@ -1,3 +1,4 @@
+import importlib
 import logging
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -281,6 +282,61 @@ def test_effective_einstein_radius_calls_lens_calc_numpy_path(monkeypatch):
 
     assert value == pytest.approx(1.234)
     assert calls["grid"] == "sentinel_grid"
+
+
+def test_effective_einstein_radius_jax_path_falls_back_to_numpy_when_dep_missing(
+    monkeypatch, caplog
+):
+    """
+    When ``xp is not np`` but ``jax_zero_contour`` isn't installed, the
+    function must fall through to ``einstein_radius_from`` (the NumPy path)
+    instead of crashing or returning NaN — caller-side fallback yields a
+    real Einstein radius value. One warning is emitted per process.
+    """
+    _latent_module._JAX_ZERO_CONTOUR_FALLBACK_WARNED = False
+
+    real_import = importlib.import_module
+
+    def fake_import(name, *args, **kwargs):
+        if name == "jax_zero_contour":
+            raise ModuleNotFoundError(f"No module named '{name}'")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(_latent_module.importlib, "import_module", fake_import)
+
+    calls = {}
+
+    class _SpyLensCalc:
+        def einstein_radius_from(self, grid):
+            calls["grid"] = grid
+            return 5.678
+
+        def einstein_radius_jit_from(self, init_guess):
+            raise AssertionError(
+                "jit path must not run when jax_zero_contour is missing"
+            )
+
+    monkeypatch.setattr(
+        "autogalaxy.operate.lens_calc.LensCalc.from_mass_obj",
+        classmethod(lambda cls, tracer: _SpyLensCalc()),
+    )
+    fit = SimpleNamespace(
+        tracer=object(),
+        dataset=SimpleNamespace(grids=SimpleNamespace(lp="sentinel_grid")),
+    )
+
+    sentinel_xp = MagicMock()  # truthy `xp is not np`
+    with caplog.at_level(logging.WARNING, logger=_latent_module.__name__):
+        value = effective_einstein_radius(
+            fit=fit, magzero=None, xp=sentinel_xp
+        )
+
+    assert value == pytest.approx(5.678)
+    assert calls["grid"] == "sentinel_grid"
+    fallback_warnings = [
+        r for r in caplog.records if "falling back to NumPy" in r.message
+    ]
+    assert len(fallback_warnings) == 1
 
 
 def test_effective_einstein_radius_returns_nan_on_value_error(monkeypatch):
