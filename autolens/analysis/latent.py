@@ -17,6 +17,7 @@ warning per process if enabled without ``magzero`` (rather than raising,
 which would kill the post-fit metric write of an otherwise-converged
 search).
 """
+import importlib
 import logging
 from typing import Callable, Dict, List, Optional
 
@@ -34,6 +35,33 @@ logger = logging.getLogger(__name__)
 # process. Used by ``_maybe_magzero_warn`` to deduplicate the message across
 # the many fit evaluations a single search performs.
 _MAGZERO_WARNED: set = set()
+
+# Set to True the first time ``effective_einstein_radius`` falls back from
+# the JAX path to the NumPy path because ``jax_zero_contour`` is missing.
+# Deduplicates the fallback warning across the many fit evaluations a
+# single search performs.
+_JAX_ZERO_CONTOUR_FALLBACK_WARNED: bool = False
+
+
+def _jax_zero_contour_available() -> bool:
+    """
+    Return True if ``jax_zero_contour`` can be imported; False otherwise.
+    The first False return emits one warning per process noting that
+    ``effective_einstein_radius`` will use the slower NumPy path.
+    """
+    global _JAX_ZERO_CONTOUR_FALLBACK_WARNED
+    try:
+        importlib.import_module("jax_zero_contour")
+        return True
+    except ModuleNotFoundError:
+        if not _JAX_ZERO_CONTOUR_FALLBACK_WARNED:
+            logger.warning(
+                "jax_zero_contour not installed; effective_einstein_radius "
+                "falling back to NumPy path (slower). "
+                "pip install jax_zero_contour to enable the JIT path."
+            )
+            _JAX_ZERO_CONTOUR_FALLBACK_WARNED = True
+        return False
 
 
 def _maybe_magzero_warn(magzero, name) -> bool:
@@ -217,7 +245,7 @@ def effective_einstein_radius(fit, magzero, xp=np):
 
     try:
         lens_calc = LensCalc.from_mass_obj(fit.tracer)
-        if xp is not np:
+        if xp is not np and _jax_zero_contour_available():
             import jax.numpy as jnp
             init_guess = jnp.array(
                 [[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0], [0.0, -1.0]]
