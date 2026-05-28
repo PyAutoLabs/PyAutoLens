@@ -77,3 +77,25 @@ def test__weak_dataset__extent_from_pads_position_bounding_box():
     assert y_max == pytest.approx(1.1)
     assert x_min == pytest.approx(-0.5)
     assert x_max == pytest.approx(2.1)
+
+
+def test__weak_dataset__json_round_trip(tmp_path):
+    shear_yx = _make_shear_yx(
+        positions=[(0.5, 0.0), (-0.5, 0.0), (0.0, 0.5), (0.0, -0.5)],
+        values=[(0.01, 0.02), (-0.03, 0.04), (0.05, -0.06), (0.07, 0.08)],
+    )
+
+    dataset = al.WeakDataset(
+        shear_yx=shear_yx, noise_map=[0.2, 0.3, 0.25, 0.35], name="round_trip"
+    )
+
+    file_path = tmp_path / "dataset.json"
+    al.output_to_json(obj=dataset, file_path=file_path)
+    loaded = al.from_json(file_path=file_path)
+
+    assert isinstance(loaded, al.WeakDataset)
+    assert isinstance(loaded.shear_yx, ShearYX2DIrregular)
+    assert loaded.name == "round_trip"
+    assert np.allclose(loaded.shear_yx.array, dataset.shear_yx.array)
+    assert np.allclose(loaded.shear_yx.grid.array, dataset.shear_yx.grid.array)
+    assert np.allclose(loaded.noise_map.array, dataset.noise_map.array)
