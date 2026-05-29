@@ -88,7 +88,7 @@ strong lenses. The API allows users to perform ray-tracing by using analytic lig
 lens systems. Accompanying `PyAutoLens` is the [autolens workspace](https://github.com/PyAutoLabs/autolens_workspace), which 
 includes example scripts and lens datasets covering every use case. The [`HowToLens`](https://github.com/PyAutoLabs/HowToLens)
 repository provides a separate Jupyter notebook lecture series which introduces non-experts to strong lensing using `PyAutoLens`. Readers can 
-try `PyAutoLens` right now by going to [the introduction Jupyter notebook on Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.5.21.1/notebooks/imaging/start_here.ipynb) 
+try `PyAutoLens` right now by going to [the introduction Jupyter notebook on Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.5.29.4/notebooks/imaging/start_here.ipynb) 
 or checkout the [readthedocs](https://pyautolens.readthedocs.io/en/latest/) for a complete overview of `PyAutoLens`'s features.
 
 # Background
@@ -182,7 +182,7 @@ interferometer datasets before a `PyAutoLens` analysis. The [`HowToLens`](https:
 tutorials — a standalone repository separate from the workspace — are a five chapter lecture series composed of over
 30 Jupyter notebooks aimed at non-experts, introducing them to strong gravitational lensing, Bayesian inference and
 teaching them how to use `PyAutoLens` for their scientific study. The lectures are available on
-[Colab](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.5.21.1/notebooks/chapter_1_introduction/tutorial_1_grids_and_galaxies.ipynb)
+[Colab](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.5.29.4/notebooks/chapter_1_introduction/tutorial_1_grids_and_galaxies.ipynb)
 and may therefore be taken without a local `PyAutoLens` installation.
 
 # Software Citations
