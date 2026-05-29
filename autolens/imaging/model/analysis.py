@@ -27,6 +27,9 @@ logger = logging.getLogger(__name__)
 logger.setLevel(level="INFO")
 
 
+_FIT_IMAGING_PYTREES_REGISTERED = False
+
+
 class AnalysisImaging(AnalysisDataset):
 
     Result = ResultImaging
@@ -174,10 +177,37 @@ class AnalysisImaging(AnalysisDataset):
         analysis — ride as aux so JAX does not recurse into them. Everything
         else (``tracer``, ``dataset_model`` and the autoarray wrappers they
         carry) is dynamic per fit.
+
+        Idempotent — guarded by the module-level
+        ``_FIT_IMAGING_PYTREES_REGISTERED`` flag. ``DatasetModel`` and
+        ``Tracer`` may already be registered by
+        ``autofit.jax.pytrees.register_model`` (its
+        ``_REGISTERED_INSTANCE_CLASSES`` set is independent of autoarray's
+        ``_pytree_registered_classes``); cross-populate so
+        ``register_instance_pytree`` short-circuits. Mirrors the defense in
+        ``autogalaxy/ellipse/model/analysis.py``.
         """
-        from autoarray.abstract_ndarray import register_instance_pytree
+        global _FIT_IMAGING_PYTREES_REGISTERED
+        if _FIT_IMAGING_PYTREES_REGISTERED:
+            return
+
+        from autoarray.abstract_ndarray import (
+            register_instance_pytree,
+            _pytree_registered_classes,
+        )
         from autoarray.dataset.dataset_model import DatasetModel
         from autolens.lens.tracer import Tracer
+
+        try:
+            from autofit.jax.pytrees import (
+                _REGISTERED_INSTANCE_CLASSES as _af_registered,
+            )
+        except ImportError:
+            _af_registered = set()
+
+        for cls in (DatasetModel, Tracer):
+            if cls in _af_registered:
+                _pytree_registered_classes.add(cls)
 
         register_instance_pytree(
             FitImaging,
@@ -186,4 +216,6 @@ class AnalysisImaging(AnalysisDataset):
         register_instance_pytree(DatasetModel)
         # ``cosmology`` is a fixed physical constant per fit; ride as aux.
         register_instance_pytree(Tracer, no_flatten=("cosmology",))
+
+        _FIT_IMAGING_PYTREES_REGISTERED = True
 
