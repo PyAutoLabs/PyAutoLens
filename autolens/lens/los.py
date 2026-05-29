@@ -12,13 +12,23 @@ list of :class:`autogalaxy.Galaxy` objects ready for inclusion in a
 multi-plane :class:`autolens.Tracer`.
 """
 
+import warnings
+
 import numpy as np
-from scipy.integrate import quad
+from scipy.integrate import quad, IntegrationWarning
 from scipy.interpolate import interp1d
 from typing import List, Optional, Tuple
 
 import autogalaxy as ag
 from autogalaxy.cosmology import Planck15
+
+from autoconf.test_mode import is_test_mode
+
+# Number of LOS halos retained per plane when ``PYAUTO_TEST_MODE`` is active.
+# Capping the population keeps the multi-plane ray-tracing and per-galaxy
+# plotting paths exercised (so regressions still surface) while collapsing the
+# downstream cost from ~1100 halos to a few dozen. See ``LOSSampler.galaxies_from``.
+_TEST_MODE_MAX_HALOS_PER_PLANE = 3
 
 
 def comoving_distance_mpc_from(z, cosmology):
@@ -241,6 +251,8 @@ def negative_kappa_from(
     truncation_factor,
     c_scatter,
     cosmology,
+    quad_limit=50,
+    quad_epsrel=1.49e-8,
 ):
     """
     Compute the negative convergence sheet for a single LOS plane.
@@ -278,6 +290,16 @@ def negative_kappa_from(
         Log-normal scatter in concentration (sigma in dex, e.g. 0.15).
     cosmology
         A ``LensingCosmology`` instance.
+    quad_limit
+        Maximum number of adaptive subintervals for both the inner
+        (concentration) and outer (mass) ``scipy.integrate.quad`` calls.
+        Defaults to scipy's own default of ``50``. ``LOSSampler.galaxies_from``
+        lowers this under ``PYAUTO_TEST_MODE`` to make the double integral cheap
+        while still exercising the full integrand (the inner ``fsolve`` is the
+        dominant cost, so fewer subintervals is a ~50x speed-up).
+    quad_epsrel
+        Relative error tolerance passed to both ``quad`` calls. Defaults to
+        scipy's own default of ``1.49e-8``; loosened under test mode.
 
     Returns
     -------
@@ -316,13 +338,20 @@ def negative_kappa_from(
         lgc_hi = lgc_centre + 4.0 * c_scatter
 
         c_integral = quad(
-            _integrand_concentration, lgc_lo, lgc_hi, args=(m, lgc_centre)
+            _integrand_concentration,
+            lgc_lo,
+            lgc_hi,
+            args=(m, lgc_centre),
+            limit=quad_limit,
+            epsrel=quad_epsrel,
         )[0]
 
         dndm = 10 ** B_mf * m ** A_mf
         return dndm * m * c_integral
 
-    mass_integral = quad(_integrand_mass, m_min, m_max)[0]
+    mass_integral = quad(
+        _integrand_mass, m_min, m_max, limit=quad_limit, epsrel=quad_epsrel
+    )[0]
 
     kappa = mass_integral * comoving_volume_per_arcsec2 / sigma_cr_mpc2
 
@@ -601,6 +630,17 @@ class LOSSampler:
         cosmology = self.cosmology
         rng = np.random.RandomState(self.seed)
 
+        # ``PYAUTO_TEST_MODE`` (integration tests / workspace smoke runs) makes
+        # the full LOS population prohibitively slow: a science run samples
+        # ~1100 halos (driving multi-plane ray tracing to ~90s) and the
+        # per-plane negative-kappa double integral costs ~3.8s/plane. Under test
+        # mode we cap the halos per plane and loosen the kappa integral, which
+        # keeps both code paths exercised while collapsing the runtime so the
+        # los_halos simulators finish well under the per-script timeout cap.
+        test_mode = is_test_mode()
+        quad_limit = 1 if test_mode else 50
+        quad_epsrel = 0.1 if test_mode else 1.49e-8
+
         boundaries, centres = los_planes_from(
             z_lens=self.z_lens,
             z_source=self.z_source,
@@ -682,6 +722,9 @@ class LOSSampler:
             )
             n_halos = rng.poisson(n_bar)
 
+            if test_mode:
+                n_halos = min(n_halos, _TEST_MODE_MAX_HALOS_PER_PLANE)
+
             if n_halos > 0:
                 masses = sample_halo_masses(
                     n=n_halos,
@@ -718,20 +761,30 @@ class LOSSampler:
                         ag.Galaxy(redshift=z_cen, mass=halo)
                     )
 
-            kappa_neg = negative_kappa_from(
-                z_centre=z_cen,
-                comoving_volume_per_arcsec2=vol_depth,
-                A_mf=mf_coeffs[i, 0],
-                B_mf=mf_coeffs[i, 1],
-                A_mc=mc_coeffs[i, 0],
-                B_mc=mc_coeffs[i, 1],
-                m_min=self.m_min,
-                m_max=self.m_max,
-                z_source=self.z_source,
-                truncation_factor=self.truncation_factor,
-                c_scatter=self.c_scatter,
-                cosmology=cosmology,
-            )
+            with warnings.catch_warnings():
+                # Under test mode the deliberately low ``quad_limit`` makes
+                # scipy emit a (harmless, expected) max-subdivisions warning per
+                # integral; silence it so smoke-run output stays clean. Full
+                # accuracy runs (quad_limit=50) never trip it.
+                if test_mode:
+                    warnings.simplefilter("ignore", IntegrationWarning)
+
+                kappa_neg = negative_kappa_from(
+                    z_centre=z_cen,
+                    comoving_volume_per_arcsec2=vol_depth,
+                    A_mf=mf_coeffs[i, 0],
+                    B_mf=mf_coeffs[i, 1],
+                    A_mc=mc_coeffs[i, 0],
+                    B_mc=mc_coeffs[i, 1],
+                    m_min=self.m_min,
+                    m_max=self.m_max,
+                    z_source=self.z_source,
+                    truncation_factor=self.truncation_factor,
+                    c_scatter=self.c_scatter,
+                    cosmology=cosmology,
+                    quad_limit=quad_limit,
+                    quad_epsrel=quad_epsrel,
+                )
             galaxies.append(
                 ag.Galaxy(
                     redshift=z_cen,
