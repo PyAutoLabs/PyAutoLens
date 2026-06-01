@@ -197,6 +197,7 @@ class Result(AgResultDataset):
         self,
         factor=1.0,
         minimum_threshold=None,
+        maximum_threshold=None,
         positions: Optional[aa.Grid2DIrregular] = None,
         plane_redshift: Optional[float] = None,
     ) -> float:
@@ -223,6 +224,9 @@ class Result(AgResultDataset):
             maximum log likelihood model's threshold.
         minimum_threshold
             The output threshold is rounded up to this value if it is below it, to avoid extremely small threshold
+            values.
+        maximum_threshold
+            The output threshold is rounded down to this value if it is above it, to avoid extremely large threshold
             values.
         positions
             If input, these positions are used instead of the computed multiple image positions from the lens mass
@@ -256,6 +260,10 @@ class Result(AgResultDataset):
         if minimum_threshold is not None:
             if threshold < minimum_threshold:
                 return minimum_threshold
+
+        if maximum_threshold is not None:
+            if threshold > maximum_threshold:
+                return maximum_threshold
 
         return threshold
 
@@ -380,6 +388,7 @@ class Result(AgResultDataset):
         threshold = self.positions_threshold_from(
             factor=factor,
             minimum_threshold=minimum_threshold,
+            maximum_threshold=maximum_threshold,
             positions=positions,
             plane_redshift=plane_redshift,
         )
