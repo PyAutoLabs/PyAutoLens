@@ -38,6 +38,7 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
         adapt_images: Optional[ag.AdaptImages] = None,
         settings: aa.Settings = None,
         xp=np,
+        preloads=None,
     ):
         """
         Fits an interferometer dataset using a `Tracer` object.
@@ -77,6 +78,11 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
             reconstructed galaxy's morphology.
         settings
             Settings controlling how an inversion is fitted for example which linear algebra formalism is used.
+        preloads
+            An optional `PreloadsInterferometer` carrying channel-invariant inversion quantities (e.g. the
+            `curvature_matrix` `F`) computed once and reused by this fit instead of being rebuilt. Used by the
+            datacube shared-state path, where every spectral channel shares the lens model. `None` (the
+            default) leaves the standard per-fit behaviour unchanged.
         """
 
         self.tracer = tracer
@@ -84,6 +90,8 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
         self.adapt_images = adapt_images
 
         self.settings = settings
+
+        self.preloads = preloads
 
         super().__init__(
             dataset=dataset,
@@ -138,6 +146,7 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
             adapt_images=self.adapt_images,
             settings=self.settings,
             xp=self._xp,
+            preloads=self.preloads,
         )
 
     @cached_property

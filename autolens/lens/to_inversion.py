@@ -36,6 +36,7 @@ class TracerToInversion(ag.AbstractToInversion):
         adapt_images: Optional[ag.AdaptImages] = None,
         settings: aa.Settings = None,
         xp=np,
+        preloads=None,
     ):
         """
         Interfaces a dataset and tracer with the inversion module, to setup a linear algebra calculation.
@@ -72,6 +73,8 @@ class TracerToInversion(ag.AbstractToInversion):
             The settings of the inversion, which controls how the linear algebra calculation is performed.
         """
         self.tracer = tracer
+
+        self._preloads = preloads
 
         super().__init__(
             dataset=dataset,
@@ -397,6 +400,9 @@ class TracerToInversion(ag.AbstractToInversion):
         -------
         A dictionary associating each `Mapper` object with the galaxy it belongs to.
         """
+        if self._preloads is not None and self._preloads.mapper_galaxy_dict is not None:
+            return self._preloads.mapper_galaxy_dict
+
         if not self.has_mapper:
             return {}
 
@@ -479,6 +485,7 @@ class TracerToInversion(ag.AbstractToInversion):
             linear_obj_list=self.linear_obj_list,
             settings=self.settings,
             xp=self._xp,
+            preloads=self._preloads,
         )
 
         inversion.linear_obj_galaxy_dict = self.linear_obj_galaxy_dict

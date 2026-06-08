@@ -50,6 +50,7 @@ class AnalysisInterferometer(AnalysisDataset):
         raise_inversion_positions_likelihood_exception: bool = True,
         title_prefix: str = None,
         use_jax: bool = True,
+        shared_preloads: bool = False,
         **kwargs,
     ):
         """
@@ -92,6 +93,12 @@ class AnalysisInterferometer(AnalysisDataset):
         title_prefix
             A string that is added before the title of all figures output by visualization, for example to
             put the name of the dataset and galaxy in the title.
+        shared_preloads
+            Opts this analysis into the cross-factor shared-state mechanism of a `FactorGraphModel` (see
+            `shared_state_from`). Set this to `True` only when this analysis is one of many datacube channels
+            that share an identical lens model, so the channel-invariant inversion quantities (e.g. the
+            `curvature_matrix`) can be computed once and reused by every channel. `False` by default, leaving
+            the standard per-analysis behaviour unchanged.
         """
         super().__init__(
             dataset=dataset,
@@ -105,11 +112,13 @@ class AnalysisInterferometer(AnalysisDataset):
             **kwargs,
         )
 
+        self.shared_preloads = shared_preloads
+
     @property
     def interferometer(self):
         return self.dataset
 
-    def log_likelihood_function(self, instance):
+    def log_likelihood_function(self, instance, shared=None):
         """
         Given an instance of the model, where the model parameters are set via a non-linear search, fit the model
         instance to the interferometer dataset.
@@ -141,6 +150,11 @@ class AnalysisInterferometer(AnalysisDataset):
         instance
             An instance of the model that is being fitted to the data by this analysis (whose parameters have been set
             via a non-linear search).
+        shared
+            The cross-factor shared state of a `FactorGraphModel`, computed once per evaluation by the lead
+            factor's `shared_state_from` (see that method). For this analysis it is a `PreloadsInterferometer`
+            carrying the channel-invariant inversion quantities; when provided it is reused by the fit instead
+            of being recomputed. `None` (the default, e.g. a standalone fit) leaves behaviour unchanged.
 
         Returns
         -------
@@ -152,9 +166,52 @@ class AnalysisInterferometer(AnalysisDataset):
             instance=instance,
         )
 
-        return self.fit_from(instance=instance).figure_of_merit - log_likelihood_penalty
+        return (
+            self.fit_from(instance=instance, preloads=shared).figure_of_merit
+            - log_likelihood_penalty
+        )
 
-    def fit_from(self, instance: af.ModelInstance) -> FitInterferometer:
+    def shared_state_from(self, instance: af.ModelInstance):
+        """
+        Compute the channel-invariant inversion quantities once so they can be shared across the factors of a
+        datacube `FactorGraphModel` (see `autofit.Analysis.shared_state_from`).
+
+        When `shared_preloads` is set, every factor of the graph is an interferometer channel sharing the same
+        lens model, so the inversion's `curvature_matrix` (`F = LᵀW̃L`) — the dominant inversion-setup cost — is
+        identical for every channel. This builds it once on the lead factor and returns it inside a
+        `PreloadsInterferometer`, which `FactorGraphModel` forwards as the `shared` argument to every factor's
+        `log_likelihood_function`, so each channel reuses it instead of rebuilding it.
+
+        Returns `None` when the analysis has not opted in (`shared_preloads=False`) or when the model performs no
+        inversion, in which case no state is shared and every factor fits as normal.
+
+        The caller is responsible for the invariance contract: only enable `shared_preloads` when the inversion
+        quantities really are channel-invariant (e.g. the narrow-emission-line regime where `uv_wavelengths` and
+        `noise_map` are ~channel-invariant). Outside it, leave `shared_preloads=False` so each channel computes
+        its own inversion.
+        """
+        if not self.shared_preloads:
+            return None
+
+        fit = self.fit_from(instance=instance)
+
+        if not fit.perform_inversion:
+            return None
+
+        # Build the inversion-setup quantities once, from a single `TracerToInversion`, so the
+        # mapper is built only once here: the curvature matrix `F` and the mapper (which carries
+        # the Delaunay triangulation) are the channel-invariant quantities reused by every factor.
+        tracer_to_inversion = fit.tracer_to_inversion
+        inversion = tracer_to_inversion.inversion
+
+        return aa.PreloadsInterferometer(
+            curvature_matrix=inversion.curvature_matrix,
+            mapper_galaxy_dict=tracer_to_inversion.mapper_galaxy_dict,
+        )
+
+    def fit_from(
+        self, instance: af.ModelInstance, preloads=None
+    ) -> FitInterferometer:
         """
         Given a model instance create a `FitInterferometer` object.
 
@@ -166,11 +223,10 @@ class AnalysisInterferometer(AnalysisDataset):
         instance
             An instance of the model that is being fitted to the data by this analysis (whose parameters have been set
             via a non-linear search).
-        check_positions
-            Whether the multiple image positions of the lensed source should be checked, i.e. whether they trace
-            within the position threshold of one another in the source plane.
-        run_time_dict
-            A dictionary which times functions called to fit the model to data, for profiling.
+        preloads
+            An optional `PreloadsInterferometer` carrying channel-invariant inversion quantities (e.g. the
+            `curvature_matrix`) computed once and reused by the fit instead of being rebuilt. Supplied by the
+            datacube shared-state path (see `shared_state_from`); `None` (the default) fits as normal.
 
         Returns
         -------
@@ -195,6 +251,7 @@ class AnalysisInterferometer(AnalysisDataset):
             adapt_images=adapt_images,
             settings=self.settings,
             xp=self._xp,
+            preloads=preloads,
         )
 
     @staticmethod
@@ -236,7 +293,7 @@ class AnalysisInterferometer(AnalysisDataset):
 
         register_instance_pytree(
             FitInterferometer,
-            no_flatten=("dataset", "adapt_images", "settings"),
+            no_flatten=("dataset", "adapt_images", "settings", "preloads"),
         )
         register_instance_pytree(Tracer, no_flatten=("cosmology",))
         register_instance_pytree(DatasetModel)  # fit-interferometer-pytree-mge
