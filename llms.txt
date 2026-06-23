@@ -1,0 +1,20 @@
+# PyAutoLens
+
+> PyAutoLens (package `autolens`) is the open-source strong gravitational-lensing modelling library, built on PyAutoGalaxy and using JAX to accelerate lens modelling on GPUs. This file is a signpost: it points you to the right ecosystem resource depending on your intent — use the API, learn lensing, or work on the library itself.
+
+## Use it (examples & tutorials)
+
+- [autolens_workspace navigator](https://github.com/PyAutoLabs/autolens_workspace/blob/main/llms.txt): end-to-end example scripts and notebooks per science case — the paste-friendly task router. Send any "how do I model / simulate / analyse X?" question here.
+- [HowToLens](https://github.com/PyAutoLabs/HowToLens): from-first-principles lecture series for beginners new to gravitational lensing.
+
+## API reference & docs
+
+- [PyAutoLens documentation (ReadTheDocs)](https://pyautolens.readthedocs.io/en/latest/): API reference, feature overviews, and the installation guide.
+
+## Work on PyAutoLens itself (contributors / coding agents)
+
+- [AGENTS.md](./AGENTS.md): build, tests, architecture, and the JAX / decorator conventions.
+
+## Ecosystem (libraries this builds on)
+
+- [PyAutoGalaxy](https://github.com/PyAutoLabs/PyAutoGalaxy), [PyAutoArray](https://github.com/PyAutoLabs/PyAutoArray), [PyAutoFit](https://github.com/PyAutoLabs/PyAutoFit), [PyAutoConf](https://github.com/PyAutoLabs/PyAutoConf): the upstream layers PyAutoLens is built on.
