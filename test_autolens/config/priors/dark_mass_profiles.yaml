@@ -312,3 +312,145 @@ gNFWSph:
     width_modifier:
       type: Relative
       value: 0.2
+KaplinghatCoredNFWSph:
+  centre_0:
+    limits:
+      lower: -inf
+      upper: inf
+    mean: 0.0
+    sigma: 0.1
+    type: Gaussian
+    width_modifier:
+      type: Absolute
+      value: 0.05
+  centre_1:
+    limits:
+      lower: -inf
+      upper: inf
+    mean: 0.0
+    sigma: 0.1
+    type: Gaussian
+    width_modifier:
+      type: Absolute
+      value: 0.05
+  kappa_s:
+    limits:
+      lower: 0.0
+      upper: inf
+    lower_limit: 0.0
+    type: Uniform
+    upper_limit: 1.0
+    width_modifier:
+      type: Relative
+      value: 0.2
+  scale_radius:
+    limits:
+      lower: 0.0
+      upper: inf
+    lower_limit: 0.0
+    type: Uniform
+    upper_limit: 30.0
+    width_modifier:
+      type: Relative
+      value: 0.2
+  sigma_over_m:
+    limits:
+      lower: 0.0
+      upper: inf
+    lower_limit: 0.0
+    type: Uniform
+    upper_limit: 10.0
+    width_modifier:
+      type: Relative
+      value: 0.5
+  t_age:
+    limits:
+      lower: 0.0
+      upper: inf
+    lower_limit: 0.0
+    type: Uniform
+    upper_limit: 13.8
+    width_modifier:
+      type: Relative
+      value: 0.2
+  interaction_radius:
+    limits:
+      lower: 0.0
+      upper: inf
+    lower_limit: 0.0
+    type: Uniform
+    upper_limit: 30.0
+    width_modifier:
+      type: Relative
+      value: 0.2
+KaplinghatCoredNFWMCRLudlowSph:
+  centre_0:
+    limits:
+      lower: -inf
+      upper: inf
+    mean: 0.0
+    sigma: 0.1
+    type: Gaussian
+    width_modifier:
+      type: Absolute
+      value: 0.05
+  centre_1:
+    limits:
+      lower: -inf
+      upper: inf
+    mean: 0.0
+    sigma: 0.1
+    type: Gaussian
+    width_modifier:
+      type: Absolute
+      value: 0.05
+  mass_at_200:
+    limits:
+      lower: 0.0
+      upper: inf
+    lower_limit: 100000000.0
+    type: LogUniform
+    upper_limit: 1000000000000000.0
+    width_modifier:
+      type: Relative
+      value: 0.5
+  sigma_over_m:
+    limits:
+      lower: 0.0
+      upper: inf
+    lower_limit: 0.0
+    type: Uniform
+    upper_limit: 10.0
+    width_modifier:
+      type: Relative
+      value: 0.5
+  t_age:
+    limits:
+      lower: 0.0
+      upper: inf
+    lower_limit: 0.0
+    type: Uniform
+    upper_limit: 13.8
+    width_modifier:
+      type: Relative
+      value: 0.2
+  redshift_object:
+    limits:
+      lower: 0.0
+      upper: inf
+    lower_limit: 0.0
+    type: Uniform
+    upper_limit: 1.0
+    width_modifier:
+      type: Relative
+      value: 0.5
+  redshift_source:
+    limits:
+      lower: 0.0
+      upper: inf
+    lower_limit: 0.0
+    type: Uniform
+    upper_limit: 1.0
+    width_modifier:
+      type: Relative
+      value: 0.5

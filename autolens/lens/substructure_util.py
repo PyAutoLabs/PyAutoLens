@@ -3,6 +3,60 @@ import numpy as np
 import autogalaxy as ag
 
 
+def _halo_parameter_extractor_from(profile_cls):
+    kaplinghat_profile_classes = tuple(
+        cls
+        for cls in (
+            getattr(ag.mp, "KaplinghatCoredNFWSph", None),
+            getattr(ag.mp, "KaplinghatCoredNFWMCRLudlowSph", None),
+        )
+        if cls is not None
+    )
+
+    if profile_cls is ag.mp.cNFWSph:
+
+        def extract(prof):
+            return [
+                prof.centre[0],
+                prof.centre[1],
+                prof.kappa_s,
+                prof.scale_radius,
+                prof.core_radius,
+            ]
+
+        return 5, extract
+
+    if profile_cls in kaplinghat_profile_classes:
+
+        def extract(prof):
+            return [
+                prof.centre[0],
+                prof.centre[1],
+                prof.kappa_s,
+                prof.scale_radius,
+                prof.interaction_radius,
+                prof.central_density,
+                prof.isothermal_radius,
+            ]
+
+        return 7, extract
+
+    if profile_cls is ag.mp.NFWTruncatedSph:
+
+        def extract(prof):
+            return [
+                prof.centre[0],
+                prof.centre[1],
+                prof.kappa_s,
+                prof.scale_radius,
+                prof.truncation_radius,
+            ]
+
+        return 5, extract
+
+    raise ValueError(f"Unsupported halo profile class: {profile_cls}")
+
+
 def precompute_scaling_matrix(plane_redshifts, cosmology=None):
     import jax.numpy as jnp
 
@@ -28,21 +82,7 @@ def galaxies_to_halo_arrays(galaxies, plane_redshifts, max_n, profile_cls):
     import jax.numpy as jnp
 
     n_planes = len(plane_redshifts)
-
-    if profile_cls is ag.mp.cNFWSph:
-        n_params = 5
-        def extract(prof):
-            return [
-                prof.centre[0], prof.centre[1],
-                prof.kappa_s, prof.scale_radius, prof.core_radius,
-            ]
-    else:
-        n_params = 5
-        def extract(prof):
-            return [
-                prof.centre[0], prof.centre[1],
-                prof.kappa_s, prof.scale_radius, prof.truncation_radius,
-            ]
+    n_params, extract = _halo_parameter_extractor_from(profile_cls=profile_cls)
 
     params = np.zeros((n_planes, max_n, n_params))
     mask = np.zeros((n_planes, max_n), dtype=bool)
