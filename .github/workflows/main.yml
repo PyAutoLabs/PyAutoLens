@@ -2,93 +2,12 @@ name: Tests
 
 on: [push, pull_request]
 
+# Unit tests are defined once, centrally, in PyAutoPulse's reusable workflow
+# (Pulse owns all health/readiness checking). This thin caller preserves PR-time
+# gating: the `unittest` job is the required status check on this repo.
 jobs:
   unittest:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ['3.12', '3.13']
-    steps:
-    - name: Checkout PyAutoConf
-      uses: actions/checkout@v2
-      with:
-        repository: PyAutoLabs/PyAutoConf
-        path: PyAutoConf
-    - name: Checkout PyAutoFit
-      uses: actions/checkout@v2
-      with:
-        repository: PyAutoLabs/PyAutoFit
-        path: PyAutoFit
-    - name: Checkout PyAutoArray
-      uses: actions/checkout@v2
-      with:
-        repository: PyAutoLabs/PyAutoArray
-        path: PyAutoArray
-    - name: Checkout PyAutoGalaxy
-      uses: actions/checkout@v2
-      with:
-        repository: PyAutoLabs/PyAutoGalaxy
-        path: PyAutoGalaxy
-    - name: Checkout PyAutoLens
-      uses: actions/checkout@v2
-      with:
-        path: PyAutoLens
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Extract branch name
-      shell: bash
-      run: |
-        cd PyAutoLens
-        echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
-      id: extract_branch
-    - name: Change to same branch if exists in deps
-      shell: bash
-      run: |
-        export PACKAGES=("PyAutoConf" "PyAutoArray" "PyAutoFit" "PyAutoGalaxy")
-        export BRANCH="${{ steps.extract_branch.outputs.branch }}"
-        for PACKAGE in ${PACKAGES[@]}; do
-          pushd $PACKAGE
-          export existed_in_remote=$(git ls-remote --heads origin ${BRANCH})
-
-          if [[ -z ${existed_in_remote} ]]; then
-            echo "Branch $BRANCH did not exist in $PACKAGE"
-          else
-            echo "Branch $BRANCH did exist in $PACKAGE"
-            git fetch
-            git checkout $BRANCH
-          fi
-          popd
-        done
-    - name: Install dependencies
-      run: |
-        pip3 install --upgrade pip
-        pip3 install setuptools
-        pip3 install wheel
-        pip3 install pytest coverage pytest-cov
-        pip install ./PyAutoConf ./PyAutoFit "./PyAutoArray[optional]" "./PyAutoGalaxy[optional]" "./PyAutoLens[optional]"
-    - name: Run tests
-      run: |
-        export ROOT_DIR=`pwd`
-        export JAX_ENABLE_X64=True
-        export PYTHONPATH=$PYTHONPATH:$ROOT_DIR/PyAutoConf
-        export PYTHONPATH=$PYTHONPATH:$ROOT_DIR/PyAutoFit
-        export PYTHONPATH=$PYTHONPATH:$ROOT_DIR/PyAutoArray
-        export PYTHONPATH=$PYTHONPATH:$ROOT_DIR/PyAutoGalaxy
-        export PYTHONPATH=$PYTHONPATH:$ROOT_DIR/PyAutoLens
-        pushd PyAutoLens
-        pytest --cov autolens --cov-report xml:coverage.xml
-    - name: Slack send
-      if: ${{ failure() }}
-      id: slack
-      uses: slackapi/slack-github-action@v1.21.0
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      with:
-        channel-id: C03S98FEDK2
-        payload: |
-                {
-                  "text": "${{ github.repository }}/${{ github.ref_name }} (Python ${{ matrix.python-version }}) build result: ${{ job.status }}\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-                }
+    uses: PyAutoLabs/PyAutoPulse/.github/workflows/lib-tests.yml@main
+    with:
+      package: autolens
+    secrets: inherit
