@@ -1,6 +1,6 @@
 # PyAutoLens-JAX: Open-Source Strong Lensing
 
-[![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.6.26.642/notebooks/imaging/start_here.ipynb)
+[![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.6.29.643/notebooks/imaging/start_here.ipynb)
 [![Documentation Status](https://readthedocs.org/projects/pyautolens/badge/?version=latest)](https://pyautolens.readthedocs.io/en/latest/?badge=latest)
 [![Tests](https://github.com/PyAutoLabs/PyAutoLens/actions/workflows/main.yml/badge.svg)](https://github.com/PyAutoLabs/PyAutoLens/actions)
 [![Build](https://github.com/Jammy2211/PyAutoBuild/actions/workflows/release.yml/badge.svg)](https://github.com/Jammy2211/PyAutoBuild/actions)
@@ -14,7 +14,7 @@
 
 [Installation Guide](https://pyautolens.readthedocs.io/en/latest/installation/overview.html) |
 [readthedocs](https://pyautolens.readthedocs.io/en/latest/index.html) |
-[Introduction on Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.6.26.642/notebooks/imaging/start_here.ipynb) |
+[Introduction on Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.6.29.643/notebooks/imaging/start_here.ipynb) |
 [HowToLens](https://pyautolens.readthedocs.io/en/latest/howtolens/howtolens.html)
 
 <img src="https://github.com/Jammy2211/PyAutoLogo/blob/main/gifs/pyautolens.gif?raw=true" width="900" />
@@ -30,7 +30,7 @@ This is called strong gravitational lensing and **PyAutoLens** makes it **simple
 The following links are useful for new starters:
 
 - [The PyAutoLens readthedocs](https://pyautolens.readthedocs.io/en/latest): which includes [an overview of PyAutoLens's core features](https://pyautolens.readthedocs.io/en/latest/overview/overview_1_start_here.html), [a new user starting guide](https://pyautolens.readthedocs.io/en/latest/overview/overview_2_new_user_guide.html) and [an installation guide](https://pyautolens.readthedocs.io/en/latest/installation/overview.html).
-- [The introduction Jupyter Notebook on Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.6.26.642/notebooks/imaging/start_here.ipynb): try **PyAutoLens** in a web browser (without installation).
+- [The introduction Jupyter Notebook on Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.6.29.643/notebooks/imaging/start_here.ipynb): try **PyAutoLens** in a web browser (without installation).
 - [The autolens_workspace GitHub repository](https://github.com/PyAutoLabs/autolens_workspace): example scripts covering every **PyAutoLens** use case.
 - [The HowToLens GitHub repository](https://github.com/PyAutoLabs/HowToLens): a Jupyter notebook lecture series teaching strong lensing and lens modeling from the ground up.
 
