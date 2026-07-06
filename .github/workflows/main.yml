@@ -2,12 +2,12 @@ name: Tests
 
 on: [push, pull_request]
 
-# Unit tests are defined once, centrally, in PyAutoPulse's reusable workflow
-# (Pulse owns all health/readiness checking). This thin caller preserves PR-time
+# Unit tests are defined once, centrally, in PyAutoHeart's reusable workflow
+# (Heart owns all health/readiness checking). This thin caller preserves PR-time
 # gating: the `unittest` job is the required status check on this repo.
 jobs:
   unittest:
-    uses: PyAutoLabs/PyAutoPulse/.github/workflows/lib-tests.yml@main
+    uses: PyAutoLabs/PyAutoHeart/.github/workflows/lib-tests.yml@main
     with:
       package: autolens
     secrets: inherit
