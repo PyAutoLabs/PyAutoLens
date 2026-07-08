@@ -17,6 +17,7 @@ import numpy as np
 from typing import Optional
 
 from autoconf.dictable import to_dict
+from autoconf.fitsable import hdu_list_for_output_from
 
 import autofit as af
 import autoarray as aa
@@ -333,6 +334,27 @@ class AnalysisInterferometer(AnalysisDataset):
              visualization, and the pickled objects used by the aggregator output by this function.
         """
         super().save_attributes(paths=paths)
+
+        # Output `dataset.fits` to the `files` folder so the aggregator loaders
+        # (e.g. `InterferometerAgg`, `agg_util.mask_header_from`) can always
+        # reload the dataset via `fit.value(name="dataset")`, independently of
+        # whether the visualization `fits_dataset` output ran. The plotter
+        # interface also writes this file to the `image` folder for inspection,
+        # but that write is gated on visualization settings and is not
+        # guaranteed for every fit.
+        paths.save_fits(
+            name="dataset",
+            fits=hdu_list_for_output_from(
+                values_list=[
+                    self.dataset.real_space_mask.astype("float"),
+                    self.dataset.data.in_array,
+                    self.dataset.noise_map.in_array,
+                    self.dataset.uv_wavelengths,
+                ],
+                ext_name_list=["mask", "data", "noise_map", "uv_wavelengths"],
+                header_dict=self.dataset.real_space_mask.header_dict,
+            ),
+        )
 
         paths.save_json(
             "transformer_class",
