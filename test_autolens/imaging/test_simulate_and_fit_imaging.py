@@ -923,3 +923,63 @@ def test__fit_figure_of_merit__mge_mass_model(masked_imaging_7x7, masked_imaging
 
     if file_path.exists():
         shutil.rmtree(file_path)
+
+def test__perfect_fit__chi_squared_0__oversampled_psf():
+    # Simulate with an oversampled PSF (convolution at 2x the image resolution)
+    # and fit the same tracer with the same PSF at s=2: exact round trip.
+    s = 2
+    pixel_scales = 0.2
+
+    grid = al.Grid2D.uniform(
+        shape_native=(21, 21), pixel_scales=pixel_scales, over_sample_size=s
+    )
+
+    kernel_n = 11
+    c = (np.arange(kernel_n) - (kernel_n - 1) / 2.0) * (pixel_scales / s)
+    yy, xx = np.meshgrid(-c, c, indexing="ij")
+    kernel = np.exp(-0.5 * (yy**2 + xx**2) / 0.15**2)
+    psf = al.Convolver(
+        kernel=al.Array2D.no_mask(values=kernel, pixel_scales=pixel_scales / s),
+        normalize=True,
+        convolve_over_sample_size=s,
+    )
+
+    lens_galaxy = al.Galaxy(
+        redshift=0.5,
+        light=al.lp.Sersic(centre=(0.0, 0.0), intensity=0.5, effective_radius=0.4),
+        mass=al.mp.Isothermal(centre=(0.0, 0.0), einstein_radius=1.0),
+    )
+    source_galaxy = al.Galaxy(
+        redshift=1.0,
+        light=al.lp.Exponential(centre=(0.05, 0.05), intensity=0.3, effective_radius=0.2),
+    )
+    tracer = al.Tracer(galaxies=[lens_galaxy, source_galaxy])
+
+    simulator = al.SimulatorImaging(
+        exposure_time=300.0, psf=psf, add_poisson_noise_to_data=False
+    )
+    dataset = simulator.via_tracer_from(tracer=tracer, grid=grid)
+
+    assert dataset.data.shape_native == (21, 21)
+
+    dataset.noise_map = al.Array2D.ones(
+        shape_native=dataset.data.shape_native, pixel_scales=pixel_scales
+    )
+
+    mask = al.Mask2D.circular(
+        shape_native=dataset.data.shape_native, pixel_scales=pixel_scales, radius=1.8
+    )
+
+    masked = al.Imaging(
+        data=dataset.data,
+        noise_map=dataset.noise_map,
+        psf=psf,
+        over_sample_size_lp=s,
+        over_sample_size_pixelization=s,
+        convolve_over_sample_size_lp=s,
+        convolve_over_sample_size_pixelization=s,
+    ).apply_mask(mask=mask)
+
+    fit = al.FitImaging(dataset=masked, tracer=tracer)
+
+    assert fit.chi_squared == pytest.approx(0.0, abs=1.0e-10)
