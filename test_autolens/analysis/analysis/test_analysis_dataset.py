@@ -63,3 +63,26 @@ def test__save_results__tracer_output_to_json(analysis_imaging_7x7):
     assert tracer.galaxies[1].redshift == 1.0
 
     os.remove(paths._files_path / "tracer.json")
+
+
+def test__save_attributes__dataset_fits_output_for_aggregator(analysis_imaging_7x7):
+    # Regression guard: `save_attributes` must always write `dataset.fits` to the
+    # `files` folder so the aggregator loaders (`ImagingAgg`,
+    # `agg_util.mask_header_from`) can reload the dataset via
+    # `fit.value(name="dataset")`, independently of whether visualization ran.
+    from astropy.io import fits
+
+    paths = af.DirectoryPaths()
+
+    analysis_imaging_7x7.save_attributes(paths=paths)
+
+    dataset_fits_path = paths._files_path / "dataset.fits"
+
+    assert dataset_fits_path.exists()
+
+    with fits.open(dataset_fits_path) as hdu_list:
+        ext_names = [hdu.name for hdu in hdu_list]
+
+    assert ext_names[:4] == ["MASK", "DATA", "NOISE_MAP", "PSF"]
+
+    os.remove(dataset_fits_path)
