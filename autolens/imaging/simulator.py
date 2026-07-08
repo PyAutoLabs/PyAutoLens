@@ -59,6 +59,27 @@ class SimulatorImaging(aa.SimulatorImaging):
             background_sky_level=self.background_sky_level,
         )
 
+        if self.psf.convolve_over_sample_size > 1:
+
+            image = tracer.convolved_padded_image_2d_from(
+                grid=grid, psf=self.psf, xp=xp
+            )
+
+            over_sample_size = grid.over_sample_size.resized_from(
+                new_shape=image.shape_native, mask_pad_value=1
+            )
+
+            dataset = self.via_image_from(
+                image=image,
+                over_sample_size=over_sample_size,
+                image_is_convolved=True,
+                xp=xp,
+            )
+
+            return dataset.trimmed_after_convolution_from(
+                kernel_shape=self.psf.kernel_shape_image_resolution
+            )
+
         image = tracer.padded_image_2d_from(
             grid=grid, psf_shape_2d=self.psf.kernel.shape_native, xp=xp
         )
