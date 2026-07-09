@@ -64,6 +64,14 @@ from autolens.interferometer.plot.fit_interferometer_plots import (
 from autolens.point.plot.fit_point_plots import subplot_fit as subplot_fit_point
 from autolens.point.plot.point_dataset_plots import subplot_dataset as subplot_point_dataset
 
+from autolens.cluster.plot.cluster_plots import (
+    plot_positions_overlay,
+    plot_image_group_zooms,
+    plot_critical_curves,
+    plot_caustics,
+    subplot_cluster_dataset,
+)
+
 from autolens.weak.plot.weak_dataset_plots import (
     plot_shear_yx_2d,
     plot_ellipticities,
