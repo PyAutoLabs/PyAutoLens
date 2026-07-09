@@ -15,6 +15,7 @@ Three concrete pairing strategies are provided in this sub-package:
   one observed position, useful for highly magnified systems where some images may be
   too close to separate.
 """
+
 from abc import ABC
 import numpy as np
 from typing import Optional

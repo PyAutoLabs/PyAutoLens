@@ -16,10 +16,13 @@ class FitPositionsImagePair(AbstractFitPositionsImagePair):
     its closest observed position, but instead being paired to a further observed position, if doing so
     means that the overall distances of pairings are reduced.
 
-    THIS FIT CURRENTLY GIVES UNRELIABLE RESULTS, BECAUSE IT GOES TO SOLUTIONS WHERE THE NUMBER OF MODEL POSITIONS
-    IS BELOW THE NUMBER OF DATA POSITIONS, REDUCING THE CHI-SQUARED TO LOW VALUES. PYAUTOLENS SHOULD BE UPDATED TO
-    PENALIZE THIS BEHAVIOUR BEFORE THIS FIT CAN BE USED. THIS REISDUAL MAP PROPERTY MAY ALSO NEED TO BE EXTENDED
-    TO ACCOUNT FOR NOISE.
+    **Under-prediction penalty**: the Hungarian assignment pairs ``min(n_observed, n_model)`` positions, which
+    historically meant that a model predicting *fewer* images than observed silently dropped the unmatched
+    observed positions from the chi-squared — rewarding under-prediction (samplers drove n_model below
+    n_observed to shrink the chi-squared). Unmatched observed positions now contribute their distance to the
+    nearest model position as a residual, and if the model predicts no images at all every observed position
+    contributes the ``no_image_residual`` floor. ``FitPositionsImagePairRepeat`` remains the model-fit default;
+    it additionally offers over-prediction policies.
 
     The fit performs the following steps:
 
@@ -66,29 +69,40 @@ class FitPositionsImagePair(AbstractFitPositionsImagePair):
         tracer via name pairing if that profile is not found.
     """
 
+    no_image_residual = 1.0e4
+
     @property
     def residual_map(self) -> aa.ArrayIrregular:
-        residual_map = []
+
+        model = np.asarray(self.model_data.array)
+        model = model[np.isfinite(model).all(axis=1)]
+
+        if model.shape[0] == 0:
+            return aa.ArrayIrregular(
+                values=[float(self.no_image_residual)] * len(self.data)
+            )
 
         cost_matrix = np.linalg.norm(
             np.array(
                 self.data,
             )[:, np.newaxis]
-            - np.array(
-                self.model_data.array,
-            ),
+            - model,
             axis=2,
         )
 
         data_indexes, model_indexes = linear_sum_assignment(cost_matrix)
 
+        # Residuals are ordered by observed position (matching the noise-map ordering): assigned
+        # positions get their Hungarian pairing distance; positions the assignment could not pair
+        # (under-prediction, n_model < n_observed) get their distance to the nearest model
+        # position, so a model that cannot produce an observed image is penalized, not rewarded.
+        residuals = np.min(cost_matrix, axis=1)
+
         for data_index, model_index in zip(data_indexes, model_indexes):
-            distance = np.sqrt(
-                self.square_distance(
-                    self.data[data_index], self.model_data.array[model_index]
-                )
+            residuals[data_index] = np.sqrt(
+                self.square_distance(self.data[data_index], model[model_index])
             )
 
-            residual_map.append(distance)
+        residual_map = [float(r) for r in residuals]
 
         return aa.ArrayIrregular(values=residual_map)
