@@ -113,6 +113,12 @@ class SimulatorShearYX:
         name
             Optional label passed through to ``WeakDataset.name``.
         """
+        from autoarray.util import dataset_util
+
+        # Smoke-mode cap (PYAUTO_SMALL_DATASETS=1): generated catalogue sizes only —
+        # via_tracer_from's user-provided grid is never mutated.
+        n_galaxies = dataset_util.cap_catalogue_size_for_small_datasets(n_galaxies)
+
         positions = self._rng.uniform(
             low=-grid_extent, high=grid_extent, size=(n_galaxies, 2)
         )
