@@ -201,13 +201,28 @@ class VisualizerInterferometer(af.Visualizer):
         if analyses is None:
             return
 
+        # A mixed-dataset factor graph (e.g. imaging + weak lensing) routes every
+        # factor's analysis here; this combined subplot can only draw its own
+        # dataset type, so other analyses are skipped (each still visualizes its
+        # own fit individually).
+        from autolens.interferometer.model.analysis import AnalysisInterferometer
+
+        pairs = [
+            (analysis, single_instance)
+            for analysis, single_instance in zip(analyses, instance)
+            if isinstance(analysis, AnalysisInterferometer)
+        ]
+
+        if len(pairs) == 0:
+            return
+
         plotter = PlotterInterferometer(
-            image_path=paths.image_path, title_prefix=analyses[0].title_prefix
+            image_path=paths.image_path, title_prefix=pairs[0][0].title_prefix
         )
 
         fit_list = [
             analysis.fit_for_visualization(instance=single_instance)
-            for analysis, single_instance in zip(analyses, instance)
+            for analysis, single_instance in pairs
         ]
 
         plotter.fit_interferometer_combined(
