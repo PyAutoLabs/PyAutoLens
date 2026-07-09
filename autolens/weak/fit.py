@@ -42,9 +42,27 @@ class FitWeak:
 
     @cached_property
     def model_shear(self) -> ShearYX2DIrregular:
-        """The model shear field evaluated at the galaxy positions, via ``LensCalc``."""
-        return LensCalc.from_tracer(self.tracer).shear_yx_2d_via_hessian_from(
+        """
+        The model shear field evaluated at the galaxy positions, via ``LensCalc``.
+
+        When the dataset is marked ``is_reduced`` (real catalogues measure galaxy ellipticities,
+        i.e. the reduced shear) the model quantity is ``g = gamma / (1 - kappa)``, with the
+        convergence from the same Hessian primitive — so data and model always live in the same
+        space.
+        """
+        lens_calc = LensCalc.from_tracer(self.tracer)
+
+        shear = lens_calc.shear_yx_2d_via_hessian_from(grid=self.dataset.positions)
+
+        if not getattr(self.dataset, "is_reduced", False):
+            return shear
+
+        convergence = lens_calc.convergence_2d_via_hessian_from(
             grid=self.dataset.positions
+        )
+        return ShearYX2DIrregular(
+            values=np.asarray(shear) / (1.0 - np.asarray(convergence))[:, None],
+            grid=self.dataset.positions,
         )
 
     @property
