@@ -51,9 +51,9 @@ class AnalysisWeak(AgAnalysis, AnalysisLens):
         contributes two independent shear measurements (gamma_1 and gamma_2), which `FitWeak` compares against
         the model shear field of the `Tracer`.
 
-        `use_jax` defaults to `False` because `FitWeak` is a NumPy-only fit (its `model_shear` is cached via
-        `functools.cached_property` and its statistics use `np.asarray`); JAX support requires pytree
-        registration of `FitWeak` and an `xp`-threaded fit path, which is deliberate future work.
+        `use_jax` defaults to `False`, the conservative choice for the newest Analysis class; pass
+        `use_jax=True` to run the `xp`-threaded fit path with `FitWeak` pytree registration (validated by
+        the `autolens_workspace_test` weak vmap-parity script).
 
         Parameters
         ----------
@@ -122,6 +122,9 @@ class AnalysisWeak(AgAnalysis, AnalysisLens):
         -------
         The fit of the lens model to the weak-lensing shear catalogue.
         """
+        if self._use_jax:
+            self._register_fit_weak_pytrees()
+
         tracer = self.tracer_via_instance_from(
             instance=instance,
         )
@@ -129,7 +132,27 @@ class AnalysisWeak(AgAnalysis, AnalysisLens):
         return FitWeak(
             dataset=self.dataset,
             tracer=tracer,
+            xp=self._xp,
         )
+
+    @staticmethod
+    def _register_fit_weak_pytrees() -> None:
+        """Register every type reachable from a ``FitWeak`` return value so
+        ``jax.jit(fit_from)`` can flatten its output.
+
+        ``dataset`` and ``_xp`` are constants per analysis — ride as aux so JAX does
+        not recurse into them (the cached ``_redshift_scale_factors`` derives purely
+        from the dataset and plane redshifts, so it stays concrete). ``tracer`` is
+        dynamic per fit.
+        """
+        from autoarray.abstract_ndarray import register_instance_pytree
+        from autolens.lens.tracer import Tracer
+
+        register_instance_pytree(
+            FitWeak,
+            no_flatten=("dataset", "_xp", "_redshift_scale_factors"),
+        )
+        register_instance_pytree(Tracer, no_flatten=("cosmology",))
 
     def save_attributes(self, paths: af.DirectoryPaths):
         """
