@@ -35,7 +35,6 @@ For datasets taken with a CCD (or similar imaging device), including objects whi
    Imaging
    SimulatorImaging
    Convolver
-   Convolver
 
 
 Interferometer
@@ -67,7 +66,7 @@ applied to datasets to apply over sampling to their fit.
    :template: custom-class-template.rst
    :recursive:
 
-   OverSampling
+   OverSampler
 
 
 1D Data Structures

@@ -20,7 +20,6 @@ named point sources.
    :recursive:
 
    PointDataset
-   PointDict
 
 Solver
 ------

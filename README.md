@@ -23,7 +23,7 @@ When two or more galaxies are aligned perfectly down our line-of-sight, the back
 
 This is called strong gravitational lensing and **PyAutoLens** makes it **simple** to model strong gravitational lenses, using JAX to **accelerate lens modeling on GPUs**.
 
-> 🤖 **Prototype:** [**autolens_assistant**](https://github.com/PyAutoLabs/autolens_assistant) is an early-stage AI assistant you talk to in natural language to do lens modeling end-to-end. It is experimental and **not the recommended starting point** — the readthedocs, autolens_workspace, and HowToLens below remain the canonical entry points. Try it if you'd like to drive PyAutoLens by conversation.
+> 🤖 **AI-assisted use:** you can also learn and drive **PyAutoLens** with AI — either a browser chat assistant (ChatGPT, Claude) pointed at [**autolens_assistant**](https://github.com/PyAutoLabs/autolens_assistant), or a fully agentic coding tool (Claude Code, Codex) that runs lens modeling end-to-end on your machine. See the **Three Ways to Learn PyAutoLens** section below.
 
 ## Getting Started
 
@@ -33,6 +33,16 @@ The following links are useful for new starters:
 - [The introduction Jupyter Notebook on Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.7.6.649/notebooks/imaging/start_here.ipynb): try **PyAutoLens** in a web browser (without installation).
 - [The autolens_workspace GitHub repository](https://github.com/PyAutoLabs/autolens_workspace): example scripts covering every **PyAutoLens** use case.
 - [The HowToLens GitHub repository](https://github.com/PyAutoLabs/HowToLens): a Jupyter notebook lecture series teaching strong lensing and lens modeling from the ground up.
+
+## Three Ways to Learn PyAutoLens
+
+There are three ways to learn how to use **PyAutoLens**, which you can freely mix and match:
+
+1. **Manual navigation** — read the workspace guides yourself, starting from the [new user guide](https://pyautolens.readthedocs.io/en/latest/overview/overview_2_new_user_guide.html) and the `start_here` notebooks, which are organised by lens scale and dataset type.
+2. **AI chat assistant** — ask questions to a conversational AI assistant such as ChatGPT or Claude in the browser. Point it at the [autolens_assistant](https://github.com/PyAutoLabs/autolens_assistant) repository and ask a question like *"How do I model a galaxy-scale strong lens observed with Hubble imaging?"*.
+3. **Fully agentic AI** — drive **PyAutoLens** end-to-end with an agentic coding tool such as [Claude Code](https://claude.com/claude-code) or [Codex](https://developers.openai.com/codex) together with [autolens_assistant](https://github.com/PyAutoLabs/autolens_assistant). These can inspect your data, write and run scripts, and manage a lens-modeling project directly on your machine.
+
+See [autolens_assistant](https://github.com/PyAutoLabs/autolens_assistant) for more on the AI-assisted options (2 and 3).
 
 ## Community & Support
 

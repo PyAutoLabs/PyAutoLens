@@ -187,5 +187,3 @@ inversion during each likelihood evaluation rather than as a free non-linear par
    ExponentialGradientSph
    DevVaucouleurs
    DevVaucouleursSph
-   Chameleon
-   ChameleonSph

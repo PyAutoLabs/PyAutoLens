@@ -6,7 +6,27 @@
 different types of data (e.g. imaging, interferometer, and point-source observations). Depending on the scientific questions you are interested in, the analysis you perform may differ significantly.
 
 The autolens_workspace contains a suite of example Jupyter Notebooks, organised by lens scale and dataset type.
-To help you find the most appropriate starting point, we begin by answering two simple questions.
+
+## Three Ways To Learn PyAutoLens
+
+There are three ways to learn how to use **PyAutoLens**, which you are free to mix and match:
+
+1. **Manual Navigation**: Read the workspace guides yourself. To find the example notebook best suited to your
+   science case, work through the two questions below ("What Scale Lens?" and "What Dataset Type?"), which point you
+   to the right starting point. This is the traditional route, and the rest of this guide supports it.
+
+2. **AI Chat Assistant**: Ask questions to a conversational AI assistant such as ChatGPT or Claude in the browser.
+   Point it at the [autolens_assistant](https://github.com/PyAutoLabs/autolens_assistant) repository and ask questions
+   like *"How do I model a galaxy-scale strong lens observed with Hubble imaging?"*. This is ideal for learning the API,
+   working out how to perform a calculation, and interpreting or debugging errors.
+
+3. **Fully Agentic AI**: Use an agentic coding tool such as [Claude Code](https://claude.com/claude-code) or
+   [Codex](https://developers.openai.com/codex) together with [autolens_assistant](https://github.com/PyAutoLabs/autolens_assistant).
+   These can inspect your data, write and run scripts, and manage an end-to-end lens modeling project directly on your
+   machine. See the [autolens_assistant](https://github.com/PyAutoLabs/autolens_assistant) repository for more information.
+
+The rest of this guide supports **manual navigation**: we begin by answering two simple questions to find your most
+appropriate starting point.
 
 ## What Scale Lens?
 
