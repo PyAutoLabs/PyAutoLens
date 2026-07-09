@@ -90,7 +90,7 @@ autoclass_content = "init"
 
 numpydoc_show_class_members = False
 numpydoc_show_inherited_class_members = False
-nnumpydoc_class_members_toctree = True
+numpydoc_class_members_toctree = True
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -122,17 +122,7 @@ pygments_style = "sphinx"
 pygments_dark_style = "monokai"
 add_function_parentheses = False
 
-html_context = {
-    "menu_links_name": "Repository",
-    "doc_path": "docs",
-    "github_project": "pyautolens",
-    "github_repo": "pyautolens",
-    "github_version": "master",
-}
 language = "en"
-
-html_static_path = ["_static"]
-html_css_files = ["pied-piper-admonition.css"]
 
 html_theme_options = {
     "light_css_variables": {
