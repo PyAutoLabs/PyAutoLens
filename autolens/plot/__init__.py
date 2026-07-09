@@ -85,6 +85,12 @@ from autolens.weak.plot.fit_weak_plots import (
     plot_chi_squared_map,
     subplot_fit_weak,
 )
+from autolens.weak.plot.shear_profile_plots import (
+    plot_shear_profile,
+)
+from autolens.weak.plot.convergence_plots import (
+    plot_convergence_map,
+)
 
 from autolens.lens.plot.subhalo_plots import (
     subplot_detection_imaging,
