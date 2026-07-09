@@ -27,7 +27,12 @@ from autolens.weak.dataset import WeakDataset
 
 
 class SimulatorShearYX:
-    def __init__(self, noise_sigma: float = 0.3, seed: Optional[int] = None):
+    def __init__(
+        self,
+        noise_sigma: float = 0.3,
+        seed: Optional[int] = None,
+        reduced: bool = False,
+    ):
         """
         Simulator for weak-lensing shear catalogues.
 
@@ -40,9 +45,14 @@ class SimulatorShearYX:
         seed
             Optional seed for the random number generator. When set, both the noise and the random-position
             draws (for ``via_tracer_random_positions_from``) are reproducible.
+        reduced
+            When ``True`` the simulator produces *reduced* shears ``g = gamma / (1 - kappa)`` — the quantity
+            real surveys measure from galaxy ellipticities — and marks the output dataset ``is_reduced``.
+            The default plain-shear mode matches the earlier tutorials in the weak-lensing series.
         """
         self.noise_sigma = float(noise_sigma)
         self.seed = seed
+        self.reduced = reduced
         self._rng = np.random.default_rng(seed)
 
     def via_tracer_from(
@@ -72,6 +82,13 @@ class SimulatorShearYX:
 
         true_shear = self._true_shear_yx_from(tracer=tracer, grid=grid)
 
+        if self.reduced:
+            convergence = self._convergence_from(tracer=tracer, grid=grid)
+            true_shear = ShearYX2DIrregular(
+                values=np.asarray(true_shear) / (1.0 - np.asarray(convergence))[:, None],
+                grid=grid,
+            )
+
         if self.noise_sigma > 0.0:
             noise = self._rng.normal(
                 loc=0.0, scale=self.noise_sigma, size=true_shear.shape
@@ -86,7 +103,12 @@ class SimulatorShearYX:
             values=[self.noise_sigma] * len(grid)
         )
 
-        return WeakDataset(shear_yx=shear_yx, noise_map=noise_map, name=name)
+        return WeakDataset(
+            shear_yx=shear_yx,
+            noise_map=noise_map,
+            name=name,
+            is_reduced=self.reduced,
+        )
 
     def via_tracer_random_positions_from(
         self,
@@ -124,6 +146,19 @@ class SimulatorShearYX:
         )
         grid = aa.Grid2DIrregular(values=positions)
         return self.via_tracer_from(tracer=tracer, grid=grid, name=name)
+
+    @staticmethod
+    def _convergence_from(tracer, grid: aa.Grid2DIrregular):
+        """
+        Evaluate the convergence of ``tracer`` on ``grid`` via the same Hessian primitive and
+        input-dispatch rules as ``_true_shear_yx_from``.
+        """
+        method = getattr(tracer, "convergence_2d_via_hessian_from", None)
+        if method is not None:
+            return method(grid=grid)
+        if hasattr(tracer, "deflections_between_planes_from"):
+            return LensCalc.from_tracer(tracer).convergence_2d_via_hessian_from(grid=grid)
+        return LensCalc.from_mass_obj(tracer).convergence_2d_via_hessian_from(grid=grid)
 
     @staticmethod
     def _true_shear_yx_from(tracer, grid: aa.Grid2DIrregular):
