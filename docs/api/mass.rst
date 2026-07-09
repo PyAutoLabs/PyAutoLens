@@ -24,6 +24,8 @@ Total [ag.mp]
    IsothermalSph
    dPIEMass
    dPIEMassSph
+   dPIEMassLenstool
+   dPIEMassLenstoolSph
    PIEMass
    dPIEPotential
    dPIEPotentialSph
