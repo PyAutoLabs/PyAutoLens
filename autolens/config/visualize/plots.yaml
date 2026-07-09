@@ -57,6 +57,11 @@ point_dataset:                             # Settings for plots of point source 
 
 fit_point_dataset: {}                      # Settings for plots of fits to point source datasets (e.g. FitPointDatasetPlotter).
 
+weak_dataset:                              # Settings for plots of weak lensing shear catalogues (e.g. PlotterWeak).
+  subplot_dataset: true                    # Plot subplot containing all dataset quantities (e.g. the shear field, noise-map, etc.)?
+
+fit_weak: {}                               # Settings for plots of fits to weak lensing shear catalogues (e.g. PlotterWeak).
+
 fit_ellipse:                               # Settings for plots of ellipse fitting fits (e.g. FitEllipse)
   data : true                              # Plot the data of the ellipse fit?
   data_no_ellipse: true                    # Plot the data without the black data ellipses, which obscure noisy data?

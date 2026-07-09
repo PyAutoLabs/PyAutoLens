@@ -127,6 +127,7 @@ from .point.solver import PointSolver
 from .point.solver.shape_solver import ShapeSolver
 from .weak.dataset import WeakDataset
 from .weak.fit import FitWeak
+from .weak.model.analysis import AnalysisWeak
 from .weak.simulator import SimulatorShearYX
 
 from . import exc
