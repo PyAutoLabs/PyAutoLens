@@ -66,3 +66,4 @@ docs/_templates
 docs/generated
 docs/api/generated
 autolens_workspace_test/
+docs/api/_autosummary
