@@ -17,11 +17,6 @@ https://academic.oup.com/mnras/article/488/1/1387/5526256  # CITATIONS.md:22
 # Code of Conduct boilerplate
 http://geekfeminism.wikia.com/wiki/Conference_anti-harassment/Policy  # CODE_OF_CONDUCT.md:305
 
-# Colab refs to notebooks no longer in HowTo/workspace
-https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.5.14.2/notebooks/chapter_3_search_chaining/tutorial_4_complex_source.ipynb  # docs/howtolens/chapter_3_search_chaining.md:20
-https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.5.14.2/notebooks/chapter_4_pixelizations/tutorial_11_adapt_regularization.py.ipynb  # docs/howtolens/chapter_4_pixelizations.md:37
-https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.5.14.2/notebooks/chapter_optional/tutorial_sub_grids.ipynb  # docs/howtolens/chapter_optional.md:7
-
 # External dead / paywalled / departmental pages
 http://www.ita.uni-heidelberg.de/~massimo/sub/Lectures/gl_all.pdf  # docs/howtolens/howtolens.md:36
 https://bitbucket.org/bdiemer/colossus/src/main/  # files/citations.md:12

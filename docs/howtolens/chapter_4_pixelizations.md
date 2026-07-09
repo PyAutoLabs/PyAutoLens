@@ -34,5 +34,5 @@ The chapter contains the following tutorials:
 [Tutorial 10: Brightness Adaption](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.7.6.649/notebooks/chapter_4_pixelizations/tutorial_10_brightness_adaption.ipynb)
 \- Adapting the pixelization to the source's morphology.
 
-[Tutorial 11: Adaptive Regularization](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.7.6.649/notebooks/chapter_4_pixelizations/tutorial_11_adapt_regularization.py.ipynb)
+[Tutorial 11: Adaptive Regularization](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.7.6.649/notebooks/chapter_4_pixelizations/tutorial_11_adaptive_regularization.ipynb)
 \- Adapting the regularization to the source's morphology.

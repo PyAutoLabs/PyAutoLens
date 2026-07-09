@@ -17,7 +17,7 @@ The chapter contains the following tutorials:
 [Tutorial 4: Two Lens galaxies](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.7.6.649/notebooks/chapter_3_search_chaining/tutorial_4_x2_lens_galaxies.ipynb)
 \- Modeling a strong lens with two lens galaxies using chained searches.
 
-[Tutorial 5: Complex Source](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.7.6.649/notebooks/chapter_3_search_chaining/tutorial_4_complex_source.ipynb)
+[Tutorial 5: Complex Source](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.7.6.649/notebooks/chapter_3_search_chaining/tutorial_5_complex_source.ipynb)
 \- Using multiple light profiles to fit a complex and irregular source using chained searches.
 
 [Tutorial 6: SLaM](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.7.6.649/notebooks/chapter_3_search_chaining/tutorial_6_slam.ipynb)
