@@ -130,3 +130,47 @@ def test__shared_state_from__returns_none_when_not_opted_in(interferometer_7):
     analysis = al.AnalysisInterferometer(dataset=dataset, use_jax=False)
 
     assert analysis.shared_state_from(instance=instance) is None
+
+
+def test__preloads_scoped__cross_type_preloads_reduced_to_mesh_view(interferometer_7):
+    lens = al.Galaxy(redshift=0.5, light=al.lp.Sersic(intensity=0.1))
+    tracer = al.Tracer(galaxies=[lens])
+
+    # Cross-dataset-type preloads (e.g. from an imaging lead factor in a joint graph): only
+    # the mesh-geometry view is valid for an interferometer fit.
+    cross_type = aa.PreloadsImaging(
+        source_plane_mesh_grid=[["mesh"]], image_plane_mesh_grid=[["image-mesh"]]
+    )
+
+    fit = al.FitInterferometer(
+        dataset=interferometer_7, tracer=tracer, preloads=cross_type
+    )
+
+    scoped = fit._preloads_scoped
+    assert isinstance(scoped, aa.PreloadsInterferometer)
+    assert scoped.source_plane_mesh_grid == [["mesh"]]
+    assert scoped.curvature_matrix is None
+    assert scoped.mapper_galaxy_dict is None
+
+    same_type = aa.PreloadsInterferometer(curvature_matrix="F")
+    fit = al.FitInterferometer(
+        dataset=interferometer_7, tracer=tracer, preloads=same_type
+    )
+    assert fit._preloads_scoped is same_type
+
+
+def test__shared_state_from__populates_mesh_geometry_fields(interferometer_7):
+    dataset = interferometer_7.apply_sparse_operator(use_jax=False)
+
+    model = _pixelization_model()
+    instance = model.instance_from_unit_vector([])
+
+    analysis = al.AnalysisInterferometer(
+        dataset=dataset, use_jax=False, shared_preloads=True
+    )
+
+    # The mesh-geometry fields ride alongside the curvature matrix + mapper so that
+    # cross-dataset-type factors of a joint graph can consume the shared mesh.
+    shared = analysis.shared_state_from(instance=instance)
+    assert shared.source_plane_mesh_grid is not None
+    assert shared.image_plane_mesh_grid is not None
