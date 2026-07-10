@@ -44,7 +44,8 @@ class FitImaging(aa.FitImaging, AbstractFitInversion):
         dataset_model : Optional[aa.DatasetModel] = None,
         adapt_images: Optional[ag.AdaptImages] = None,
         settings: aa.Settings = None,
-        xp=np
+        xp=np,
+        preloads=None,
     ):
         """
         Fits an imaging dataset using a `Tracer` object.
@@ -83,6 +84,11 @@ class FitImaging(aa.FitImaging, AbstractFitInversion):
             reconstructed galaxy's morphology.
         settings
             Settings controlling how an inversion is fitted for example which linear algebra formalism is used.
+        preloads
+            An optional `PreloadsImaging` carrying exposure-invariant quantities (the shared
+            source-plane mesh geometry) computed once and reused by the fit instead of being
+            rebuilt. Supplied by the multi-exposure shared-state path (see
+            `AnalysisImaging.shared_state_from`); `None` (the default) fits as normal.
         """
 
         super().__init__(dataset=dataset, dataset_model=dataset_model, xp=xp)
@@ -94,6 +100,7 @@ class FitImaging(aa.FitImaging, AbstractFitInversion):
 
         self.adapt_images = adapt_images
         self.settings = settings or aa.Settings()
+        self.preloads = preloads
 
     @functools.cached_property
     def blurred_image(self) -> aa.Array2D:
@@ -140,6 +147,7 @@ class FitImaging(aa.FitImaging, AbstractFitInversion):
             adapt_images=self.adapt_images,
             settings=self.settings,
             xp=self._xp,
+            preloads=self.preloads,
         )
 
     @cached_property
