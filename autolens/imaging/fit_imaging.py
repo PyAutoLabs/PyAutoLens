@@ -131,6 +131,25 @@ class FitImaging(aa.FitImaging, AbstractFitInversion):
         return self.data - self.blurred_image
 
     @property
+    def _preloads_scoped(self):
+        """
+        The preloads as consumed by this fit's inversion, scoped to its dataset type.
+
+        Cross-dataset-type shared state (e.g. an interferometer lead factor in a joint
+        imaging + interferometer graph) may carry a mapper / curvature matrix that embed the
+        OTHER dataset's grids — consuming them here would silently corrupt the fit. Only the
+        source-plane mesh geometry is valid across dataset types, so any non-imaging preloads
+        are reduced to their mesh-geometry view.
+        """
+        if self.preloads is None or isinstance(self.preloads, aa.PreloadsImaging):
+            return self.preloads
+
+        return aa.PreloadsImaging(
+            source_plane_mesh_grid=self.preloads.source_plane_mesh_grid,
+            image_plane_mesh_grid=self.preloads.image_plane_mesh_grid,
+        )
+
+    @property
     def tracer_to_inversion(self) -> TracerToInversion:
 
         dataset = aa.DatasetInterface(
@@ -147,7 +166,7 @@ class FitImaging(aa.FitImaging, AbstractFitInversion):
             adapt_images=self.adapt_images,
             settings=self.settings,
             xp=self._xp,
-            preloads=self.preloads,
+            preloads=self._preloads_scoped,
         )
 
     @cached_property

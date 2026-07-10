@@ -146,7 +146,26 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
             adapt_images=self.adapt_images,
             settings=self.settings,
             xp=self._xp,
-            preloads=self.preloads,
+            preloads=self._preloads_scoped,
+        )
+
+    @property
+    def _preloads_scoped(self):
+        """
+        The preloads as consumed by this fit's inversion, scoped to its dataset type.
+
+        Cross-dataset-type shared state (e.g. an imaging lead factor in a joint
+        imaging + interferometer graph) is valid here only through its source-plane mesh
+        geometry — a mapper / curvature matrix from another dataset type would embed that
+        dataset's grids and silently corrupt the fit, so non-interferometer preloads are
+        reduced to their mesh-geometry view.
+        """
+        if self.preloads is None or isinstance(self.preloads, aa.PreloadsInterferometer):
+            return self.preloads
+
+        return aa.PreloadsInterferometer(
+            source_plane_mesh_grid=self.preloads.source_plane_mesh_grid,
+            image_plane_mesh_grid=self.preloads.image_plane_mesh_grid,
         )
 
     @cached_property

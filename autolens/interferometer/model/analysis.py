@@ -205,9 +205,15 @@ class AnalysisInterferometer(AnalysisDataset):
         tracer_to_inversion = fit.tracer_to_inversion
         inversion = tracer_to_inversion.inversion
 
+        # The mesh-geometry fields are also populated so that cross-dataset-type factors of a
+        # joint graph (e.g. an imaging factor when this interferometer analysis leads) can share
+        # the source-plane mesh; they consume ONLY these fields (see `_preloads_scoped` on the
+        # fits) because the mapper and curvature matrix embed this dataset's grids.
         return aa.PreloadsInterferometer(
             curvature_matrix=inversion.curvature_matrix,
             mapper_galaxy_dict=tracer_to_inversion.mapper_galaxy_dict,
+            source_plane_mesh_grid=tracer_to_inversion.traced_mesh_grid_pg_list,
+            image_plane_mesh_grid=tracer_to_inversion.image_plane_mesh_grid_pg_list,
         )
 
     def fit_from(

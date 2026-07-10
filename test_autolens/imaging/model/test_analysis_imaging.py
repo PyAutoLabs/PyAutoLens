@@ -266,3 +266,34 @@ def test__factor_graph__shared_state_computed_once(masked_imaging_7x7, monkeypat
     _factor_graph_log_likelihood(masked_imaging_7x7, shared_preloads=True)
 
     assert calls["n"] == 1
+
+
+def test__preloads_scoped__cross_type_preloads_reduced_to_mesh_view(masked_imaging_7x7):
+    import autoarray as aa
+
+    lens = al.Galaxy(redshift=0.5, light=al.lp.Sersic(intensity=0.1))
+    tracer = al.Tracer(galaxies=[lens])
+
+    # Cross-dataset-type preloads (e.g. from an interferometer lead factor in a joint graph):
+    # the mapper / curvature matrix embed the other dataset's grids and must NOT be consumed
+    # by an imaging fit — only the mesh-geometry view survives the scoping.
+    cross_type = aa.PreloadsInterferometer(
+        curvature_matrix="other-datasets-F",
+        mapper_galaxy_dict="other-datasets-mapper",
+        source_plane_mesh_grid=[["mesh"]],
+        image_plane_mesh_grid=[["image-mesh"]],
+    )
+
+    fit = al.FitImaging(dataset=masked_imaging_7x7, tracer=tracer, preloads=cross_type)
+
+    scoped = fit._preloads_scoped
+    assert isinstance(scoped, aa.PreloadsImaging)
+    assert scoped.source_plane_mesh_grid == [["mesh"]]
+    assert scoped.image_plane_mesh_grid == [["image-mesh"]]
+    assert scoped.curvature_matrix is None
+    assert scoped.mapper_galaxy_dict is None
+
+    # Same-type preloads pass through untouched.
+    same_type = aa.PreloadsImaging(source_plane_mesh_grid=[["mesh"]])
+    fit = al.FitImaging(dataset=masked_imaging_7x7, tracer=tracer, preloads=same_type)
+    assert fit._preloads_scoped is same_type
