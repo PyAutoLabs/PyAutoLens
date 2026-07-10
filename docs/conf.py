@@ -124,11 +124,18 @@ add_function_parentheses = False
 
 language = "en"
 
+html_static_path = ["_static"]
+html_css_files = ["pyauto.css"]
+
 html_theme_options = {
     "light_css_variables": {
-        "color-brand-primary": "#7C4DFF",
-        "color-brand-content": "#7C4DFF",
-    }
+        "color-brand-primary": "#7c4dff",
+        "color-brand-content": "#7c4dff",
+    },
+    "dark_css_variables": {
+        "color-brand-primary": "#9d7aff",
+        "color-brand-content": "#9d7aff",
+    },
 }
 
 from sphinx.builders.html import StandaloneHTMLBuilder

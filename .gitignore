@@ -61,7 +61,6 @@ __MACOSX/
 
 #docs
 docs/_build
-docs/_static
 docs/_templates
 docs/generated
 docs/api/generated

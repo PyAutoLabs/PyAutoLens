@@ -1,0 +1,32 @@
+/* PyAuto shared docs brand layer — identical file in PyAutoFit, PyAutoGalaxy,
+   PyAutoLens (docs/_static/pyauto.css). The per-project accent is set via
+   Furo's color-brand-* variables in each repo's conf.py; this file carries
+   the elements common to the whole stack. */
+
+/* The PyAuto family signature: a thin gradient strip across the top of every
+   docs page, running through the three stack accents (Fit / Galaxy / Lens). */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #c2410c 0%, #0f766e 50%, #7c4dff 100%);
+  z-index: 1000;
+  pointer-events: none;
+}
+@media (prefers-color-scheme: dark) {
+  body:not([data-theme="light"])::before {
+    background: linear-gradient(90deg, #f28c38 0%, #2dd4bf 50%, #9d7aff 100%);
+  }
+}
+body[data-theme="dark"]::before {
+  background: linear-gradient(90deg, #f28c38 0%, #2dd4bf 50%, #9d7aff 100%);
+}
+
+/* Project wordmark in the sidebar. */
+.sidebar-brand-text {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
