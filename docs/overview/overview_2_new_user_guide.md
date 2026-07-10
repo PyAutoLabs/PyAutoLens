@@ -18,8 +18,8 @@ There are three ways to learn how to use **PyAutoLens**, which you are free to m
 2. **AI Chat Assistant**: Ask questions to a conversational AI assistant such as ChatGPT or Claude in the browser.
    Go to the [autolens_assistant](https://github.com/PyAutoLabs/autolens_assistant) repository and copy the ready-to-use
    example prompt from its README into ChatGPT or Claude — it gets you asking useful questions from the very first
-   message. This is ideal for learning the API, working out how to perform a calculation, creating end-to-end example
-   Python scripts, and interpreting or debugging errors.
+   message. This is ideal for learning the API, working out how to perform a calculation, and creating end-to-end
+   example Python scripts.
 
 3. **Fully Agentic AI**: Use an agentic coding tool such as [Claude Code](https://claude.com/claude-code) or
    [Codex](https://developers.openai.com/codex) together with [autolens_assistant](https://github.com/PyAutoLabs/autolens_assistant).
