@@ -311,6 +311,11 @@ class TracerToInversion(ag.AbstractToInversion):
         -------
             The list of lists of image-plane mesh grids grouped by plane.
         """
+        if (
+            self._preloads is not None
+            and self._preloads.image_plane_mesh_grid is not None
+        ):
+            return self._preloads.image_plane_mesh_grid
 
         image_plane_mesh_grid_list_of_planes = []
 
@@ -351,6 +356,16 @@ class TracerToInversion(ag.AbstractToInversion):
         -------
             The list of lists of traced mesh grids grouped by plane.
         """
+        if (
+            self._preloads is not None
+            and self._preloads.source_plane_mesh_grid is not None
+        ):
+            # The shared-state path (e.g. `AnalysisImaging.shared_state_from`): the source-plane
+            # mesh geometry was traced once from the lead dataset and is reused here, so this
+            # dataset skips the image-mesh computation and mesh ray-trace. Its own (offset) data
+            # grid is still traced and mapped onto the shared mesh in `mapper_galaxy_dict`.
+            return self._preloads.source_plane_mesh_grid
+
         image_plane_mesh_grid_pg_list = self.image_plane_mesh_grid_pg_list
 
         traced_mesh_grid_pg_list = []

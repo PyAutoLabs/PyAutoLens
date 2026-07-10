@@ -14,6 +14,7 @@ It also manages result output (``ResultImaging``), on-the-fly visualisation
 """
 import logging
 
+import autoarray as aa
 import autofit as af
 import autogalaxy as ag
 
@@ -39,7 +40,48 @@ class AnalysisImaging(AnalysisDataset):
     Visualizer = VisualizerImaging
     Latent = LatentLens
 
-    def log_likelihood_function(self, instance: af.ModelInstance) -> float:
+    def __init__(
+        self,
+        dataset,
+        positions_likelihood_list=None,
+        adapt_images: ag.AdaptImages = None,
+        cosmology: ag.cosmo.LensingCosmology = None,
+        settings=None,
+        raise_inversion_positions_likelihood_exception: bool = True,
+        title_prefix: str = None,
+        use_jax: bool = True,
+        shared_preloads: bool = False,
+        **kwargs,
+    ):
+        """
+        Fits a lens model to an imaging dataset via a non-linear search (see `AnalysisDataset` for
+        the full docstring of the shared parameters).
+
+        Parameters
+        ----------
+        shared_preloads
+            Opts this analysis into the cross-factor shared-state mechanism of a `FactorGraphModel`
+            (see `shared_state_from`). Set this to `True` only when this analysis is one of many
+            exposures of the same lens (e.g. multi-exposure imaging with per-exposure pixel offsets)
+            sharing an identical lens model, so the exposure-invariant source-plane mesh geometry
+            can be computed once and reused by every exposure. `False` by default, leaving the
+            standard per-analysis behaviour unchanged.
+        """
+        super().__init__(
+            dataset=dataset,
+            positions_likelihood_list=positions_likelihood_list,
+            adapt_images=adapt_images,
+            cosmology=cosmology,
+            settings=settings,
+            raise_inversion_positions_likelihood_exception=raise_inversion_positions_likelihood_exception,
+            title_prefix=title_prefix,
+            use_jax=use_jax,
+            **kwargs,
+        )
+
+        self.shared_preloads = shared_preloads
+
+    def log_likelihood_function(self, instance: af.ModelInstance, shared=None) -> float:
         """
         Given an instance of the model, where the model parameters are set via a non-linear search, fit the model
         instance to the imaging dataset.
@@ -71,6 +113,11 @@ class AnalysisImaging(AnalysisDataset):
         instance
             An instance of the model that is being fitted to the data by this analysis (whose parameters have been set
             via a non-linear search).
+        shared
+            The cross-factor shared state of a `FactorGraphModel`, computed once per evaluation by the lead
+            factor's `shared_state_from` (see that method). For this analysis it is a `PreloadsImaging`
+            carrying the exposure-invariant source-plane mesh geometry; when provided it is reused by the fit
+            instead of being recomputed. `None` (the default, e.g. a standalone fit) leaves behaviour unchanged.
 
         Returns
         -------
@@ -83,16 +130,63 @@ class AnalysisImaging(AnalysisDataset):
         )
 
         if self._use_jax:
-            return self.fit_from(instance=instance).figure_of_merit - log_likelihood_penalty
+            return (
+                self.fit_from(instance=instance, preloads=shared).figure_of_merit
+                - log_likelihood_penalty
+            )
 
         try:
-            return self.fit_from(instance=instance).figure_of_merit - log_likelihood_penalty
+            return (
+                self.fit_from(instance=instance, preloads=shared).figure_of_merit
+                - log_likelihood_penalty
+            )
         except Exception as e:
             raise af.exc.FitException
+
+    def shared_state_from(self, instance: af.ModelInstance):
+        """
+        Compute the exposure-invariant source-plane mesh geometry once so it can be shared across the factors
+        of a multi-exposure `FactorGraphModel` (see `autofit.Analysis.shared_state_from`).
+
+        When `shared_preloads` is set, every factor of the graph is an exposure of the same lens sharing an
+        identical lens model, so the source-plane mesh (the image-mesh centres of this lead exposure,
+        ray-traced through the shared lens model) is built once here and returned inside a `PreloadsImaging`,
+        which `FactorGraphModel` forwards as the `shared` argument to every factor's
+        `log_likelihood_function`. Each exposure then maps its own (offset) data grid onto the shared mesh
+        instead of computing its own image-mesh and mesh ray-trace, so every exposure reconstructs on an
+        identical source-pixel grid.
+
+        Unlike the interferometer datacube case, the mapper, mapping matrix, curvature matrix and
+        regularization matrix are NOT shared — per-exposure PSFs and pixel offsets make the first three
+        per-dataset, and regularization may adapt to per-exposure data.
+
+        Returns `None` when the analysis has not opted in (`shared_preloads=False`) or when the model performs
+        no inversion, in which case no state is shared and every factor fits as normal.
+
+        The caller is responsible for the invariance contract: only enable `shared_preloads` when the factors
+        genuinely share the lens model, so the source-plane mesh really is exposure-invariant. The lead
+        factor's own `DatasetModel` offset (if any) is applied when the mesh is traced, so the mesh is defined
+        in the lead exposure's frame.
+        """
+        if not self.shared_preloads:
+            return None
+
+        fit = self.fit_from(instance=instance)
+
+        if not fit.perform_inversion:
+            return None
+
+        tracer_to_inversion = fit.tracer_to_inversion
+
+        return aa.PreloadsImaging(
+            source_plane_mesh_grid=tracer_to_inversion.traced_mesh_grid_pg_list,
+            image_plane_mesh_grid=tracer_to_inversion.image_plane_mesh_grid_pg_list,
+        )
 
     def fit_from(
         self,
         instance: af.ModelInstance,
+        preloads=None,
     ) -> FitImaging:
         """
         Given a model instance create a `FitImaging` object.
@@ -105,9 +199,10 @@ class AnalysisImaging(AnalysisDataset):
         instance
             An instance of the model that is being fitted to the data by this analysis (whose parameters have been set
             via a non-linear search).
-        check_positions
-            Whether the multiple image positions of the lensed source should be checked, i.e. whether they trace
-            within the position threshold of one another in the source plane.
+        preloads
+            An optional `PreloadsImaging` carrying the exposure-invariant source-plane mesh geometry,
+            computed once and reused by the fit instead of being rebuilt. Supplied by the multi-exposure
+            shared-state path (see `shared_state_from`); `None` (the default) fits as normal.
 
         Returns
         -------
@@ -137,7 +232,8 @@ class AnalysisImaging(AnalysisDataset):
             dataset_model=dataset_model,
             adapt_images=adapt_images,
             settings=self.settings,
-            xp=self._xp
+            xp=self._xp,
+            preloads=preloads,
         )
 
     def save_attributes(self, paths: af.DirectoryPaths):
@@ -221,7 +317,7 @@ class AnalysisImaging(AnalysisDataset):
 
         register_instance_pytree(
             FitImaging,
-            no_flatten=("dataset", "adapt_images", "settings"),
+            no_flatten=("dataset", "adapt_images", "settings", "preloads"),
         )
         register_instance_pytree(DatasetModel)
         # ``cosmology`` is a fixed physical constant per fit; ride as aux.

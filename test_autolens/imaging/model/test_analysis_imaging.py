@@ -125,3 +125,144 @@ def test__positions__likelihood_overwrites__changes_likelihood__double_source_pl
 
     assert analysis_log_likelihood == pytest.approx(-44097289521.734665, 1.0e-4)
 
+
+
+def _shared_mesh_analysis(masked_imaging_7x7, shared_preloads):
+    """
+    An `AnalysisImaging` with an image-mesh (`Overlay`) + `Delaunay` pixelization, the regime the
+    multi-exposure shared-state path applies to (the source-plane mesh is traced from image-plane
+    mesh centres, so it can be shared across exposures).
+    """
+    import autoarray as aa
+
+    lens = al.Galaxy(
+        redshift=0.5,
+        mass=al.mp.Isothermal(centre=(0.1, 0.1), einstein_radius=1.0),
+    )
+
+    pixelization = al.Pixelization(
+        mesh=al.mesh.Delaunay(pixels=9, zeroed_pixels=0),
+        regularization=al.reg.Constant(coefficient=0.01),
+    )
+
+    source = al.Galaxy(redshift=1.0, pixelization=pixelization)
+
+    image_mesh = al.image_mesh.Overlay(shape=(3, 3))
+    image_plane_mesh_grid = image_mesh.image_plane_mesh_grid_from(
+        mask=masked_imaging_7x7.mask,
+    )
+
+    adapt_images = al.AdaptImages(
+        galaxy_name_image_dict={
+            str(("galaxies", "source")): masked_imaging_7x7.data,
+        },
+        galaxy_name_image_plane_mesh_grid_dict={
+            str(("galaxies", "source")): image_plane_mesh_grid,
+        },
+    )
+
+    model = af.Collection(galaxies=af.Collection(lens=lens, source=source))
+
+    analysis = al.AnalysisImaging(
+        dataset=masked_imaging_7x7,
+        adapt_images=adapt_images,
+        use_jax=False,
+        shared_preloads=shared_preloads,
+        raise_inversion_positions_likelihood_exception=False,
+    )
+
+    return model, analysis
+
+
+def test__shared_state_from__mesh_reused__figure_of_merit_unchanged(
+    masked_imaging_7x7,
+):
+    import autoarray as aa
+
+    model, analysis = _shared_mesh_analysis(masked_imaging_7x7, shared_preloads=True)
+    instance = model.instance_from_unit_vector([])
+
+    # `shared_state_from` builds a `PreloadsImaging` carrying the source-plane mesh geometry (the
+    # exposure-invariant quantity) — NOT the mapper / curvature matrix / regularization matrix,
+    # which are per-exposure for imaging (PSFs, offsets, adaptive regularization).
+    shared = analysis.shared_state_from(instance=instance)
+    assert isinstance(shared, aa.PreloadsImaging)
+    assert shared.source_plane_mesh_grid is not None
+    assert shared.image_plane_mesh_grid is not None
+    assert shared.curvature_matrix is None
+    assert shared.mapper_galaxy_dict is None
+
+    # The preloaded mesh is reused by the fit (identity) and leaves the figure of merit unchanged.
+    fit_unshared = analysis.fit_from(instance=instance)
+    fom_unshared = fit_unshared.figure_of_merit
+
+    fit_shared = analysis.fit_from(instance=instance, preloads=shared)
+
+    assert (
+        fit_shared.tracer_to_inversion.traced_mesh_grid_pg_list
+        is shared.source_plane_mesh_grid
+    )
+    assert fit_shared.figure_of_merit == pytest.approx(fom_unshared)
+
+    # The full `log_likelihood_function` with the shared object matches the unshared call.
+    assert analysis.log_likelihood_function(
+        instance=instance, shared=shared
+    ) == pytest.approx(analysis.log_likelihood_function(instance=instance))
+
+
+def test__shared_state_from__returns_none_when_not_opted_in(masked_imaging_7x7):
+    model, analysis = _shared_mesh_analysis(masked_imaging_7x7, shared_preloads=False)
+    instance = model.instance_from_unit_vector([])
+
+    assert analysis.shared_state_from(instance=instance) is None
+
+
+def test__shared_state_from__returns_none_when_no_inversion(masked_imaging_7x7):
+    lens = al.Galaxy(redshift=0.5, light=al.lp.Sersic(intensity=0.1))
+
+    model = af.Collection(galaxies=af.Collection(lens=lens))
+    instance = model.instance_from_unit_vector([])
+
+    analysis = al.AnalysisImaging(
+        dataset=masked_imaging_7x7, use_jax=False, shared_preloads=True
+    )
+
+    assert analysis.shared_state_from(instance=instance) is None
+
+
+def _factor_graph_log_likelihood(masked_imaging_7x7, shared_preloads):
+    factors = []
+    model = None
+    for _ in range(2):
+        model, analysis = _shared_mesh_analysis(masked_imaging_7x7, shared_preloads)
+        factors.append(af.AnalysisFactor(prior_model=model.copy(), analysis=analysis))
+
+    factor_graph = af.FactorGraphModel(*factors)
+    instance = factor_graph.global_prior_model.instance_from_unit_vector([])
+    return factor_graph.log_likelihood_function(instance)
+
+
+def test__factor_graph__shared_vs_unshared_equal(masked_imaging_7x7):
+    ll_unshared = _factor_graph_log_likelihood(masked_imaging_7x7, shared_preloads=False)
+    ll_shared = _factor_graph_log_likelihood(masked_imaging_7x7, shared_preloads=True)
+
+    print(f"\nunshared={ll_unshared} shared={ll_shared}")
+    assert ll_shared == pytest.approx(ll_unshared, rel=1e-10)
+
+
+def test__factor_graph__shared_state_computed_once(masked_imaging_7x7, monkeypatch):
+    calls = {"n": 0}
+
+    original = al.AnalysisImaging.shared_state_from
+
+    def counting(self, instance):
+        result = original(self, instance)
+        if result is not None:
+            calls["n"] += 1
+        return result
+
+    monkeypatch.setattr(al.AnalysisImaging, "shared_state_from", counting)
+
+    _factor_graph_log_likelihood(masked_imaging_7x7, shared_preloads=True)
+
+    assert calls["n"] == 1
