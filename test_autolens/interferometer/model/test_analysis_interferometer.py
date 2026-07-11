@@ -1,3 +1,4 @@
+import importlib.util
 from pathlib import Path
 import pytest
 
@@ -5,6 +6,15 @@ import autofit as af
 import autoarray as aa
 import autolens as al
 from autolens import exc
+
+# The interferometer shared-state preload builds the jax-backed NUFFT sparse
+# operator, so these tests need jax installed to run (it ships via the
+# `[optional]` extras). The NumPy-only Python-version matrix has no jax, so skip
+# there rather than fail.
+requires_jax = pytest.mark.skipif(
+    importlib.util.find_spec("jax") is None,
+    reason="requires jax (installed via the [optional] extras; absent on the NumPy-only matrix env)",
+)
 
 from autolens.interferometer.model.result import ResultInterferometer
 
@@ -87,6 +97,7 @@ def _pixelization_model():
     )
 
 
+@requires_jax
 def test__shared_state_from__preloads_curvature_reused__figure_of_merit_unchanged(
     interferometer_7,
 ):
@@ -121,6 +132,7 @@ def test__shared_state_from__preloads_curvature_reused__figure_of_merit_unchange
     ) == pytest.approx(analysis.log_likelihood_function(instance=instance))
 
 
+@requires_jax
 def test__shared_state_from__returns_none_when_not_opted_in(interferometer_7):
     dataset = interferometer_7.apply_sparse_operator(use_jax=False)
 
@@ -159,6 +171,7 @@ def test__preloads_scoped__cross_type_preloads_reduced_to_mesh_view(interferomet
     assert fit._preloads_scoped is same_type
 
 
+@requires_jax
 def test__shared_state_from__populates_mesh_geometry_fields(interferometer_7):
     dataset = interferometer_7.apply_sparse_operator(use_jax=False)
 
