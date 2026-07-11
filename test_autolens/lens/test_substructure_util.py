@@ -1,3 +1,5 @@
+import importlib.util
+
 import numpy as np
 import pytest
 
@@ -10,6 +12,14 @@ requires_kaplinghat = pytest.mark.skipif(
     reason="Kaplinghat SIDM profiles are provided by the pending PyAutoGalaxy release.",
 )
 
+# `galaxies_to_halo_arrays` is jax-backed; these tests need jax installed to run
+# (it ships via the `[optional]` extras). The NumPy-only Python-version matrix
+# has no jax, so skip there rather than fail.
+requires_jax = pytest.mark.skipif(
+    importlib.util.find_spec("jax") is None,
+    reason="requires jax (installed via the [optional] extras; absent on the NumPy-only matrix env)",
+)
+
 
 @requires_kaplinghat
 def test__autolens_exposes_kaplinghat_profiles_from_autogalaxy():
@@ -17,6 +27,7 @@ def test__autolens_exposes_kaplinghat_profiles_from_autogalaxy():
     assert hasattr(al.mp, "KaplinghatCoredNFWMCRLudlowSph")
 
 
+@requires_jax
 @requires_kaplinghat
 def test__galaxies_to_halo_arrays__packs_kaplinghat_profile_parameters():
     profile = al.mp.KaplinghatCoredNFWSph(
@@ -59,6 +70,7 @@ def test__galaxies_to_halo_arrays__packs_kaplinghat_profile_parameters():
     )
 
 
+@requires_jax
 def test__galaxies_to_halo_arrays__raises_for_unsupported_profile_class():
     with pytest.raises(ValueError):
         substructure_util.galaxies_to_halo_arrays(
