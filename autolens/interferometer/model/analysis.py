@@ -167,10 +167,19 @@ class AnalysisInterferometer(AnalysisDataset):
             instance=instance,
         )
 
-        return (
-            self.fit_from(instance=instance, preloads=shared).figure_of_merit
-            - log_likelihood_penalty
-        )
+        if self._use_jax:
+            return (
+                self.fit_from(instance=instance, preloads=shared).figure_of_merit
+                - log_likelihood_penalty
+            )
+
+        try:
+            return (
+                self.fit_from(instance=instance, preloads=shared).figure_of_merit
+                - log_likelihood_penalty
+            )
+        except Exception as e:
+            raise af.exc.FitException
 
     def shared_state_from(self, instance: af.ModelInstance):
         """
