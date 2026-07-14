@@ -130,7 +130,13 @@ class AnalysisPoint(AgAnalysis, AnalysisLens):
         float
             The log likelihood indicating how well this model instance fitted the imaging data.
         """
-        return self.fit_from(instance=instance).log_likelihood
+        if self._use_jax:
+            return self.fit_from(instance=instance).log_likelihood
+
+        try:
+            return self.fit_from(instance=instance).log_likelihood
+        except Exception as e:
+            raise af.exc.FitException
 
     def fit_from(
         self,
