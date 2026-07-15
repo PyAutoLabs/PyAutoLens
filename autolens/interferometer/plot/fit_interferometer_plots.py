@@ -8,41 +8,20 @@ import autogalaxy as ag
 from autogalaxy.util.plot_utils import plot_array
 from autoarray.plot.yx import plot_yx
 from autoarray.plot.utils import subplots, save_figure, conf_subplot_figsize, tight_layout
-from autoarray.plot.utils import numpy_lines as _to_lines
 from autoarray.inversion.mappers.abstract import Mapper
 from autoarray.inversion.plot.mapper_plots import plot_mapper
-from autogalaxy.util.plot_utils import _critical_curves_from, _caustics_from
 from autolens.lens.plot.tracer_plots import plane_image_from
 
+# Canonical, single-source definition (shared with the imaging fit plots),
+# homed under autolens.lens.plot to avoid a circular import through the
+# autolens.plot aggregator __init__. Re-exported here so existing
+# ``from autolens.interferometer.plot.fit_interferometer_plots import _compute_critical_curve_lines``
+# imports keep working. This also adopts the hardened error handling that the
+# imaging copy carried and this copy previously lacked (a bare ``except`` that
+# silently swallowed every failure).
+from autolens.lens.plot.critical_curves import _compute_critical_curve_lines
+
 logger = logging.getLogger(__name__)
-
-
-def _compute_critical_curve_lines(tracer, grid):
-    """Compute critical-curve and caustic lines for a tracer on a given grid.
-
-    Returns a 4-tuple ``(image_plane_lines, image_plane_line_colors,
-    source_plane_lines, source_plane_line_colors)`` suitable for passing
-    directly to :func:`~autoarray.plot.array.plot_array`.  On failure
-    returns ``(None, None, None, None)``.
-    """
-    try:
-        tan_cc, rad_cc = _critical_curves_from(tracer, grid)
-        tan_ca, rad_ca = _caustics_from(tracer, grid)
-        _tan_cc_lines = _to_lines(list(tan_cc) if tan_cc is not None else []) or []
-        _rad_cc_lines = _to_lines(list(rad_cc) if rad_cc is not None else []) or []
-        _tan_ca_lines = _to_lines(list(tan_ca) if tan_ca is not None else []) or []
-        _rad_ca_lines = _to_lines(list(rad_ca) if rad_ca is not None else []) or []
-        image_plane_lines = (_tan_cc_lines + _rad_cc_lines) or None
-        image_plane_line_colors = (
-            ["white"] * len(_tan_cc_lines) + ["yellow"] * len(_rad_cc_lines)
-        )
-        source_plane_lines = (_tan_ca_lines + _rad_ca_lines) or None
-        source_plane_line_colors = (
-            ["white"] * len(_tan_ca_lines) + ["yellow"] * len(_rad_ca_lines)
-        )
-        return image_plane_lines, image_plane_line_colors, source_plane_lines, source_plane_line_colors
-    except Exception:
-        return None, None, None, None
 
 
 def _plot_source_plane(fit, ax, plane_index, zoom_to_brightest=True,
