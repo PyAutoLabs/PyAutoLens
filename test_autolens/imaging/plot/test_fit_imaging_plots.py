@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from autolens.plot import plot_utils
+from autolens.lens.plot import critical_curves
 from autolens.imaging.plot.fit_imaging_plots import (
     _compute_critical_curve_lines,
     subplot_fit,
@@ -179,11 +179,11 @@ def test__compute_critical_curve_lines__known_recoverable_exceptions__silent(
     def boom(*args, **kwargs):
         raise exc_cls("synthetic failure for test")
 
-    # _compute_critical_curve_lines lives in autolens.plot.plot_utils and is
-    # re-exported by fit_imaging_plots; patch/observe it at its canonical home.
-    monkeypatch.setattr(plot_utils, "_critical_curves_from", boom)
+    # _compute_critical_curve_lines lives in autolens.lens.plot.critical_curves
+    # and is re-exported by fit_imaging_plots; patch/observe it at its canonical home.
+    monkeypatch.setattr(critical_curves, "_critical_curves_from", boom)
 
-    with caplog.at_level(logging.WARNING, logger=plot_utils.__name__):
+    with caplog.at_level(logging.WARNING, logger=critical_curves.__name__):
         result = _compute_critical_curve_lines(tracer=None, grid=None)
 
     assert result == (None, None, None, None)
@@ -205,9 +205,9 @@ def test__compute_critical_curve_lines__unexpected_exception__logs_warning(
     def boom(*args, **kwargs):
         raise RuntimeError("synthetic unexpected failure for test")
 
-    monkeypatch.setattr(plot_utils, "_critical_curves_from", boom)
+    monkeypatch.setattr(critical_curves, "_critical_curves_from", boom)
 
-    with caplog.at_level(logging.WARNING, logger=plot_utils.__name__):
+    with caplog.at_level(logging.WARNING, logger=critical_curves.__name__):
         result = _compute_critical_curve_lines(tracer=None, grid=None)
 
     assert result == (None, None, None, None)

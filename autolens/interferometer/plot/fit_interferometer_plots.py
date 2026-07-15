@@ -12,13 +12,14 @@ from autoarray.inversion.mappers.abstract import Mapper
 from autoarray.inversion.plot.mapper_plots import plot_mapper
 from autolens.lens.plot.tracer_plots import plane_image_from
 
-# Canonical, single-source definition (shared with the imaging fit plots).
-# Re-exported here so existing
+# Canonical, single-source definition (shared with the imaging fit plots),
+# homed under autolens.lens.plot to avoid a circular import through the
+# autolens.plot aggregator __init__. Re-exported here so existing
 # ``from autolens.interferometer.plot.fit_interferometer_plots import _compute_critical_curve_lines``
 # imports keep working. This also adopts the hardened error handling that the
 # imaging copy carried and this copy previously lacked (a bare ``except`` that
 # silently swallowed every failure).
-from autolens.plot.plot_utils import _compute_critical_curve_lines
+from autolens.lens.plot.critical_curves import _compute_critical_curve_lines
 
 logger = logging.getLogger(__name__)
 

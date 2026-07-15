@@ -163,7 +163,7 @@ def subplot_tracer(
     traced_grids = tracer.traced_grid_2d_list_from(grid=grid)
 
     if image_plane_lines is None and source_plane_lines is None:
-        from autolens.imaging.plot.fit_imaging_plots import _compute_critical_curve_lines
+        from autolens.lens.plot.critical_curves import _compute_critical_curve_lines
         image_plane_lines, image_plane_line_colors, source_plane_lines, source_plane_line_colors = (
             _compute_critical_curve_lines(tracer, grid)
         )

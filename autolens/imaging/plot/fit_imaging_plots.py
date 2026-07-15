@@ -14,8 +14,10 @@ from autogalaxy.util.plot_utils import _critical_curves_from
 
 # Canonical, single-source definition. Re-exported here so existing
 # ``from autolens.imaging.plot.fit_imaging_plots import _compute_critical_curve_lines``
-# imports keep working.
-from autolens.plot.plot_utils import _compute_critical_curve_lines
+# imports keep working. It lives under autolens.lens.plot (empty package
+# __init__) rather than autolens.plot to avoid a circular import through the
+# autolens.plot aggregator __init__.
+from autolens.lens.plot.critical_curves import _compute_critical_curve_lines
 
 logger = logging.getLogger(__name__)
 
