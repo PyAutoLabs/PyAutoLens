@@ -146,6 +146,42 @@ def test__round_trip__nfw_uses_sigma_crit_from_cosmology(tmp_path):
     assert nfw_default.kappa_s == pytest.approx(0.15, rel=1e-3)
 
 
+def test__from_coolest__intermediate_returns_power_law_intermediate(tmp_path):
+    import autogalaxy as ag
+
+    galaxies = [
+        al.Galaxy(
+            redshift=0.5,
+            mass=al.mp.PowerLawIntermediate(
+                centre=(0.0, 0.0),
+                ell_comps=al.convert.ell_comps_from(axis_ratio=0.7, angle=45.0),
+                einstein_radius=1.2,
+                slope=2.1,
+            ),
+        ),
+        al.Galaxy(redshift=1.0, bulge=al.lp.SersicSph(intensity=0.5)),
+    ]
+
+    file_path = interop_coolest.to_coolest(
+        galaxies=galaxies, file_path=str(tmp_path / "template")
+    )
+
+    tracer_back = interop_coolest.from_coolest(
+        file_path=file_path, intermediate=True
+    )
+
+    mass_back = [g for g in tracer_back.galaxies if g.redshift == 0.5][0].mass_0
+
+    assert isinstance(mass_back, ag.mp.PowerLawIntermediate)
+    assert mass_back.einstein_radius == pytest.approx(1.2, rel=1e-12)
+
+    grid = al.Grid2DIrregular([[1.0, 0.5], [-0.3, 0.7]])
+    tracer = al.Tracer(galaxies=galaxies)
+    assert np.asarray(
+        tracer_back.deflections_yx_2d_from(grid=grid)
+    ) == pytest.approx(np.asarray(tracer.deflections_yx_2d_from(grid=grid)), rel=1e-8)
+
+
 def test__round_trip__relative_file_path(tmp_path, monkeypatch):
     # The coolest JSONSerializer rejects relative paths — to_coolest /
     # from_coolest must absolutize them.
