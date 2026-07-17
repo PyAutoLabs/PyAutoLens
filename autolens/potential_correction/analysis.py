@@ -76,6 +76,84 @@ class DpsiInvAnalysis(af.Analysis):
         return fit.log_evidence
 
 
+class DpsiSrcInvInterferometerAnalysis(af.Analysis):
+    def __init__(
+        self,
+        dataset,
+        lens_start: Galaxy,
+        source_start: SrcFactory,
+        src_image_mesh=None,
+        settings_inversion: Optional[aa.Settings] = None,
+        use_sparse_operator: bool = True,
+        preloads: Optional[dict] = None,
+    ):
+        """
+        Samples the joint source+dpsi pixelization of a visibility-space
+        joint inversion (``FitDpsiSrcInterferometer``), with the inversion's
+        Bayesian evidence as the likelihood.
+
+        Parameters
+        ----------
+        dataset
+            The ``al.Interferometer`` dataset; for the sparse-operator route
+            (default) call ``dataset.apply_sparse_operator()`` first.
+        lens_start
+            The smooth lens galaxy of the starting model.
+        source_start
+            The source factory evaluated for the source gradients.
+        src_image_mesh
+            An image mesh whose image-plane mesh grid is preloaded into the
+            source inversion.
+        settings_inversion
+            The inversion settings; defaults to the positive-only solver
+            with the border relocator.
+        use_sparse_operator
+            Whether fits run through the sparse w-tilde operator (default)
+            or the dense transformed mapping matrix.
+        preloads
+            Precomputed fit attributes shared across evaluations.
+        """
+        self.dataset = dataset
+        self.lens_start = lens_start
+        self.source_start = source_start
+        self.src_image_mesh = src_image_mesh
+        if settings_inversion is None:
+            self.settings_inversion = aa.Settings(
+                use_positive_only_solver=True,
+                use_border_relocator=True,
+            )
+        else:
+            self.settings_inversion = settings_inversion
+        self.use_sparse_operator = use_sparse_operator
+        self.preloads = preloads
+
+    def log_likelihood_function(self, instance: DpsiSrcPixelization):
+        from autolens.potential_correction.fit_interferometer import (
+            FitDpsiSrcInterferometer,
+        )
+
+        fit = FitDpsiSrcInterferometer(
+            dataset=self.dataset,
+            lens_start=self.lens_start,
+            source_start=self.source_start,
+            dpsi_pixelization=instance.dpsi_pixelization,
+            src_pixelization=instance.src_pixelization,
+            src_image_mesh=self.src_image_mesh,
+            settings_inversion=self.settings_inversion,
+            use_sparse_operator=self.use_sparse_operator,
+            preloads=self.preloads,
+        )
+        try:
+            return fit.log_evidence
+        except exc.InversionException:
+            # a failed inversion is a valid (very bad) sample, not a crash
+            logger.exception(
+                "InversionException during visibility-space joint source+dpsi "
+                "evidence evaluation; returning penalty likelihood."
+            )
+            return -1e8
+
+
 class DpsiSrcInvAnalysis(af.Analysis):
     def __init__(
         self,
