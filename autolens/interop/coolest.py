@@ -271,6 +271,7 @@ def _parameters_from(coolest_profile) -> Dict:
 def from_coolest(
     file_path: str,
     cosmology: Optional[ag.cosmo.LensingCosmology] = None,
+    intermediate: bool = False,
 ) -> Tracer:
     """
     Build a ``Tracer`` from the analytic profiles of a COOLEST JSON template
@@ -290,6 +291,11 @@ def from_coolest(
         The cosmology of the returned ``Tracer``. Defaults to a
         ``FlatLambdaCDM`` built from the template's H0 / Om0 (or
         ``ag.cosmo.Planck15`` if the template has none).
+    intermediate
+        If True, PEMD profiles are built as ``ag.mp.PowerLawIntermediate``
+        (whose ``einstein_radius`` is the template's ``theta_E`` unchanged)
+        instead of the default ``ag.mp.PowerLaw``. Both give the identical
+        mass distribution.
     """
     _, _, _, JSONSerializer = _coolest_modules()
 
@@ -340,6 +346,7 @@ def from_coolest(
                 profile_type=coolest_profile.type,
                 parameters=_parameters_from(coolest_profile),
                 sigma_crit=sigma_crit,
+                intermediate=intermediate,
             )
 
         galaxies.append(
