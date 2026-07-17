@@ -29,5 +29,7 @@ https://github.com/caoxiaoyue/potential_correction_paper.
    PixSrcFactoryITP
    FitDpsiImaging
    FitDpsiSrcImaging
+   FitDpsiSrcInterferometer
    DpsiInvAnalysis
    DpsiSrcInvAnalysis
+   DpsiSrcInvInterferometerAnalysis
