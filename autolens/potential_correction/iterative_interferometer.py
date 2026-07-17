@@ -410,11 +410,20 @@ class IterFitDpsiSrcInterferometer:
 
     def _cost_from(self, x, F, D, R):
         """
-        The penalized objective through the normal-equation identity:
-        0.5 (d^H C^-1 d - 2 x^T D + x^T F x) + 0.5 x^T R x.
+        The penalized objective. The chi^2 uses the SOURCE block only
+        (model = T f(psi0 + dpsi) s): the state's dpsi enters the model
+        through the re-traced lens, so including the linear G dpsi term as
+        well would double-count the correction (the linearization G belongs
+        to the gradient/Hessian, which model the next increment). Through
+        the normal-equation identity:
+        0.5 (d^H C^-1 d - 2 s^T D_s + s^T F_ss s) + 0.5 x^T R x.
         """
+        n_s = self.src_reg_mat.shape[0]
+        s_vec = x[:n_s]
         chi2 = 0.5 * (
-            self.data_weighted_norm - 2.0 * float(x @ D) + float(x @ (F @ x))
+            self.data_weighted_norm
+            - 2.0 * float(s_vec @ D[:n_s])
+            + float(s_vec @ (F[:n_s, :n_s] @ s_vec))
         )
         reg = 0.5 * float(x @ (R @ x))
         return chi2 + reg, chi2, reg
@@ -460,8 +469,8 @@ class IterFitDpsiSrcInterferometer:
                 logdet_curve = 2.0 * float(np.sum(np.log(np.diag(L_chol))))
                 chi2 = (
                     self.data_weighted_norm
-                    - 2.0 * float(x @ D)
-                    + float(x @ (F @ x))
+                    - 2.0 * float(x[:n_s] @ D[:n_s])
+                    + float(x[:n_s] @ (F[:n_s, :n_s] @ x[:n_s]))
                 )
                 reg_pen = float(x @ (R @ x))
                 evidence = 0.5 * (
@@ -484,7 +493,7 @@ class IterFitDpsiSrcInterferometer:
     # The Levenberg-Marquardt loop
     # -----------------------------
 
-    def solve_joint_optimization(self):
+    def solve_joint_optimization(self, x0=None):
         """
         Runs the Levenberg-Marquardt loop on the combined state
         x = [s | dpsi] in the real-space normal-equation space, accepting
@@ -496,7 +505,11 @@ class IterFitDpsiSrcInterferometer:
         self._init_source_inversion(lens_galaxies)
         n_s = self.src_reg_mat.shape[0]
 
-        x = np.zeros(n_s + n_dpsi)
+        x = np.zeros(n_s + n_dpsi) if x0 is None else np.asarray(x0, dtype=float).copy()
+        if x.shape != (n_s + n_dpsi,):
+            raise ValueError(
+                f"x0 has shape {x.shape}; expected ({n_s + n_dpsi},)"
+            )
         R = np.asarray(self._effective_regularization())
 
         constraint_matrix = None
@@ -513,7 +526,10 @@ class IterFitDpsiSrcInterferometer:
             ev, a_s, a_d, x_star = self._optimize_regularization(F, D)
             self.reg_scales = (a_s, a_d)
             R = np.asarray(self._effective_regularization())
-            x = np.asarray(x_star)
+            # the linear solve's dpsi block is an increment on the lens state
+            x_new = np.asarray(x_star).copy()
+            x_new[n_s:] = x[n_s:] + x_star[n_s:]
+            x = x_new
             F, D, A = self._normal_equations_from(x[:n_s], x[n_s:])
             if self.verbose:
                 logger.info(
@@ -535,7 +551,12 @@ class IterFitDpsiSrcInterferometer:
 
         for i in range(self.n_iter):
             H = F + R
-            minus_gradient = D - F @ x - R @ x
+            # Gauss-Newton gradient: the residual is d - T f(psi0+dpsi) s —
+            # the state's dpsi lives in the re-traced lens, so the model term
+            # uses the source block only; J^T C^-1 r = D - F @ [s | 0].
+            x_model = np.zeros_like(x)
+            x_model[:n_s] = x[:n_s]
+            minus_gradient = D - F @ x_model - R @ x
 
             if self.verbose:
                 logger.info(
@@ -578,7 +599,9 @@ class IterFitDpsiSrcInterferometer:
                             ev, a_s, a_d, x_star = self._optimize_regularization(F, D)
                             self.reg_scales = (a_s, a_d)
                             R = np.asarray(self._effective_regularization())
-                            x = np.asarray(x_star)
+                            x_new = np.asarray(x_star).copy()
+                            x_new[n_s:] = x[n_s:] + x_star[n_s:]
+                            x = x_new
                             F, D, A = self._normal_equations_from(x[:n_s], x[n_s:])
                             current_cost, chi2, reg = self._cost_from(x, F, D, R)
                             if self.verbose:
@@ -644,7 +667,13 @@ class IterFitDpsiSrcInterferometer:
         F, D, A = self._normal_equations_from(s, dpsi)
         R = np.asarray(self._effective_regularization())
 
-        chi2 = self.data_weighted_norm - 2.0 * float(x @ D) + float(x @ (F @ x))
+        n_s_split = self.src_reg_mat.shape[0]
+        s_vec = x[:n_s_split]
+        chi2 = (
+            self.data_weighted_norm
+            - 2.0 * float(s_vec @ D[:n_s_split])
+            + float(s_vec @ (F[:n_s_split, :n_s_split] @ s_vec))
+        )
         reg_val = float(x @ (R @ x))
 
         a_s, a_d = self.reg_scales

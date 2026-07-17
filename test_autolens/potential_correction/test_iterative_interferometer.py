@@ -70,7 +70,10 @@ def test__cost_identity_matches_direct_visibility_chi2(interferometer_7):
     R = np.asarray(fit._regularization_matrix())
     _, chi2_half, _ = fit._cost_from(x, F, D, R)
 
-    model_image = aa.Array2D(values=A @ x, mask=dataset.real_space_mask)
+    n_s = fit.src_reg_mat.shape[0]
+    model_image = aa.Array2D(
+        values=A[:, :n_s] @ x[:n_s], mask=dataset.real_space_mask
+    )
     model_visibilities = np.asarray(
         dataset.transformer.visibilities_from(image=model_image)
     )
