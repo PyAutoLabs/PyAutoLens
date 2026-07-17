@@ -46,8 +46,10 @@ local_scheme = "no-local-version"
 
 [project.optional-dependencies]
 jax = ["autogalaxy[jax]"]
+coolest = ["coolest"]
 optional = [
     "autolens[jax]",
+    "coolest",
     "numba",
     "pynufft",
     "zeus-mcmc==2.5.4",
@@ -62,8 +64,8 @@ docs=[
     "sphinx_inline_tabs",
     "sphinx_autodoc_typehints"
 ]
-test = ["pytest"]
-dev = ["pytest", "black"]
+test = ["pytest", "coolest"]
+dev = ["pytest", "black", "coolest"]
 
 [tool.setuptools.package-data]
 "autolens.config" = ["*"]

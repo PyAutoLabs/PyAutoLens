@@ -156,4 +156,10 @@ def __getattr__(name):
 
         globals()["plot"] = plot
         return plot
+    if name == "interop":
+        import importlib
+
+        interop = importlib.import_module(f"{__name__}.interop")
+        globals()["interop"] = interop
+        return interop
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
