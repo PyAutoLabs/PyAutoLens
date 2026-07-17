@@ -71,6 +71,8 @@ def _coolest_modules():
 
 
 def _path_no_ext(file_path: str) -> str:
+    # The coolest JSONSerializer rejects relative paths.
+    file_path = os.path.abspath(file_path)
     if file_path.endswith(".json"):
         return file_path[: -len(".json")]
     return file_path
@@ -245,7 +247,7 @@ def to_coolest(
     )
 
     path_no_ext = _path_no_ext(file_path)
-    os.makedirs(os.path.dirname(os.path.abspath(path_no_ext)), exist_ok=True)
+    os.makedirs(os.path.dirname(path_no_ext), exist_ok=True)
     JSONSerializer(path_no_ext, obj=root, check_external_files=False).dump_simple()
 
     return f"{path_no_ext}.json"

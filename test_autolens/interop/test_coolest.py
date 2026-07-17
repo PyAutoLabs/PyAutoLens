@@ -146,6 +146,22 @@ def test__round_trip__nfw_uses_sigma_crit_from_cosmology(tmp_path):
     assert nfw_default.kappa_s == pytest.approx(0.15, rel=1e-3)
 
 
+def test__round_trip__relative_file_path(tmp_path, monkeypatch):
+    # The coolest JSONSerializer rejects relative paths — to_coolest /
+    # from_coolest must absolutize them.
+    monkeypatch.chdir(tmp_path)
+
+    file_path = interop_coolest.to_coolest(
+        galaxies=lens_model_galaxies(), file_path="template"
+    )
+
+    assert file_path == str(tmp_path / "template.json")
+
+    tracer_back = interop_coolest.from_coolest(file_path="template.json")
+
+    assert len(tracer_back.galaxies) == 3
+
+
 def test__from_coolest__missing_point_estimate_raises(tmp_path):
     pytest.importorskip("coolest")
     from coolest.template.lazy import (
