@@ -31,3 +31,9 @@ from autolens.potential_correction.analysis import DpsiSrcInvInterferometerAnaly
 from autolens.potential_correction import dense_util
 from autolens.potential_correction.iterative import IterFitDpsiSrcImaging
 from autolens.potential_correction.iterative import IterDpsiSrcInvAnalysis
+from autolens.potential_correction.iterative_interferometer import (
+    IterFitDpsiSrcInterferometer,
+)
+from autolens.potential_correction.iterative_interferometer import (
+    IterDpsiSrcInvInterferometerAnalysis,
+)

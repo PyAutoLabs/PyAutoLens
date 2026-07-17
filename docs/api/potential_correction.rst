@@ -30,6 +30,8 @@ https://github.com/caoxiaoyue/potential_correction_paper.
    FitDpsiImaging
    FitDpsiSrcImaging
    FitDpsiSrcInterferometer
+   IterFitDpsiSrcInterferometer
    DpsiInvAnalysis
    DpsiSrcInvAnalysis
    DpsiSrcInvInterferometerAnalysis
+   IterDpsiSrcInvInterferometerAnalysis
