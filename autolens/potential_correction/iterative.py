@@ -212,10 +212,14 @@ class IterFitDpsiSrcImaging:
         mask_dpsi_aa = self.pair_dpsi_data_obj.mask_dpsi_aa
         grid_dpsi = aa.Grid2D.from_mask(mask=mask_dpsi_aa)
 
+        # zero-fill extrapolation: the correction vanishes outside its mesh
+        # (nearest extrapolation would smear constant deflections across the
+        # full re-trace grid when the dpsi mesh is a sub-region of it)
         pix_mass_profile = InputPotential(
             lensing_potential=dpsi_vec,
             image_plane_grid=np.asarray(grid_dpsi),
             mask=mask_dpsi_aa,
+            extrapolate="zero",
         )
 
         lens_macro = self.lens_start

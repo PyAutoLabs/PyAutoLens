@@ -376,14 +376,20 @@ def lm_hessian_and_gradient_from(
 
 def solve_lm_step_from(H, minus_gradient, mu, constraint_matrix=None, x=None, xp=np):
     """
-    The damped LM step delta_x solving (H + mu I) dx = -g, or — when a
-    ``constraint_matrix`` C is given — the equality-constrained step via the
-    KKT system enforcing C (x + dx) = 0.
+    The damped LM step delta_x solving (H + mu D) dx = -g with Marquardt
+    scaling D = diag(diag(H)) (clipped below at the mean diagonal times
+    1e-12 so zero diagonal entries stay damped) — scale-invariant damping,
+    required when H's magnitude varies over many orders between datasets
+    (e.g. visibility-weighted interferometer curvatures ~1e11 vs imaging
+    ~1e4). When a ``constraint_matrix`` C is given, the equality-constrained
+    step solves the KKT system enforcing C (x + dx) = 0.
     """
     H_d = as_dense(H, xp=xp)
     g = xp.asarray(minus_gradient)
     n_x = H_d.shape[0]
-    H_lm = H_d + mu * xp.eye(n_x, dtype=H_d.dtype)
+    diag = xp.diag(H_d)
+    diag = xp.clip(diag, 1e-12 * xp.mean(xp.abs(diag)), None)
+    H_lm = H_d + mu * xp.diag(diag)
 
     if constraint_matrix is None:
         return xp.linalg.solve(H_lm, g)

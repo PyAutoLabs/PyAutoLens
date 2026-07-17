@@ -219,7 +219,8 @@ def test__solve_lm_step_from__unconstrained_and_constrained():
 
     mu = 0.7
     step = dense_util.solve_lm_step_from(H, minus_gradient, mu)
-    assert (H + mu * np.eye(H.shape[0])) @ step == pytest.approx(
+    diag = np.clip(np.diag(H), 1e-12 * np.mean(np.abs(np.diag(H))), None)
+    assert (H + mu * np.diag(diag)) @ step == pytest.approx(
         minus_gradient, rel=1.0e-8
     )
 
