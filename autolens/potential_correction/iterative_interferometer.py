@@ -70,6 +70,8 @@ class IterFitDpsiSrcInterferometer:
         preloads: Optional[dict] = None,
         n_iter: int = 20,
         tol: float = 1e-6,
+        reg_optimize_every: Optional[int] = None,
+        reg_optimize_grid: int = 5,
         verbose: bool = False,
     ):
         """
@@ -118,6 +120,18 @@ class IterFitDpsiSrcInterferometer:
             The maximum number of outer LM iterations.
         tol
             The step-norm convergence tolerance.
+        reg_optimize_every
+            When set, every N accepted outer iterations (and once at the
+            start) the regularization strength multipliers (a_src, a_dpsi)
+            are re-optimized by maximising the Laplace evidence at the
+            current normal equations — the per-iteration objective control
+            of Koopmans 2005 / Vegetti & Koopmans 2009 that prevents the
+            source block absorbing potential perturbations. Each candidate
+            costs one Cholesky solve at fixed F, D.
+        reg_optimize_grid
+            The number of log-spaced multipliers per axis of the
+            re-optimization grid (spanning 1e-2..1e2 around the current
+            scales).
         verbose
             Whether to log per-iteration costs.
         """
@@ -130,6 +144,9 @@ class IterFitDpsiSrcInterferometer:
         self.dpsi_mask = dpsi_mask
         self.n_iter = int(n_iter)
         self.tol = float(tol)
+        self.reg_optimize_every = reg_optimize_every
+        self.reg_optimize_grid = int(reg_optimize_grid)
+        self.reg_scales = (1.0, 1.0)
         self.verbose = bool(verbose)
 
         if settings_inversion is None:
@@ -402,6 +419,67 @@ class IterFitDpsiSrcInterferometer:
         reg = 0.5 * float(x @ (R @ x))
         return chi2 + reg, chi2, reg
 
+    def _effective_regularization(self):
+        """The block-diagonal regularization at the current strength scales."""
+        a_s, a_d = self.reg_scales
+        return dense_util.dense_block_diag_from(
+            a_s * dense_util.as_dense(self.src_reg_mat),
+            a_d * np.asarray(self.dpsi_regularization_matrix),
+        )
+
+    def _optimize_regularization(self, F, D):
+        """
+        Re-optimizes the regularization strength multipliers (a_src, a_dpsi)
+        by maximising the Laplace evidence at the current (fixed) normal
+        equations F, D — the objective control of Koopmans 2005 / Vegetti &
+        Koopmans 2009. Returns the new scales and the solution under them.
+        """
+        n_s = self.src_reg_mat.shape[0]
+        R_s = dense_util.as_dense(self.src_reg_mat)
+        R_d = np.asarray(self.dpsi_regularization_matrix)
+        n_d = R_d.shape[0]
+        logdet_Rs = pc_util.log_det_mat(R_s, sparse=False)
+        try:
+            logdet_Rd = pc_util.log_det_mat(R_d, sparse=False)
+        except np.linalg.LinAlgError:
+            logdet_Rd = pc_util.log_det_mat(R_d, sparse=True)
+
+        candidates = np.logspace(-2.0, 2.0, self.reg_optimize_grid)
+        best = None
+        for a_s in candidates * self.reg_scales[0]:
+            for a_d in candidates * self.reg_scales[1]:
+                R = dense_util.dense_block_diag_from(a_s * R_s, a_d * R_d)
+                curve = F + R
+                try:
+                    L_chol = np.linalg.cholesky(curve)
+                except np.linalg.LinAlgError:
+                    continue
+                from scipy.linalg import cho_solve
+
+                x = cho_solve((L_chol, True), D)
+                logdet_curve = 2.0 * float(np.sum(np.log(np.diag(L_chol))))
+                chi2 = (
+                    self.data_weighted_norm
+                    - 2.0 * float(x @ D)
+                    + float(x @ (F @ x))
+                )
+                reg_pen = float(x @ (R @ x))
+                evidence = 0.5 * (
+                    (n_s * np.log(a_s) + logdet_Rs)
+                    + (n_d * np.log(a_d) + logdet_Rd)
+                    - logdet_curve
+                    - chi2
+                    - reg_pen
+                )
+                if best is None or evidence > best[0]:
+                    best = (evidence, a_s, a_d, x)
+        if best is None:
+            raise exc.InversionException(
+                "Regularization re-optimization found no positive-definite "
+                "candidate."
+            )
+        return best
+
     # -----------------------------
     # The Levenberg-Marquardt loop
     # -----------------------------
@@ -419,7 +497,7 @@ class IterFitDpsiSrcInterferometer:
         n_s = self.src_reg_mat.shape[0]
 
         x = np.zeros(n_s + n_dpsi)
-        R = np.asarray(self._regularization_matrix())
+        R = np.asarray(self._effective_regularization())
 
         constraint_matrix = None
         if self.gauge_constraints:
@@ -430,6 +508,19 @@ class IterFitDpsiSrcInterferometer:
             constraint_matrix = np.hstack([np.zeros((3, n_s)), G_c])
 
         F, D, A = self._normal_equations_from(x[:n_s], x[n_s:])
+
+        if self.reg_optimize_every is not None:
+            ev, a_s, a_d, x_star = self._optimize_regularization(F, D)
+            self.reg_scales = (a_s, a_d)
+            R = np.asarray(self._effective_regularization())
+            x = np.asarray(x_star)
+            F, D, A = self._normal_equations_from(x[:n_s], x[n_s:])
+            if self.verbose:
+                logger.info(
+                    "reg re-optimization: a_src=%.3e a_dpsi=%.3e evidence=%.4e",
+                    a_s, a_d, ev,
+                )
+
         current_cost, chi2, reg = self._cost_from(x, F, D, R)
 
         mu = 1.0
@@ -479,6 +570,23 @@ class IterFitDpsiSrcInterferometer:
                         current_cost, chi2, reg = cost_new, chi2_new, reg_new
                         mu = max(1e-15, mu / 3.0)
                         step_accepted = True
+
+                        if (
+                            self.reg_optimize_every is not None
+                            and (i + 1) % self.reg_optimize_every == 0
+                        ):
+                            ev, a_s, a_d, x_star = self._optimize_regularization(F, D)
+                            self.reg_scales = (a_s, a_d)
+                            R = np.asarray(self._effective_regularization())
+                            x = np.asarray(x_star)
+                            F, D, A = self._normal_equations_from(x[:n_s], x[n_s:])
+                            current_cost, chi2, reg = self._cost_from(x, F, D, R)
+                            if self.verbose:
+                                logger.info(
+                                    "reg re-optimization @iter %d: a_src=%.3e "
+                                    "a_dpsi=%.3e evidence=%.4e cost=%.4e",
+                                    i, a_s, a_d, ev, current_cost,
+                                )
 
                         if float(np.linalg.norm(delta_x)) < self.tol:
                             if self.verbose:
@@ -534,12 +642,18 @@ class IterFitDpsiSrcInterferometer:
 
         x = np.concatenate([np.asarray(s), np.asarray(dpsi)])
         F, D, A = self._normal_equations_from(s, dpsi)
-        R = np.asarray(self._regularization_matrix())
+        R = np.asarray(self._effective_regularization())
 
         chi2 = self.data_weighted_norm - 2.0 * float(x @ D) + float(x @ (F @ x))
         reg_val = float(x @ (R @ x))
 
-        logdet_Rs = pc_util.log_det_mat(self.src_reg_mat, sparse=True)
+        a_s, a_d = self.reg_scales
+        n_src = self.src_reg_mat.shape[0]
+        n_dpsi = np.asarray(self.dpsi_regularization_matrix).shape[0]
+        logdet_Rs = (
+            pc_util.log_det_mat(self.src_reg_mat, sparse=True)
+            + n_src * np.log(a_s)
+        )
         try:
             sign, logdet_Rd = np.linalg.slogdet(
                 np.asarray(self.dpsi_regularization_matrix)
@@ -552,6 +666,7 @@ class IterFitDpsiSrcInterferometer:
             logdet_Rd = pc_util.log_det_mat(
                 self.dpsi_regularization_matrix, sparse=True
             )
+        logdet_Rd = logdet_Rd + n_dpsi * np.log(a_d)
 
         sign, logdet_H = np.linalg.slogdet(F + R)
         if sign != 1:
