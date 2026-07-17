@@ -46,6 +46,26 @@ from autolens.potential_correction.pixelization import (
 from autolens.potential_correction.src_factory import SrcFactory
 
 
+
+def _subset_rows_in_full_from(full_mask, subset_mask):
+    """
+    The full-slim row index of every unmasked pixel of ``subset_mask``
+    (a sub-mask of ``full_mask``), for scattering arc-restricted response
+    rows into the full real-space row space.
+    """
+    full_mask = np.asarray(full_mask)
+    subset_mask = np.asarray(subset_mask)
+    full_index = np.full(full_mask.shape, -1, dtype=int)
+    full_index[~full_mask] = np.arange(np.count_nonzero(~full_mask))
+    rows = full_index[~subset_mask]
+    if np.any(rows < 0):
+        raise ValueError(
+            "dpsi_mask must be a sub-mask of the real-space mask: it unmasks "
+            "pixels the real-space mask excludes."
+        )
+    return rows
+
+
 class FitDpsiSrcInterferometer:
     def __init__(
         self,
@@ -55,6 +75,7 @@ class FitDpsiSrcInterferometer:
         dpsi_pixelization: DpsiPixelization,
         src_pixelization: aa.Pixelization,
         src_image_mesh=None,
+        dpsi_mask=None,
         settings_inversion: Optional[aa.Settings] = None,
         use_sparse_operator: bool = True,
         preloads: Optional[dict] = None,
@@ -92,6 +113,13 @@ class FitDpsiSrcInterferometer:
         src_image_mesh
             An image mesh whose image-plane mesh grid is preloaded into the
             source inversion.
+        dpsi_mask
+            An optional 2D bool mask restricting the dpsi mesh to a sub-region
+            of the real-space mask (typically an arc-tracing mask from
+            ``al.pc.util.arc_mask_from``): the corrections are only
+            constrained where the lensed arcs are, and restricting the mesh
+            there stabilises the inversion. Defaults to the full real-space
+            mask.
         settings_inversion
             The inversion settings; defaults to the positive-only solver
             with the border relocator.
@@ -108,6 +136,7 @@ class FitDpsiSrcInterferometer:
         self.dpsi_pixelization = dpsi_pixelization
         self.src_pixelization = src_pixelization
         self.src_image_mesh = src_image_mesh
+        self.dpsi_mask = dpsi_mask
         self.use_sparse_operator = use_sparse_operator
         if settings_inversion is None:
             self.settings_inversion = aa.Settings(
@@ -184,8 +213,13 @@ class FitDpsiSrcInterferometer:
     @property
     def pair_dpsi_data_obj(self):
         if not hasattr(self, "_pair_dpsi_data_obj"):
+            mask = (
+                np.asarray(self.dpsi_mask)
+                if self.dpsi_mask is not None
+                else np.asarray(self.dataset.real_space_mask)
+            )
             self._pair_dpsi_data_obj = self.dpsi_pixelization.pair_dpsi_data_mesh(
-                np.asarray(self.dataset.real_space_mask),
+                mask,
                 self.dataset.real_space_mask.pixel_scales[0],
             )
         return self._pair_dpsi_data_obj
@@ -198,10 +232,20 @@ class FitDpsiSrcInterferometer:
         )
 
     @property
+    def _dpsi_rows_in_full(self):
+        if not hasattr(self, "_dpsi_rows_in_full_cached"):
+            self._dpsi_rows_in_full_cached = _subset_rows_in_full_from(
+                np.asarray(self.dataset.real_space_mask),
+                self.pair_dpsi_data_obj.mask_data,
+            )
+        return self._dpsi_rows_in_full_cached
+
+    @property
     def source_gradient_matrix(self):
         if not hasattr(self, "src_grad_mat"):
+            traced = np.asarray(self.source_plane_data_grid)[self._dpsi_rows_in_full]
             source_gradients = self.source_start.eval_grad(
-                self.source_plane_data_grid[:, 1], self.source_plane_data_grid[:, 0]
+                traced[:, 1], traced[:, 0]
             )
             self.src_grad_mat = pc_util.source_gradient_matrix_from(source_gradients)
         return self.src_grad_mat
@@ -224,9 +268,16 @@ class FitDpsiSrcInterferometer:
         untransformed) real-space image per unit dpsi.
         """
         if not hasattr(self, "dpsi_response_mat"):
-            self.dpsi_response_mat = (
+            from scipy.sparse import coo_matrix as _coo
+
+            G_sub = (
                 -1.0 * self.source_gradient_matrix @ self.dpsi_gradient_matrix
             ).tocoo()
+            n_full = int(np.count_nonzero(~np.asarray(self.dataset.real_space_mask)))
+            self.dpsi_response_mat = _coo(
+                (G_sub.data, (self._dpsi_rows_in_full[G_sub.row], G_sub.col)),
+                shape=(n_full, G_sub.shape[1]),
+            )
         return self.dpsi_response_mat
 
     # -----------------------------
