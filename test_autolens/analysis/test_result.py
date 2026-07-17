@@ -380,3 +380,50 @@ def test___image_dict(analysis_imaging_7x7):
 
     assert (image_dict[str(("galaxies", "lens"))].native == np.zeros((7, 7))).all()
     assert isinstance(image_dict[str(("galaxies", "source"))], Array2D)
+
+
+def test__positions_likelihood_from__loads_cached_positions_on_second_call(
+    tmp_path, monkeypatch, analysis_imaging_7x7
+):
+    class _StubPaths:
+        def __init__(self, files_path):
+            self._files_path = files_path
+
+    tracer = al.Tracer(
+        galaxies=[
+            al.Galaxy(
+                redshift=0.5,
+                mass=al.mp.Isothermal(
+                    centre=(0.1, 0.0), einstein_radius=1.0, ell_comps=(0.0, 0.0)
+                ),
+            ),
+            al.Galaxy(redshift=1.0, bulge=al.lp.SersicSph(centre=(0.0, 0.0))),
+        ]
+    )
+
+    samples_summary = al.m.MockSamplesSummary(max_log_likelihood_instance=tracer)
+
+    result = res.Result(samples_summary=samples_summary, analysis=analysis_imaging_7x7)
+    result.paths = _StubPaths(files_path=tmp_path)
+
+    first = result.positions_likelihood_from(factor=0.1, minimum_threshold=0.2)
+
+    assert (tmp_path / "multiple_image_positions.json").exists()
+
+    # The second call must load the cached positions — solving again raises.
+    def _poison(*args, **kwargs):
+        raise AssertionError("point solver re-ran — cached positions not used")
+
+    result_cached = res.Result(
+        samples_summary=samples_summary, analysis=analysis_imaging_7x7
+    )
+    result_cached.paths = _StubPaths(files_path=tmp_path)
+    monkeypatch.setattr(
+        result_cached, "image_plane_multiple_image_positions", _poison
+    )
+
+    second = result_cached.positions_likelihood_from(factor=0.1, minimum_threshold=0.2)
+
+    assert isinstance(second, al.PositionsLH)
+    assert second.positions.array == pytest.approx(first.positions.array, 1.0e-8)
+    assert second.threshold == pytest.approx(first.threshold, 1.0e-8)
