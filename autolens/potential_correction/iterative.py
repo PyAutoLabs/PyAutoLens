@@ -354,7 +354,33 @@ class IterFitDpsiSrcImaging:
     # The Levenberg-Marquardt loop
     # -----------------------------
 
-    def solve_joint_optimization(self, xp=np, x0=None):
+    def _gauge_project_dpsi(self, dpsi_vec: np.ndarray) -> np.ndarray:
+        """
+        Project a dpsi vector onto the gauge-constrained subspace
+        <dpsi, 1> = <dpsi, x> = <dpsi, y> = 0 by removing its constant and
+        linear (deflection-drift) modes.
+
+        These modes are the null space of the Hamiltonian dpsi -> dkappa
+        map, so the projection leaves the physical convergence correction
+        unchanged. It is needed when warm-starting a ``gauge_constraints``
+        solve from an un-gauged ``x0`` (e.g. the one-shot
+        ``FitDpsiSrcImaging`` solution, which is not gauge-fixed). Each
+        accepted LM step re-imposes the gauge on the updated state
+        (C (x + dx) = 0), but from a near-optimal un-gauged start the
+        gauge-fixing move slides along the model-degenerate constant /
+        deflection-drift modes and so is not cost-decreasing: it is rejected
+        and the solve stalls off the constraint surface. Projecting ``x0``
+        up front places the warm start on the surface, where a cold start
+        from zero already begins.
+        """
+        dpsi_vec = np.asarray(dpsi_vec, dtype=float)
+        x = self.dpsi_points[:, 1]
+        y = self.dpsi_points[:, 0]
+        basis = np.column_stack([np.ones_like(x), x, y])
+        coeffs, *_ = np.linalg.lstsq(basis, dpsi_vec, rcond=None)
+        return dpsi_vec - basis @ coeffs
+
+    def solve_joint_optimization(self, xp=np, x0=None, gauge_project_x0=False):
         """
         Runs the Levenberg-Marquardt loop on the combined state
         x = [s | dpsi], accepting steps that decrease the penalized cost and
@@ -373,17 +399,32 @@ class IterFitDpsiSrcImaging:
             the one-shot ``FitDpsiSrcImaging``): the LM then refines inside
             that basin rather than searching from zero — the recipe
             certified by the interferometer uv campaign (PyAutoLens#627).
+        gauge_project_x0
+            When warm-starting a ``gauge_constraints`` solve, project the
+            dpsi component of ``x0`` onto the gauge subspace
+            <dpsi, 1> = <dpsi, x> = <dpsi, y> = 0 before iterating (see
+            :meth:`_gauge_project_dpsi`). Defaults to ``False`` (``x0`` used
+            verbatim); set ``True`` when ``x0`` is not itself gauge-fixed —
+            a near-optimal un-gauged start cannot reach the constraint
+            surface without a non-cost-decreasing move, which the LM
+            rejects, so it would otherwise stall with the gauge violated.
+            The dkappa recovery is unaffected by the projection.
         """
         n_s, n_dpsi = self._init_joint_optimization()
 
         if x0 is None:
             x = xp.zeros(n_s + n_dpsi)
         else:
-            x = xp.asarray(np.asarray(x0, dtype=float))
-            if x.shape != (n_s + n_dpsi,):
+            x0 = np.asarray(x0, dtype=float)
+            if x0.shape != (n_s + n_dpsi,):
                 raise ValueError(
-                    f"x0 has shape {x.shape}; expected ({n_s + n_dpsi},)"
+                    f"x0 has shape {x0.shape}; expected ({n_s + n_dpsi},)"
                 )
+            if gauge_project_x0:
+                x0 = np.concatenate(
+                    [x0[:n_s], self._gauge_project_dpsi(x0[n_s:])]
+                )
+            x = xp.asarray(x0)
 
         data_slim = xp.asarray(np.asarray(self.masked_imaging.data.slim))
         inv_var = xp.asarray(self.inverse_noise_variance)
