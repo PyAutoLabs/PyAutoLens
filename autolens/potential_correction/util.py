@@ -282,8 +282,18 @@ def split_cross_from(points: np.ndarray) -> np.ndarray:
                 np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1))
             )
 
-    max_area = np.percentile(region_areas, 90.0)
-    region_areas[region_areas == -1] = max_area
+    # the percentile must be taken over bounded cells only: with many
+    # unbounded cells (small meshes) a percentile over the -1 sentinels goes
+    # negative and the arm lengths become NaN
+    positive_areas = region_areas[region_areas > 0]
+    if positive_areas.size == 0:
+        from scipy.spatial import cKDTree
+
+        distances, _ = cKDTree(points).query(points, k=2)
+        max_area = float(np.median(distances[:, 1])) ** 2
+    else:
+        max_area = np.percentile(positive_areas, 90.0)
+    region_areas[region_areas <= 0] = max_area
     region_areas[region_areas > max_area] = max_area
 
     half_lengths = 0.5 * np.sqrt(region_areas)
