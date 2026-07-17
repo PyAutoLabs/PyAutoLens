@@ -133,6 +133,7 @@ from .weak.simulator import SimulatorShearYX
 from . import exc
 from . import mock as m
 from . import util
+from . import potential_correction as pc
 
 from autoconf import conf
 from autoconf.fitsable import ndarray_via_hdu_from
