@@ -389,6 +389,9 @@ def test__positions_likelihood_from__loads_cached_positions_on_second_call(
         def __init__(self, files_path):
             self._files_path = files_path
 
+        def preserve_in_zip(self, file_path):
+            """No zip in the stub — mirrors AbstractPaths' no-zip no-op."""
+
     tracer = al.Tracer(
         galaxies=[
             al.Galaxy(

@@ -313,11 +313,7 @@ class Result(AgResultDataset):
             # Preserve the cache in the search's zip — a resumed search's
             # paths.restore() wipes the output dir and re-extracts the zip,
             # destroying any file written only to files/ after completion.
-            from autogalaxy.analysis.adapt_images.adapt_images import (
-                _append_to_search_zip,
-            )
-
-            _append_to_search_zip(self.paths, cache_path)
+            self.paths.preserve_in_zip(cache_path)
 
         return positions
 
