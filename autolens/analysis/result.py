@@ -15,6 +15,7 @@ a ``PyAutoFit`` non-linear search for lensing model fits.  Key properties includ
 
 These results feed directly into downstream pipeline stages and post-processing scripts.
 """
+import json
 import logging
 import os
 import numpy as np
@@ -267,6 +268,59 @@ class Result(AgResultDataset):
 
         return threshold
 
+    def _cached_multiple_image_positions_from(
+        self, plane_redshift: Optional[float] = None
+    ) -> aa.Grid2DIrregular:
+        """
+        The multiple image positions of the maximum log likelihood lens model, loaded
+        from this result's own ``files/`` folder when previously solved, else solved
+        via the point solver and persisted there.
+
+        Solving the multiple image positions runs a point-solver grid search over the
+        maximum log likelihood tracer, which on a resumed pipeline (e.g. SLaM) pays a
+        fresh JIT compile and dominates resume overhead (autolens_profiling#70) — the
+        solved positions themselves are a pure product of the completed fit, so they
+        are cached as ``files/multiple_image_positions[_plane_<z>].json``. Staleness
+        is structurally guarded: a changed model or search produces a new search
+        identifier and a fresh output directory with no cache file. Results with no
+        on-disk output (e.g. ``NullPaths``) always solve.
+        """
+        from pathlib import Path
+
+        name = "multiple_image_positions"
+        if plane_redshift is not None:
+            name += f"_plane_{str(plane_redshift).replace('.', '_')}"
+
+        files_path = getattr(getattr(self, "paths", None), "_files_path", None)
+        cache_path = (
+            Path(files_path) / f"{name}.json"
+            if files_path is not None and Path(files_path).is_dir()
+            else None
+        )
+
+        if cache_path is not None and cache_path.exists():
+            with open(cache_path) as f:
+                return aa.Grid2DIrregular(values=[tuple(p) for p in json.load(f)])
+
+        positions = self.image_plane_multiple_image_positions(
+            plane_redshift=plane_redshift
+        )
+
+        if cache_path is not None:
+            with open(cache_path, "w") as f:
+                json.dump(np.asarray(positions.array).tolist(), f)
+
+            # Preserve the cache in the search's zip — a resumed search's
+            # paths.restore() wipes the output dir and re-extracts the zip,
+            # destroying any file written only to files/ after completion.
+            from autogalaxy.analysis.adapt_images.adapt_images import (
+                _append_to_search_zip,
+            )
+
+            _append_to_search_zip(self.paths, cache_path)
+
+        return positions
+
     def positions_likelihood_from(
         self,
         factor=1.0,
@@ -355,11 +409,10 @@ class Result(AgResultDataset):
                 )
             return
 
-        positions = (
-            self.image_plane_multiple_image_positions(plane_redshift=plane_redshift)
-            if positions is None
-            else positions
-        )
+        if positions is None:
+            positions = self._cached_multiple_image_positions_from(
+                plane_redshift=plane_redshift
+            )
 
         if mass_centre_radial_distance_min is not None:
             mass_centre = self.max_log_likelihood_tracer.extract_attribute(
