@@ -26,3 +26,6 @@ from autolens.potential_correction.fit import FitDpsiImaging
 from autolens.potential_correction.fit import FitDpsiSrcImaging
 from autolens.potential_correction.analysis import DpsiInvAnalysis
 from autolens.potential_correction.analysis import DpsiSrcInvAnalysis
+from autolens.potential_correction import dense_util
+from autolens.potential_correction.iterative import IterFitDpsiSrcImaging
+from autolens.potential_correction.iterative import IterDpsiSrcInvAnalysis

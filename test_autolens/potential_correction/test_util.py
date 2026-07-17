@@ -165,6 +165,19 @@ def test__split_cross_from__cross_layout_and_positive_lengths():
     assert (split[:, 0, 0] > points[:, 0]).all()
 
 
+def test__split_cross_from__all_unbounded_cells_yield_finite_arms():
+    # with 4 points every Voronoi cell is unbounded; the arm length must fall
+    # back to the nearest-neighbour spacing rather than go NaN (the original
+    # implementation took a percentile over the -1 sentinels)
+    points = np.array([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]])
+
+    split = pc_util.split_cross_from(points)
+
+    assert np.isfinite(split).all()
+    split = split.reshape(4, 4, 2)
+    assert (split[:, 0, 0] > points[:, 0]).all()
+
+
 def test__arc_mask_from__keeps_large_islands_drops_small_ones():
     snr_map = np.zeros((24, 24))
     snr_map[6:14, 6:14] = 10.0  # 64-pixel island: kept
