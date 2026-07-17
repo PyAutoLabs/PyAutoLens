@@ -354,7 +354,7 @@ class IterFitDpsiSrcImaging:
     # The Levenberg-Marquardt loop
     # -----------------------------
 
-    def solve_joint_optimization(self, xp=np):
+    def solve_joint_optimization(self, xp=np, x0=None):
         """
         Runs the Levenberg-Marquardt loop on the combined state
         x = [s | dpsi], accepting steps that decrease the penalized cost and
@@ -368,10 +368,22 @@ class IterFitDpsiSrcImaging:
             ``jax.numpy`` for accelerator-ready execution. The autolens
             ray-tracing / source-mesh updates between steps always run on
             the host.
+        x0
+            An optional warm-start state [s | dpsi] (e.g. the solution of
+            the one-shot ``FitDpsiSrcImaging``): the LM then refines inside
+            that basin rather than searching from zero — the recipe
+            certified by the interferometer uv campaign (PyAutoLens#627).
         """
         n_s, n_dpsi = self._init_joint_optimization()
 
-        x = xp.zeros(n_s + n_dpsi)
+        if x0 is None:
+            x = xp.zeros(n_s + n_dpsi)
+        else:
+            x = xp.asarray(np.asarray(x0, dtype=float))
+            if x.shape != (n_s + n_dpsi,):
+                raise ValueError(
+                    f"x0 has shape {x.shape}; expected ({n_s + n_dpsi},)"
+                )
 
         data_slim = xp.asarray(np.asarray(self.masked_imaging.data.slim))
         inv_var = xp.asarray(self.inverse_noise_variance)
