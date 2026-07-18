@@ -3,7 +3,7 @@
 [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.7.15.1/notebooks/imaging/start_here.ipynb)
 [![Documentation Status](https://readthedocs.org/projects/pyautolens/badge/?version=latest)](https://pyautolens.readthedocs.io/en/latest/?badge=latest)
 [![Tests](https://github.com/PyAutoLabs/PyAutoLens/actions/workflows/main.yml/badge.svg)](https://github.com/PyAutoLabs/PyAutoLens/actions)
-[![Build](https://github.com/Jammy2211/PyAutoBuild/actions/workflows/release.yml/badge.svg)](https://github.com/Jammy2211/PyAutoBuild/actions)
+[![Build](https://github.com/PyAutoLabs/PyAutoHands/actions/workflows/release.yml/badge.svg)](https://github.com/PyAutoLabs/PyAutoHands/actions)
 [![Code Style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![JOSS](https://joss.theoj.org/papers/10.21105/joss.02825/status.svg)](https://doi.org/10.21105/joss.02825)
 [![Zenodo DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4548697.svg)](https://doi.org/10.5281/zenodo.4548697)
