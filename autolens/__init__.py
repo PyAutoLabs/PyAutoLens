@@ -164,3 +164,34 @@ def __getattr__(name):
         globals()["interop"] = interop
         return interop
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+# ---------------------------------------------------------------------------
+# Public re-export of the autoconf configuration / serialization surface.
+#
+# Workspaces, tutorials and downstream code import these names from the science
+# library (e.g. ``from autolens import conf``) rather than depending on the
+# ``autoconf`` package directly, so the underlying configuration / serialization
+# layer stays an implementation detail of the library.
+# ---------------------------------------------------------------------------
+from autoconf import conf
+from autoconf import jax_wrapper
+from autoconf import fitsable
+from autoconf import setup_colab
+from autoconf import setup_notebook
+from autoconf.conf import with_config
+from autoconf.dictable import from_dict, from_json, to_dict, output_to_json
+from autoconf.fitsable import (
+    output_to_fits,
+    hdu_list_for_output_from,
+    ndarray_via_fits_from,
+    ndarray_via_hdu_from,
+    header_obj_from,
+)
+from autoconf.test_mode import (
+    with_test_mode_segment,
+    skip_visualization,
+    skip_fit_output,
+    skip_checks,
+    is_test_mode,
+    test_mode_level,
+)
