@@ -111,7 +111,7 @@ git clone https://github.com/PyAutoLabs/PyAutoGalaxy
 git clone https://github.com/PyAutoLabs/PyAutoLens
 ```
 
-Next, install **PyAutoConf** via pip:
+Next, install **PyAutoNerves** via pip:
 
 ```bash
 pip install autonerves

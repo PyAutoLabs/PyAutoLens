@@ -16,7 +16,7 @@ four layers below it — **autogalaxy**, **autoarray**, **autofit**, and
 
 ## Related repos
 
-- **Source siblings (all upstream):** PyAutoConf, PyAutoArray, PyAutoFit,
+- **Source siblings (all upstream):** PyAutoNerves, PyAutoArray, PyAutoFit,
   PyAutoGalaxy.
 - **autolens_workspace** — runnable tutorials/examples (`../autolens_workspace`).
 - **autolens_workspace_test** — integration + JAX/likelihood parity scripts.

@@ -17,4 +17,4 @@
 
 ## Ecosystem (libraries this builds on)
 
-- [PyAutoGalaxy](https://github.com/PyAutoLabs/PyAutoGalaxy), [PyAutoArray](https://github.com/PyAutoLabs/PyAutoArray), [PyAutoFit](https://github.com/PyAutoLabs/PyAutoFit), [PyAutoConf](https://github.com/PyAutoLabs/PyAutoConf): the upstream layers PyAutoLens is built on.
+- [PyAutoGalaxy](https://github.com/PyAutoLabs/PyAutoGalaxy), [PyAutoArray](https://github.com/PyAutoLabs/PyAutoArray), [PyAutoFit](https://github.com/PyAutoLabs/PyAutoFit), [PyAutoNerves](https://github.com/PyAutoLabs/PyAutoNerves): the upstream layers PyAutoLens is built on.
