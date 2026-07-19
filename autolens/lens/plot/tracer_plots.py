@@ -53,7 +53,7 @@ def plane_image_from(
     aa.Array2D
         Plane image on the (possibly zoomed) grid.
     """
-    from autoconf import conf
+    from autonerves import conf
 
     shape = grid.shape_native
 
@@ -389,7 +389,7 @@ def fits_tracer(
         Directory in which to write ``tracer.fits``.
     """
     from pathlib import Path
-    from autoconf.fitsable import hdu_list_for_output_from
+    from autonerves.fitsable import hdu_list_for_output_from
 
     output_path = Path(output_path)
     zoom = aa.Zoom2D(mask=grid.mask)
@@ -439,8 +439,8 @@ def fits_source_plane_images(
     """
     import ast
     from pathlib import Path
-    from autoconf import conf
-    from autoconf.fitsable import hdu_list_for_output_from
+    from autonerves import conf
+    from autonerves.fitsable import hdu_list_for_output_from
 
     output_path = Path(output_path)
     shape_native = tuple(ast.literal_eval(

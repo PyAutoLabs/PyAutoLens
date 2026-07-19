@@ -193,7 +193,7 @@ index 00000000..20f5f267
 +
 +    # --- colour normalisation --------------------------------------------------
 +    if use_log10:
-+        from autoconf import conf as _conf
++        from autonerves import conf as _conf
 +
 +        try:
 +            log10_min = _conf.instance["visualize"]["general"]["general"][
@@ -649,7 +649,7 @@ index 00000000..4d1cc4f0
 +        Either ``"figures"`` (single-panel) or ``"subplots"`` (multi-panel).
 +    """
 +    try:
-+        from autoconf import conf
++        from autonerves import conf
 +
 +        return tuple(conf.instance["visualize"]["general"][context]["figsize"])
 +    except Exception:

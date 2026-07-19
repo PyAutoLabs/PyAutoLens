@@ -22,7 +22,7 @@ from typing import List, Optional, Tuple
 import autogalaxy as ag
 from autogalaxy.cosmology import Planck15
 
-from autoconf.test_mode import is_test_mode
+from autonerves.test_mode import is_test_mode
 
 # Number of LOS halos retained per plane when ``PYAUTO_TEST_MODE`` is active.
 # Capping the population keeps the multi-plane ray-tracing and per-galaxy

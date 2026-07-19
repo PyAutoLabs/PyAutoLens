@@ -17,8 +17,8 @@ import numpy as np
 import os
 from typing import List, Optional
 
-from autoconf import conf
-from autoconf.dictable import output_to_json
+from autonerves import conf
+from autonerves.dictable import output_to_json
 
 import autofit as af
 import autoarray as aa
@@ -31,7 +31,7 @@ from autolens.analysis.result import ResultDataset
 from autolens.analysis.positions import PositionsLH
 
 from autolens import exc
-from autoconf.test_mode import skip_checks
+from autonerves.test_mode import skip_checks
 
 logger = logging.getLogger(__name__)
 

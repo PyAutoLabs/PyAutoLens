@@ -15,14 +15,14 @@ background sources in a strong-lens cluster) they are collected in a plain Pytho
 
 Two I/O surfaces are supported:
 
-- JSON (via :func:`autoconf.output_to_json` / :func:`autoconf.from_json`) — exact
+- JSON (via :func:`autonerves.output_to_json` / :func:`autonerves.from_json`) — exact
   round-trip, one file per ``PointDataset``; the canonical modeling input.
 - CSV (via :meth:`PointDataset.to_csv` / :meth:`PointDataset.from_csv` and the
   module-level :func:`output_to_csv` / :func:`list_from_csv`) — one row per observed
   image, grouped by ``name``, so that tens or hundreds of cluster-scale point sources
   can be edited in a single spreadsheet.
 """
-from autoconf import csvable
+from autonerves import csvable
 from typing import List, Tuple, Optional, Union
 
 import autoarray as aa

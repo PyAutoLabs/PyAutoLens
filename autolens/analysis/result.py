@@ -32,7 +32,7 @@ from autolens.point.max_separation import (
 )
 from autolens.lens.tracer import Tracer
 from autolens.point.solver import PointSolver
-from autoconf.test_mode import is_test_mode, skip_checks
+from autonerves.test_mode import is_test_mode, skip_checks
 
 logger = logging.getLogger(__name__)
 

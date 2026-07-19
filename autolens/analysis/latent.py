@@ -24,7 +24,7 @@ from typing import Callable, Dict, List, Optional
 import numpy as np
 
 import autofit as af
-from autoconf import conf
+from autonerves import conf
 from autogalaxy.imaging.model.latent import (
     ab_mag_via_flux_from,
     flux_mujy_via_ab_mag_from,

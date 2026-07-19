@@ -48,7 +48,7 @@ git clone https://github.com/PyAutoLabs/PyAutoLens
 Next, install the **PyAuto** parent projects via pip:
 
 ```bash
-pip install autoconf
+pip install autonerves
 pip install autofit
 pip install autoarray
 pip install autogalaxy
@@ -114,7 +114,7 @@ git clone https://github.com/PyAutoLabs/PyAutoLens
 Next, install **PyAutoConf** via pip:
 
 ```bash
-pip install autoconf
+pip install autonerves
 ```
 
 Next, install the source build dependencies of each project via pip:

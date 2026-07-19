@@ -16,8 +16,8 @@ import logging
 import numpy as np
 from typing import Optional
 
-from autoconf.dictable import to_dict
-from autoconf.fitsable import hdu_list_for_output_from
+from autonerves.dictable import to_dict
+from autonerves.fitsable import hdu_list_for_output_from
 
 import autofit as af
 import autoarray as aa
