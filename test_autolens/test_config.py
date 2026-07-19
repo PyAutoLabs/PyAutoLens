@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from autoconf import conf
+from autonerves import conf
 
 directory = Path(__file__).resolve().parent
 

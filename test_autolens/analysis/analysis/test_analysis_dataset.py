@@ -2,8 +2,8 @@ from pathlib import Path
 import os
 import pytest
 
-from autoconf import conf
-from autoconf.dictable import from_json
+from autonerves import conf
+from autonerves.dictable import from_json
 
 import autofit as af
 import autolens as al

@@ -18,7 +18,7 @@ The ``TracerToInversion`` helper is used to assemble the linear system in step 4
 import numpy as np
 from typing import Dict, List, Optional
 
-from autoconf import cached_property
+from autonerves import cached_property
 
 import autoarray as aa
 import autogalaxy as ag

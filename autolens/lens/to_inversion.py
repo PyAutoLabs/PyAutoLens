@@ -20,7 +20,7 @@ from typing import Dict, List, Optional, Tuple, Type, Union
 
 import numpy as np
 
-from autoconf import cached_property
+from autonerves import cached_property
 
 import autoarray as aa
 import autogalaxy as ag

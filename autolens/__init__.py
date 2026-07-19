@@ -1,5 +1,5 @@
-from autoconf import jax_wrapper
-from autoconf.dictable import from_dict, from_json, output_to_json, to_dict
+from autonerves import jax_wrapper
+from autonerves.dictable import from_dict, from_json, output_to_json, to_dict
 from autoarray import preprocess
 
 from autoarray.dataset.imaging.dataset import Imaging
@@ -135,18 +135,18 @@ from . import mock as m
 from . import util
 from . import potential_correction as pc
 
-from autoconf import conf
-from autoconf.fitsable import ndarray_via_hdu_from
-from autoconf.fitsable import ndarray_via_fits_from
-from autoconf.fitsable import header_obj_from
-from autoconf.fitsable import output_to_fits
-from autoconf.fitsable import hdu_list_for_output_from
+from autonerves import conf
+from autonerves.fitsable import ndarray_via_hdu_from
+from autonerves.fitsable import ndarray_via_fits_from
+from autonerves.fitsable import header_obj_from
+from autonerves.fitsable import output_to_fits
+from autonerves.fitsable import hdu_list_for_output_from
 
 conf.instance.register(__file__)
 
 __version__ = "2026.7.9.1"
 
-from autoconf import check_version
+from autonerves import check_version
 
 check_version(__version__)
 
@@ -166,28 +166,28 @@ def __getattr__(name):
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 # ---------------------------------------------------------------------------
-# Public re-export of the autoconf configuration / serialization surface.
+# Public re-export of the autonerves configuration / serialization surface.
 #
 # Workspaces, tutorials and downstream code import these names from the science
 # library (e.g. ``from autolens import conf``) rather than depending on the
-# ``autoconf`` package directly, so the underlying configuration / serialization
+# ``autonerves`` package directly, so the underlying configuration / serialization
 # layer stays an implementation detail of the library.
 # ---------------------------------------------------------------------------
-from autoconf import conf
-from autoconf import jax_wrapper
-from autoconf import fitsable
-from autoconf import setup_colab
-from autoconf import setup_notebook
-from autoconf.conf import with_config
-from autoconf.dictable import from_dict, from_json, to_dict, output_to_json
-from autoconf.fitsable import (
+from autonerves import conf
+from autonerves import jax_wrapper
+from autonerves import fitsable
+from autonerves import setup_colab
+from autonerves import setup_notebook
+from autonerves.conf import with_config
+from autonerves.dictable import from_dict, from_json, to_dict, output_to_json
+from autonerves.fitsable import (
     output_to_fits,
     hdu_list_for_output_from,
     ndarray_via_fits_from,
     ndarray_via_hdu_from,
     header_obj_from,
 )
-from autoconf.test_mode import (
+from autonerves.test_mode import (
     with_test_mode_segment,
     skip_visualization,
     skip_fit_output,

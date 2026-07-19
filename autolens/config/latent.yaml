@@ -15,7 +15,7 @@
 # `false` and return NaN + one warning per process if enabled without
 # `magzero` (rather than raising, which would discard a converged search).
 #
-# autoconf lowercases yaml keys at read time, so the registry/yaml names
+# autonerves lowercases yaml keys at read time, so the registry/yaml names
 # must be snake_case-lowercase (this leaks into the `latent.csv` column
 # header — e.g. `total_lens_flux_mujy`, not `_muJy`).
 

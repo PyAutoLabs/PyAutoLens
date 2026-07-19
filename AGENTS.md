@@ -12,7 +12,7 @@ point-source datasets.
 
 Dependency direction: autolens sits at the top of the stack and may import all
 four layers below it — **autogalaxy**, **autoarray**, **autofit**, and
-**autoconf**. Nothing in the ecosystem imports autolens.
+**autonerves**. Nothing in the ecosystem imports autolens.
 
 ## Related repos
 
@@ -51,7 +51,7 @@ is no black/ruff/flake8 gate — formatting is advisory. (`requires-python` in
 
 ## Configuration & defaults
 
-autoconf supplies the packaged defaults under `autolens/config/`. Workspaces
+autonerves supplies the packaged defaults under `autolens/config/`. Workspaces
 override them via their own `config/` directory; the test suite pushes a local
 config dir via `conf.instance.push(...)` in `test_autolens/conftest.py`. When a
 change adds a new config key, mirror it into the packaged defaults so

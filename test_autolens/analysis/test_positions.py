@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import pytest
 
-from autoconf.dictable import output_to_json, from_json, from_dict
+from autonerves.dictable import output_to_json, from_json, from_dict
 from autofit.tools.util import open_
 
 import autolens as al

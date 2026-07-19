@@ -1,4 +1,4 @@
-from autoconf.dictable import from_dict
+from autonerves.dictable import from_dict
 import autolens as al
 from autolens.point.solver import PointSolver
 

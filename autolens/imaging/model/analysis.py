@@ -18,7 +18,7 @@ import autoarray as aa
 import autofit as af
 import autogalaxy as ag
 
-from autoconf.fitsable import hdu_list_for_output_from
+from autonerves.fitsable import hdu_list_for_output_from
 
 from autolens.analysis.analysis.dataset import AnalysisDataset
 from autolens.analysis.latent import LatentLens

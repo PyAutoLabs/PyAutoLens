@@ -15,7 +15,7 @@ The configuration path can also be set manually in a script using the project **
 command (the path to the `output` folder where the results of a non-linear search are stored is also set below):
 
 ```bash
-from autoconf import conf
+from autonerves import conf
 
 conf.instance.push(
     config_path="path/to/config",
