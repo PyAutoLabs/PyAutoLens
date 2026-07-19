@@ -13,7 +13,7 @@ functionality in your research, please cite Cao et al. 2025; citation
 materials are provided at
 https://github.com/caoxiaoyue/potential_correction_paper.
 
-.. currentmodule:: autolens.pc
+.. currentmodule:: autolens.potential_correction
 
 .. autosummary::
    :toctree: _autosummary
