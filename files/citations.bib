@@ -203,16 +203,6 @@ title = {{Python non-uniform fast fourier transform (PyNUFFT): An accelerated no
 volume = {4},
 year = {2018}
 }
-@article{pyswarms,
-    author  = {Lester James V. Miranda},
-    title   = "{P}y{S}warms, a research-toolkit for {P}article {S}warm {O}ptimization in {P}ython",
-    journal = {J. Open Source Softw.},
-    year    = {2018},
-    volume  = {3},
-    issue   = {21},
-    doi     = {10.21105/joss.00433},
-    url     = {https://doi.org/10.21105/joss.00433}
-}
  @book{python,
  author = {Van Rossum, Guido and Drake, Fred L.},
  title = {Python 3 Reference Manual},
@@ -270,24 +260,6 @@ year = {2018}
   version={3.31.1},
   year={2020},
   author={Hipp, Richard D}
-}
-@ARTICLE{ultranest,
-       author = {{Buchner}, Johannes},
-        title = "{UltraNest - a robust, general purpose Bayesian inference engine}",
-      journal = {The J. Open Source Softw.},
-     keywords = {C, Monte Carlo, Python, Nested Sampling, C++, Bayesian inference, Fortran, Bayes factors, Statistics - Computation, Astrophysics - Instrumentation and Methods for Astrophysics},
-         year = 2021,
-        month = apr,
-       volume = {6},
-       number = {60},
-          eid = {3001},
-        pages = {3001},
-          doi = {10.21105/joss.03001},
-archivePrefix = {arXiv},
-       eprint = {2101.09604},
- primaryClass = {stat.CO},
-       adsurl = {https://ui.adsabs.harvard.edu/abs/2021JOSS....6.3001B},
-      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
 }
 @article{zeus1,
     title={zeus: A Python Implementation of the Ensemble Slice Sampling method},
@@ -373,61 +345,9 @@ year = {2019}
     eprint = {https://academic.oup.com/mnras/article-pdf/488/1/1387/28937972/stz1796.pdf},
 }
 
-@INPROCEEDINGS{multinest1,
-       author = {{Skilling}, John},
-        title = "{Nested Sampling}",
-     keywords = {02.50.Tt, Inference methods},
-    booktitle = {Bayesian Inference and Maximum Entropy Methods in Science and Engineering: 24th International Workshop on Bayesian Inference and Maximum Entropy Methods in Science and Engineering},
-         year = 2004,
-       editor = {{Fischer}, Rainer and {Preuss}, Roland and {Toussaint}, Udo Von},
-       series = {American Institute of Physics Conference Series},
-       volume = {735},
-        month = nov,
-        pages = {395-405},
-          doi = {10.1063/1.1835238},
-       adsurl = {https://ui.adsabs.harvard.edu/abs/2004AIPC..735..395S},
-      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
-}
 
 
-@article{multinest2,
-abstract = {Nested sampling estimates directly how the likelihood function relates to prior mass. The evidence (alternatively the marginal likelihood, marginal density of the data, or the prior predictive) is immediately obtained by summation. It is the prime result of the computation, and is accompanied by an estimate of numerical uncertainty. Samples from the posterior distribution are an optional by-product, obtainable for any temperature. The method relies on sampling within a hard constraint on likelihood value, as opposed to the softened likelihood of annealing methods. Progress depends only on the shape of the "nested"contours of likelihood, and not on the likelihood values. This invariance (over monotonic relabelling) allows the method to deal with a class of phasechange problems which effectively defeat thermal annealing. {\textcopyright} 2006 International Society for Bayesian Analysis.},
-archivePrefix = {arXiv},
-arxivId = {arXiv:1011.1669v3},
-author = {Skilling, John},
-doi = {10.1214/06-BA127},
-eprint = {arXiv:1011.1669v3},
-isbn = {9788578110796},
-issn = {19360975},
-journal = {Bayesian Analysis},
-keywords = {Algorithm,Annealing,Bayesian computation,Evidence,Marginal likelihood,Model selection,Nest,Phase change},
-number = {4},
-pages = {833--860},
-pmid = {25246403},
-title = {{Nested sampling for general Bayesian computation}},
-url = {http://projecteuclid.org/euclid.ba/1340370944},
-volume = {1},
-year = {2006}
-}
 
-@article{multinest3,
-abstract = {We present further development and the first public release of our multimodal nested sampling algorithm, called MultiNest. This Bayesian inference tool calculates the evidence, with an associated error estimate, and produces posterior samples from distributions that may contain multiple modes and pronounced (curving) degeneracies in high dimensions. The developments presented here lead to further substantial improvements in sampling efficiency and robustness, as compared to the original algorithm presented in Feroz and Hobson, which itself significantly outperformed existing Markov chain Monte Carlo techniques in a wide range of astrophysical inference problems. The accuracy and economy of the MultiNest algorithm are demonstrated by application to two toy problems and to a cosmological inference problem focusing on the extension of the vanilla $\Lambda$ cold dark matter model to include spatial curvature and a varying equation of state for dark energy. The MultiNest software, which is fully parallelized using MPI and includes an interface to CosmoMC, is available at http://www.mrao.cam.ac.uk/software/multinest/. It will also be released as part of the SuperBayeS package, for the analysis of supersymmetric theories of particle physics, at http://www.superbayes.org. {\textcopyright} 2009 RAS.},
-archivePrefix = {arXiv},
-arxivId = {0809.3437},
-author = {Feroz, F. and Hobson, M. P. and Bridges, M.},
-doi = {10.1111/j.1365-2966.2009.14548.x},
-eprint = {0809.3437},
-isbn = {0035-8711},
-issn = {00358711},
-journal = {MNRAS},
-keywords = {Methods: Data analysis,Methods: Statistical},
-number = {4},
-pages = {1601--1614},
-pmid = {29176},
-title = {{MultiNest: An efficient and robust Bayesian inference tool for cosmology and particle physics}},
-volume = {398},
-year = {2009}
-}
 
 @article{dynesty4,
 title={joshspeagle/dynesty: v2.1.2}, DOI={10.5281/zenodo.7995596},
@@ -435,3 +355,102 @@ abstractNote={<p>This is a bug release mostly concerning the checkpointing. Chec
 publisher={Zenodo},
 author={Sergey Koposov and Josh Speagle and Kyle Barbary and Gregory Ashton and Ed Bennett and Johannes Buchner
 and Carl Scheffler and Ben Cook and Colm Talbot and James Guillochon and et al.}, year={2023}, month={Jun} }
+
+@software{jax,
+author = {Bradbury, James and Frostig, Roy and Hawkins, Peter and Johnson, Matthew James and Leary, Chris and Maclaurin, Dougal and Necula, George and Paszke, Adam and VanderPlas, Jake and Wanderman-Milne, Skye and Zhang, Qiao},
+title = {{JAX}: composable transformations of {Python}+{NumPy} programs},
+url = {https://github.com/jax-ml/jax},
+year = {2018}
+}
+
+@software{optax,
+author = {{DeepMind} and Babuschkin, Igor and Baumli, Kate and Bell, Alison and Bhupatiraju, Surya and Bruce, Jake and Buchlovsky, Peter and Budden, David and Cai, Trevor and Clark, Aidan and Danihelka, Ivo and Fantacci, Claudio and Godwin, Jonathan and Jones, Chris and Hemsley, Ross and Hennigan, Tom and Hessel, Matteo and Hou, Shaobo and Kapturowski, Steven and others},
+title = {The {D}eep{M}ind {JAX} Ecosystem},
+url = {http://github.com/google-deepmind},
+year = {2020}
+}
+
+@article{anesthetic,
+author = {Handley, Will},
+title = {anesthetic: nested sampling visualisation},
+journal = {J. Open Source Softw.},
+volume = {4},
+number = {37},
+pages = {1414},
+doi = {10.21105/joss.01414},
+year = {2019}
+}
+
+@article{getdist,
+author = {Lewis, Antony},
+title = {{GetDist}: a {Python} package for analysing {Monte Carlo} samples},
+journal = {arXiv e-prints},
+eprint = {1910.13970},
+archivePrefix = {arXiv},
+year = {2019}
+}
+
+@article{blackjax,
+author = {Cabezas, Alberto and Corenflos, Adrien and Lao, Junpeng and Louf, R{\'e}mi and others},
+title = {{BlackJAX}: Composable {B}ayesian inference in {JAX}},
+journal = {arXiv e-prints},
+eprint = {2402.10797},
+archivePrefix = {arXiv},
+year = {2024}
+}
+
+@article{coolest,
+author = {Galan, A. and Vernardos, G. and Minor, Q. and Sluse, D. and {Van de Vyvere}, L. and Gomer, M.},
+title = {{Exploiting the diversity of modeling methods to probe systematic biases in strong lensing analyses}},
+journal = {A&A},
+volume = {692},
+pages = {A87},
+doi = {10.1051/0004-6361/202451095},
+year = {2024}
+}
+
+@inproceedings{networkx,
+author = {Hagberg, Aric A. and Schult, Daniel A. and Swart, Pieter J.},
+title = {Exploring Network Structure, Dynamics, and Function using {NetworkX}},
+booktitle = {Proceedings of the 7th Python in Science Conference (SciPy2008)},
+editor = {Varoquaux, Ga\"el and Vaught, Travis and Millman, Jarrod},
+pages = {11--15},
+address = {Pasadena, CA USA},
+year = {2008}
+}
+
+@article{tfp,
+author = {Dillon, Joshua V. and Langmore, Ian and Tran, Dustin and Brevdo, Eugene and Vasudevan, Srinivas and Moore, Dave and Patton, Brian and Alemi, Alex and Hoffman, Matthew D. and Saurous, Rif A.},
+title = {{TensorFlow} Distributions},
+journal = {arXiv e-prints},
+eprint = {1711.10604},
+archivePrefix = {arXiv},
+year = {2017}
+}
+
+@software{nufftax,
+author = {Gragas and Oudoumanessah, Geoffroy and Iollo, Jacopo},
+title = {nufftax: Pure {JAX} implementation of the Non-Uniform Fast Fourier Transform},
+url = {https://github.com/GragasLab/nufftax},
+year = {2026}
+}
+
+@article{finufft,
+author = {Barnett, Alexander H. and Magland, Jeremy F. and af Klinteberg, Ludvig},
+title = {A parallel non-uniform fast {F}ourier transform library based on an 'exponential of semicircle' kernel},
+journal = {SIAM J. Sci. Comput.},
+volume = {41},
+number = {5},
+pages = {C479--C504},
+year = {2019}
+}
+
+@software{jax_zero_contour,
+author = {Krawczyk, Coleman},
+title = {{CKrawczyk/Jax-Zero-Contour}: Version 2.0.0},
+publisher = {Zenodo},
+version = {v2.0.0},
+doi = {10.5281/zenodo.15730415},
+url = {https://doi.org/10.5281/zenodo.15730415},
+year = {2025}
+}
