@@ -11,7 +11,7 @@ entry in the above .bib file is under the citation key `pyautolens`. Please also
 papers (<https://academic.oup.com/mnras/article/452/3/2940/1749640> and <https://academic.oup.com/mnras/article-abstract/478/4/4738/5001434?redirectedFrom=fulltext>) which are included
 under the citation keys `Nightingale2015` and `Nightingale2018`.
 
-You should also specify the non-linear search(es) you use in your analysis (e.g. Dynesty, Emcee, PySwarms, etc) in
+You should also specify the non-linear search(es) you use in your analysis (e.g. Nautilus, Dynesty, Emcee, Zeus, etc) in
 the main body of text, and delete as appropriate any packages your analysis did not use. The citations.bib file includes
 the citation key for all of these projects.
 

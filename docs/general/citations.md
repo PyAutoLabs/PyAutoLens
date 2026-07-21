@@ -13,9 +13,20 @@ entry in the above .bib file is under the citation key `pyautolens`. Please also
 papers (<https://academic.oup.com/mnras/article/452/3/2940/1749640> and <https://academic.oup.com/mnras/article-abstract/478/4/4738/5001434?redirectedFrom=fulltext>) which are included
 under the citation keys `Nightingale2015` and `Nightingale2018`.
 
-You should also specify the non-linear search(es) you use in your analysis (e.g. Dynesty, Emcee, PySwarms, etc) in
+You should also specify the non-linear search(es) you use in your analysis (e.g. Nautilus, Dynesty, Emcee, Zeus, etc) in
 the main body of text, and delete as appropriate any packages your analysis did not use. The citations.bib file includes
 the citation key for all of these projects.
+
+## JAX
+
+**PyAutoLens** runs on a NumPy backend by default and an optional
+[JAX](https://github.com/jax-ml/jax) backend for just-in-time compilation, automatic
+differentiation, and GPU/TPU execution. If you run any analysis on the JAX path, please
+cite JAX under the citation key `jax`. JAX-specific components that are also cited under
+their own keys when used are `optax` (gradient-based optimizers, key `optax`), the
+interferometer non-uniform FFT (`nufftax` and its FINUFFT algorithm, keys `nufftax` and
+`finufft`, see below), and the critical-curve/caustic solver (`Jax-Zero-Contour`, key
+`jax_zero_contour`, see below).
 
 ## Jax-Zero-Contour
 
