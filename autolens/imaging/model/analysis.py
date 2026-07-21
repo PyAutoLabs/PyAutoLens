@@ -21,6 +21,7 @@ import autogalaxy as ag
 from autonerves.fitsable import hdu_list_for_output_from
 
 from autolens.analysis.analysis.dataset import AnalysisDataset
+from autolens.analysis.exceptions import raise_fit_exception
 from autolens.analysis.latent import LatentLens
 from autolens.imaging.model.result import ResultImaging
 from autolens.imaging.model.visualizer import VisualizerImaging
@@ -141,7 +142,7 @@ class AnalysisImaging(AnalysisDataset):
                 - log_likelihood_penalty
             )
         except Exception as e:
-            raise af.exc.FitException
+            raise_fit_exception(e)
 
     def shared_state_from(self, instance: af.ModelInstance):
         """

@@ -22,6 +22,7 @@ import autogalaxy as ag
 from autogalaxy.analysis.analysis.analysis import Analysis as AgAnalysis
 
 from autolens.analysis.analysis.lens import AnalysisLens
+from autolens.analysis.exceptions import raise_fit_exception
 from autolens.point.fit.positions.image.pair_repeat import FitPositionsImagePairRepeat
 from autolens.point.fit.dataset import FitPointDataset
 from autolens.point.dataset import PointDataset
@@ -136,7 +137,7 @@ class AnalysisPoint(AgAnalysis, AnalysisLens):
         try:
             return self.fit_from(instance=instance).log_likelihood
         except Exception as e:
-            raise af.exc.FitException
+            raise_fit_exception(e)
 
     def fit_from(
         self,

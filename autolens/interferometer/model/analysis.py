@@ -24,6 +24,7 @@ import autoarray as aa
 import autogalaxy as ag
 
 from autolens.analysis.analysis.dataset import AnalysisDataset
+from autolens.analysis.exceptions import raise_fit_exception
 from autolens.analysis.positions import PositionsLH
 from autolens.interferometer.model.result import ResultInterferometer
 from autolens.interferometer.model.visualizer import VisualizerInterferometer
@@ -179,7 +180,7 @@ class AnalysisInterferometer(AnalysisDataset):
                 - log_likelihood_penalty
             )
         except Exception as e:
-            raise af.exc.FitException
+            raise_fit_exception(e)
 
     def shared_state_from(self, instance: af.ModelInstance):
         """
