@@ -8,9 +8,17 @@
 
 This acceleration is achieved through \[**JAX**\](<https://docs.jax.dev/en/latest/notebooks/thinking_in_jax.html>), which provides GPU and TPU support.
 
-When you install **PyAutoLens** (see instructions below), JAX will also be installed. However, the default installation may not include GPU support.
+**JAX is not installed by default.** To install **PyAutoLens** with JAX, use the `jax` extra:
 
-To ensure GPU acceleration, it is recommended that you install JAX with GPU support **before** installing **PyAutoLens**, by following the official \[JAX installation guide\](<https://jax.readthedocs.io/en/latest/installation.html>).
+```bash
+pip install autolens[jax] --no-cache-dir
+```
+
+A plain `pip install autolens` gives a fully working install that runs on NumPy, but without any of the JAX
+acceleration described above.
+
+The `[jax]` extra installs **CPU-only** JAX. To ensure GPU acceleration, it is recommended that you install JAX with
+GPU support **before** installing **PyAutoLens**, by following the official \[JAX installation guide\](<https://jax.readthedocs.io/en/latest/installation.html>).
 
 If you install **PyAutoLens** without a proper GPU setup, a warning will be displayed.
 
@@ -49,8 +57,11 @@ The latest version of **PyAutoLens** is installed via pip as follows (the comman
 caching issues impacting the installation):
 
 ```bash
-pip install autolens --no-cache-dir
+pip install autolens[jax] --no-cache-dir
 ```
+
+The `[jax]` extra is recommended, as it enables the JAX acceleration described above. To install without JAX,
+use `pip install autolens --no-cache-dir` instead.
 
 If pip prints warnings about dependency version conflicts, these can usually be ignored — the instructions below
 will identify clearly if the installation is a success.
