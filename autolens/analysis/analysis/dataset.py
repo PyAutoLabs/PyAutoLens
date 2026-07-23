@@ -14,7 +14,6 @@ Abstract analysis class for fitting a ``Tracer`` to imaging or interferometer da
 """
 import logging
 import numpy as np
-import os
 from typing import List, Optional
 
 from autonerves import conf
@@ -84,11 +83,6 @@ class AnalysisDataset(AgAnalysisDataset, AnalysisLens):
             anyway.
         """
 
-        import os
-
-        if os.environ.get("PYAUTO_DISABLE_JAX") == "1":
-            use_jax = False
-
         super().__init__(
             dataset=dataset,
             adapt_images=adapt_images,
@@ -99,11 +93,15 @@ class AnalysisDataset(AgAnalysisDataset, AnalysisLens):
             **kwargs,
         )
 
+        # `super().__init__` routes through `af.Analysis.__init__`, the single
+        # reader of the disable-jax env var and the jax-availability check, which
+        # resolves `self._use_jax`. Forward that resolved value so `AnalysisLens`
+        # never overwrites it with the raw parameter.
         AnalysisLens.__init__(
             self=self,
             positions_likelihood_list=positions_likelihood_list,
             cosmology=cosmology,
-            use_jax=use_jax,
+            use_jax=self._use_jax,
         )
 
         self.raise_inversion_positions_likelihood_exception = (

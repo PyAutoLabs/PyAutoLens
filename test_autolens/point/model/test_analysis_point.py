@@ -1,4 +1,7 @@
 from pathlib import Path
+import importlib.util
+
+import pytest
 
 import autofit as af
 import autolens as al
@@ -6,6 +9,46 @@ import autolens as al
 from autolens.point.model.result import ResultPoint
 
 directory = Path(__file__).resolve().parent
+
+
+def _jax_installed() -> bool:
+    return importlib.util.find_spec("jax") is not None
+
+
+def test__pyauto_disable_jax_env_downgrades_use_jax__point(
+    monkeypatch, point_dataset
+):
+    # THE BUG TEST. Before the one-reader fix `AnalysisPoint` had no local
+    # env read and `AnalysisLens.__init__` overwrote the base-resolved
+    # `self._use_jax` with the raw `use_jax` parameter, so the disable-jax
+    # env var was silently a no-op (base set False, AnalysisLens set True).
+    # It must now downgrade to False.
+    monkeypatch.setenv("PYAUTO_DISABLE_JAX", "1")
+
+    solver = al.m.MockPointSolver(model_positions=point_dataset.positions)
+
+    analysis = al.AnalysisPoint(
+        dataset=point_dataset, solver=solver, use_jax=True
+    )
+
+    assert analysis._use_jax is False
+
+
+@pytest.mark.skipif(not _jax_installed(), reason="jax not installed")
+def test__use_jax_true_env_unset__not_downgraded__point(
+    monkeypatch, point_dataset
+):
+    # No over-downgrade: with the env var unset and jax installed,
+    # `use_jax=True` must survive as `self._use_jax is True`.
+    monkeypatch.delenv("PYAUTO_DISABLE_JAX", raising=False)
+
+    solver = al.m.MockPointSolver(model_positions=point_dataset.positions)
+
+    analysis = al.AnalysisPoint(
+        dataset=point_dataset, solver=solver, use_jax=True
+    )
+
+    assert analysis._use_jax is True
 
 
 def _test__make_result__result_imaging_is_returned(point_dataset):

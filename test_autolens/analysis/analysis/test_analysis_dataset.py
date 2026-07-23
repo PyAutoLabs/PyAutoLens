@@ -1,4 +1,5 @@
 from pathlib import Path
+import importlib.util
 import os
 import pytest
 
@@ -10,6 +11,37 @@ import autolens as al
 from autolens import exc
 
 directory = Path(__file__).resolve().parent
+
+
+def _jax_installed() -> bool:
+    return importlib.util.find_spec("jax") is not None
+
+
+def test__pyauto_disable_jax_env_downgrades_use_jax__imaging(
+    monkeypatch, masked_imaging_7x7
+):
+    # Regression cover for the deleted local env read in `AnalysisDataset`:
+    # the disable-jax env var must still downgrade `use_jax`, now resolved
+    # solely by `af.Analysis.__init__` (the single reader) and forwarded to
+    # `AnalysisLens` as `self._use_jax`.
+    monkeypatch.setenv("PYAUTO_DISABLE_JAX", "1")
+
+    analysis = al.AnalysisImaging(dataset=masked_imaging_7x7, use_jax=True)
+
+    assert analysis._use_jax is False
+
+
+@pytest.mark.skipif(not _jax_installed(), reason="jax not installed")
+def test__use_jax_true_env_unset__not_downgraded__imaging(
+    monkeypatch, masked_imaging_7x7
+):
+    # No over-downgrade: with the env var unset and jax installed,
+    # `use_jax=True` must survive as `self._use_jax is True`.
+    monkeypatch.delenv("PYAUTO_DISABLE_JAX", raising=False)
+
+    analysis = al.AnalysisImaging(dataset=masked_imaging_7x7, use_jax=True)
+
+    assert analysis._use_jax is True
 
 
 def test__modify_before_fit__inversion_no_positions_likelihood__raises_exception(
