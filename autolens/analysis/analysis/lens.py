@@ -61,9 +61,11 @@ class AnalysisLens:
         self.cosmology = cosmology or Planck15()
         self.positions_likelihood_list = positions_likelihood_list
 
-        # Mirror the autofit Analysis fallback: if jax isn't installed,
-        # downgrade silently here too (the parent Analysis.__init__ already
-        # emitted the loud banner — no need to repeat it).
+        # `use_jax` is expected to already be the base-resolved value
+        # (`self._use_jax` set by `af.Analysis.__init__`, the single reader of
+        # the disable-jax env var and the jax-availability check). This guard is
+        # a defensive, idempotent re-check of jax availability only — it never
+        # re-reads the env var and does not repeat the parent's loud banner.
         import importlib.util
         if use_jax and importlib.util.find_spec("jax") is None:
             use_jax = False

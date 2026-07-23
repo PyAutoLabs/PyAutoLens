@@ -68,7 +68,10 @@ class AnalysisWeak(AgAnalysis, AnalysisLens):
         """
         super().__init__(cosmology=cosmology, use_jax=use_jax, **kwargs)
 
-        AnalysisLens.__init__(self=self, cosmology=cosmology, use_jax=use_jax)
+        # `super().__init__` (af.Analysis) is the single reader of the
+        # disable-jax env var + the jax-availability check; forward the
+        # resolved `self._use_jax` so `AnalysisLens` does not overwrite it.
+        AnalysisLens.__init__(self=self, cosmology=cosmology, use_jax=self._use_jax)
 
         self.dataset = dataset
 
