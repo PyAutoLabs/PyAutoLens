@@ -83,6 +83,32 @@ also be cited:
 
 The package is available at <https://github.com/GragasLab/nufftax>.
 
+## Rectangular Mesh (Pixelized Source Reconstructions)
+
+If you reconstruct a source using the adaptive rectangular meshes (`RectangularAdaptDensity` or
+`RectangularAdaptImage`), you **must cite** the following paper <https://arxiv.org/abs/2606.30620> under citation
+key `Enzi2026`. The mesh's adaptive coordinate transform implements the ray-guided transformed uniform (RTU)
+grid formulation this paper introduces, which is what makes the pixelization adaptive and fully
+auto-differentiable:
+
+```bibtex
+@article{Enzi2026,
+  author        = {Enzi, Wolfgang J. R. and Krawczyk, Coleman M. and Li, Tian and Collett, Thomas E.},
+  title         = {Gaussian processes on ray-guided transformed uniform grids for fast, flexible, and auto-differentiable adaptive source reconstruction in lens modelling},
+  journal       = {MNRAS, submitted},
+  eprint        = {2606.30620},
+  archivePrefix = {arXiv},
+  primaryClass  = {astro-ph.GA},
+  year          = {2026},
+  url           = {https://arxiv.org/abs/2606.30620},
+}
+```
+
+Note that **PyAutoLens** pairs the RTU grid with its own regularization schemes (e.g. `reg.Constant`,
+`reg.Adapt`) rather than the Gaussian-process source prior used in the paper, so quantitative results are not
+directly comparable between the two implementations. The `RectangularUniform` mesh performs no RTU transform,
+so this citation is not required when only the uniform mesh is used.
+
 ## Dynesty
 
 If you used the nested sampling algorithm Dynesty, please follow the citation instructions [on the dynesty readthedocs](https://dynesty.readthedocs.io/en/latest/references.html).
