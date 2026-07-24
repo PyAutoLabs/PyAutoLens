@@ -8,13 +8,11 @@ When two or more galaxies are aligned perfectly down our line-of-sight, the back
 
 This is called strong gravitational lensing and **PyAutoLens** makes it simple to model strong gravitational lenses, using JAX to **accelerate lens modeling on GPUs**.
 
-```{note}
-🤖 **AI-assisted use:** alongside reading the guides, you can learn and drive **PyAutoLens** with AI — either a browser chat assistant (ChatGPT, Claude) pointed at [autolens_assistant](https://github.com/PyAutoLabs/autolens_assistant), or a fully agentic coding tool (Claude Code, Codex) that runs lens modeling end-to-end on your machine. The [new user guide](https://pyautolens.readthedocs.io/en/latest/overview/overview_2_new_user_guide.html) describes all three ways to learn.
-```
-
 # Getting Started
 
-The following links are useful for new starters:
+The [**PyAutoLens AI Assistant**](https://github.com/PyAutoLabs/autolens_assistant) supports conversation agents such as ChatGPT and coding agents such as Claude Code and Codex. You can get started simply by asking it a question about gravitational lensing or describing the task you would like to perform with **PyAutoLens**. See the assistant for its full scope and instructions.
+
+The following human-readable documentation and examples are also useful for new starters:
 
 - [The PyAutoLens readthedocs](https://pyautolens.readthedocs.io/en/latest): which includes [an overview of PyAutoLens's core features](https://pyautolens.readthedocs.io/en/latest/overview/overview_1_start_here.html), [a new user starting guide](https://pyautolens.readthedocs.io/en/latest/overview/overview_2_new_user_guide.html) and [an installation guide](https://pyautolens.readthedocs.io/en/latest/installation/overview.html).
 - [The introduction Jupyter Notebook on Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.7.23.1/notebooks/imaging/start_here.ipynb), where you can try **PyAutoLens** in a web browser (without installation).
