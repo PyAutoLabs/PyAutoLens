@@ -2,6 +2,12 @@
 
 # Start Here
 
+## PyAutoLens AI Assistant
+
+The [**PyAutoLens AI Assistant**](https://github.com/PyAutoLabs/autolens_assistant) supports conversation agents such as ChatGPT and coding agents such as Claude Code and Codex. You can get started simply by asking it a question about gravitational lensing or describing the task you would like to perform with **PyAutoLens**. See the assistant for its full scope and instructions.
+
+## Human-Readable Overview
+
 **PyAutoLens** is software for analysing strong gravitational lenses, an astrophysical phenomenon where a galaxy
 appears multiple times because its light is bent by the gravitational field of an intervening foreground lens galaxy.
 

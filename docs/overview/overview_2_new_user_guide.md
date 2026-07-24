@@ -2,16 +2,18 @@
 
 # New User Guide
 
+## PyAutoLens AI Assistant
+
+The [**PyAutoLens AI Assistant**](https://github.com/PyAutoLabs/autolens_assistant) supports conversation agents such as ChatGPT and coding agents such as Claude Code and Codex. You can get started simply by asking it a question about gravitational lensing or describing the task you would like to perform with **PyAutoLens**. See the assistant for its full scope and instructions.
+
+## Human-Readable Guide
+
 **PyAutoLens** can analyse strong lens systems across a range of physical scales (e.g. galaxy, group, and cluster) and for
 different types of data (e.g. imaging, interferometer, and point-source observations). Depending on the scientific questions you are interested in, the analysis you perform may differ significantly.
 
 The autolens_workspace contains a suite of example Jupyter Notebooks, organised by lens scale and dataset type.
 
-## AI Assistant
-
-The [**PyAutoLens AI Assistant**](https://github.com/PyAutoLabs/autolens_assistant) supports conversation agents such as ChatGPT and coding agents such as Claude Code and Codex. You can get started simply by asking it a question about gravitational lensing or describing the task you would like to perform with **PyAutoLens**. See the assistant for its full scope and instructions.
-
-The rest of this human-readable guide begins with two simple questions to help you find the most appropriate example notebook for your science case.
+This guide begins with two simple questions to help you find the most appropriate example notebook for your science case.
 
 ## What Scale Lens?
 
