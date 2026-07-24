@@ -7,27 +7,11 @@ different types of data (e.g. imaging, interferometer, and point-source observat
 
 The autolens_workspace contains a suite of example Jupyter Notebooks, organised by lens scale and dataset type.
 
-## Three Ways To Learn PyAutoLens
+## AI Assistant
 
-There are three ways to learn how to use **PyAutoLens**, which you are free to mix and match:
+The [**PyAutoLens AI Assistant**](https://github.com/PyAutoLabs/autolens_assistant) supports conversation agents such as ChatGPT and coding agents such as Claude Code and Codex. You can get started simply by asking it a question about gravitational lensing or describing the task you would like to perform with **PyAutoLens**. See the assistant for its full scope and instructions.
 
-1. **Manual Navigation**: Read the workspace guides yourself. To find the example notebook best suited to your
-   science case, work through the two questions below ("What Scale Lens?" and "What Dataset Type?"), which point you
-   to the right starting point. This is the traditional route, and the rest of this guide supports it.
-
-2. **AI Chat Assistant**: Ask questions to a conversational AI assistant such as ChatGPT or Claude in the browser.
-   Go to the [autolens_assistant](https://github.com/PyAutoLabs/autolens_assistant) repository and copy the ready-to-use
-   example prompt from its README into ChatGPT or Claude — it gets you asking useful questions from the very first
-   message. This is ideal for learning the API, working out how to perform a calculation, and creating end-to-end
-   example Python scripts.
-
-3. **Fully Agentic AI**: Use an agentic coding tool such as [Claude Code](https://claude.com/claude-code) or
-   [Codex](https://developers.openai.com/codex) together with [autolens_assistant](https://github.com/PyAutoLabs/autolens_assistant).
-   These can inspect your data, write and run scripts, and manage an end-to-end lens modeling project directly on your
-   machine. See the [autolens_assistant](https://github.com/PyAutoLabs/autolens_assistant) repository for more information.
-
-The rest of this guide supports **manual navigation**: we begin by answering two simple questions to find your most
-appropriate starting point.
+The rest of this human-readable guide begins with two simple questions to help you find the most appropriate example notebook for your science case.
 
 ## What Scale Lens?
 
