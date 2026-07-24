@@ -12,7 +12,7 @@ This is called strong gravitational lensing and **PyAutoLens** makes it simple t
 
 ## PyAutoLens AI Assistant
 
-The [**PyAutoLens AI Assistant**](https://github.com/PyAutoLabs/autolens_assistant) supports conversation agents such as ChatGPT and coding agents such as Claude Code and Codex. You can get started simply by asking it a question about gravitational lensing or describing the task you would like to perform with **PyAutoLens**. See the assistant for its full scope and instructions.
+The [**PyAutoLens AI Assistant**](https://github.com/PyAutoLabs/autolens_assistant) supports conversation agents such as ChatGPT and coding agents such as Claude Code and Codex. You can get started simply by asking it a question about gravitational lensing or describing the task you would like to perform with **PyAutoLens**. See the [autolens_assistant GitHub page](https://github.com/PyAutoLabs/autolens_assistant) for its full scope and instructions.
 
 ## Human-Readable Documentation and Examples
 
