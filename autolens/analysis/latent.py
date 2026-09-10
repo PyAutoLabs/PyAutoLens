@@ -439,6 +439,34 @@ def effective_einstein_radius(fit, magzero, xp=np):
         return xp.nan
 
 
+def latent_instance_from(model, parameters, xp=np):
+    """
+    Build the model instance a latent function is evaluated on, on either
+    backend, the way ``autofit.non_linear.fitness.Fitness`` builds the one the
+    likelihood is evaluated on.
+
+    On the NumPy path the model's assertions are checked as usual: a sample
+    that violates one raises ``af.exc.FitException``, which the latent engine
+    turns into a NaN row and drops. Under JAX that check applies a Python
+    ``not`` to a traced boolean and raises ``TracerBoolConversionError``
+    inside the per-sample ``jax.jit`` the latent batch path uses. The engine
+    swallowed that raise into a NaN row for **every** sample, so a model with
+    any assertion (e.g. the ordered two-basis MGE lens light of the Euclid
+    ``vis_lp`` stage, PyAutoFit#1583) wrote no latent output at all. Under JAX
+    the assertions are therefore skipped here, as ``Fitness`` skips them
+    (every sample the search accepted already satisfied them), and ``xp`` is
+    threaded through so the instance is built on the traced backend.
+
+    Subclasses of :class:`LatentLens` that build their own instance (rather
+    than composing ``LatentLens.variables``) must go through this helper.
+    """
+    if xp is np:
+        return model.instance_from_vector(vector=parameters)
+    return model.instance_from_vector(
+        vector=parameters, ignore_assertions=True, xp=xp
+    )
+
+
 LATENT_FUNCTIONS: Dict[str, Callable] = {
     "total_lens_flux": total_lens_flux,
     "total_lensed_source_flux": total_lensed_source_flux,
@@ -493,7 +521,11 @@ class LatentLens(af.Latent):
     dispatches the :data:`LATENT_FUNCTIONS` registry on a per-sample fit.
     Subclass to add project-specific latents (e.g. the Euclid pipeline's
     aperture fluxes), composing the library values via
-    ``LatentLens.variables(analysis, parameters, model)``.
+    ``LatentLens.variables(analysis, parameters, model)``. A subclass that
+    builds the instance itself must use :func:`latent_instance_from`, which
+    skips the model's assertions under JAX — checking them inside the
+    per-sample ``jax.jit`` raises, and the engine turns that raise into a NaN
+    row for every sample (no latent output at all).
     """
 
     # The lensing Einstein-radius latent routes through ``ZeroSolver``
@@ -511,7 +543,7 @@ class LatentLens(af.Latent):
         if not keys:
             raise NotImplementedError
         xp = analysis._xp
-        instance = model.instance_from_vector(vector=parameters)
+        instance = latent_instance_from(model=model, parameters=parameters, xp=xp)
         fit = analysis.fit_from(instance=instance)
         magzero = analysis.kwargs.get("magzero", None)
         context = {"fit": fit, "magzero": magzero, "xp": xp}
