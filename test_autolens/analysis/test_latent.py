@@ -870,3 +870,107 @@ def test_analysis_imaging_declares_latent_lens_and_keys_read_config():
         "total_source_flux",
         "total_lens_flux_mujy",
     ]
+
+
+# ---------------------------------------------------------------------------
+# latent_instance_from: assertions on the NumPy path, skipped under JAX
+# ---------------------------------------------------------------------------
+
+def _sersic_model_with_assertion():
+    model = af.Model(al.lp.Sersic)
+    model.add_assertion(model.effective_radius > model.sersic_index)
+    return model
+
+
+def test_latent_instance_from_numpy_checks_assertions():
+    model = _sersic_model_with_assertion()
+    medians = np.array(model.physical_values_from_prior_medians)
+
+    # sersic_index above effective_radius violates the assertion -> the NumPy
+    # path raises, exactly as the likelihood path does (Fitness -> resample).
+    bad = medians.copy()
+    bad[model.paths.index(("effective_radius",))] = 0.1
+    bad[model.paths.index(("sersic_index",))] = 4.0
+    with pytest.raises(af.exc.FitException):
+        _latent_module.latent_instance_from(model=model, parameters=bad, xp=np)
+
+    good = medians.copy()
+    good[model.paths.index(("effective_radius",))] = 4.0
+    good[model.paths.index(("sersic_index",))] = 1.0
+    instance = _latent_module.latent_instance_from(
+        model=model, parameters=good, xp=np
+    )
+    assert instance.effective_radius == pytest.approx(4.0)
+
+
+def test_latent_instance_from_jax_skips_assertions_under_jit():
+    """
+    The bug: the latent engine evaluates ``Latent.variables`` under a
+    per-sample ``jax.jit``, and ``instance_from_vector`` with its default
+    assertion check applies a Python ``not`` to a traced boolean there. The
+    raise was swallowed into a NaN row for every sample, so a model with any
+    assertion wrote no latent output at all.
+    """
+    jax = pytest.importorskip("jax")
+    import jax.numpy as jnp
+
+    model = _sersic_model_with_assertion()
+    vector = np.array(model.physical_values_from_prior_medians)
+    vector[model.paths.index(("effective_radius",))] = 4.0
+    vector[model.paths.index(("sersic_index",))] = 1.0
+
+    # The default instance construction cannot be traced.
+    with pytest.raises(jax.errors.TracerBoolConversionError):
+        jax.jit(lambda v: model.instance_from_vector(vector=v).effective_radius)(
+            vector
+        )
+
+    # The helper mirrors Fitness's JAX path: assertions skipped, xp threaded.
+    value = jax.jit(
+        lambda v: _latent_module.latent_instance_from(
+            model=model, parameters=v, xp=jnp
+        ).effective_radius
+    )(vector)
+    assert float(value) == pytest.approx(4.0)
+
+
+def test_latent_lens_variables_traces_under_jit_with_model_assertion(
+    masked_imaging_7x7,
+):
+    """
+    End to end: ``LatentLens.variables`` on a model carrying an assertion,
+    evaluated exactly as the engine's ``jit`` batch path evaluates it, returns
+    finite values for every enabled latent (instead of raising and being
+    masked to a NaN row).
+    """
+    jax = pytest.importorskip("jax")
+
+    lens = af.Model(al.Galaxy, redshift=0.5, light=af.Model(al.lp.Sersic))
+    source = af.Model(al.Galaxy, redshift=1.0, light=af.Model(al.lp.Sersic))
+    model = af.Collection(galaxies=af.Collection(lens=lens, source=source))
+    model.add_assertion(
+        model.galaxies.lens.light.intensity > model.galaxies.source.light.intensity
+    )
+
+    vector = np.array(model.physical_values_from_prior_medians)
+    vector[model.paths.index(("galaxies", "lens", "light", "intensity"))] = 0.1
+    vector[model.paths.index(("galaxies", "source", "light", "intensity"))] = 0.05
+
+    analysis = al.AnalysisImaging(dataset=masked_imaging_7x7, use_jax=True, magzero=25.0)
+    keys = LatentLens.keys(analysis)
+
+    values = jax.jit(
+        lambda v: LatentLens.variables(analysis, parameters=v, model=model)
+    )(vector)
+
+    assert len(values) == len(keys)
+    assert all(np.isfinite(float(v)) for v in values)
+
+    # And they agree with the NumPy evaluation of the same sample.
+    analysis_np = al.AnalysisImaging(
+        dataset=masked_imaging_7x7, use_jax=False, magzero=25.0
+    )
+    values_np = LatentLens.variables(analysis_np, parameters=vector, model=model)
+    assert np.allclose(
+        [float(v) for v in values], [float(v) for v in values_np], rtol=1e-6
+    )
