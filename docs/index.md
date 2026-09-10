@@ -21,9 +21,9 @@ The following human-readable documentation and examples are useful for new start
 
 ## PyAutoLens AI Assistant
 
-The [**PyAutoLens AI Assistant**](https://github.com/PyAutoLabs/autolens_assistant) supports conversation agents such as ChatGPT and coding agents such as Claude Code and Codex. You can get started simply by asking it a question about gravitational lensing or describing the task you would like to perform with **PyAutoLens**. See the [autolens_assistant GitHub page](https://github.com/PyAutoLabs/autolens_assistant) for its full scope and instructions.
+The [**PyAutoLens AI Assistant**](https://github.com/PyAutoLabs/autolens_assistant) lets you do gravitational lensing science in natural language from inside an AI coding agent. You can get started simply by asking it a question about gravitational lensing or describing the task you would like to perform with **PyAutoLens**. See the [autolens_assistant GitHub page](https://github.com/PyAutoLabs/autolens_assistant) for its full scope and instructions.
 
-**The PyAutoLens AI Assistant currently requires a paid subscription: Claude Code or Codex as a coding agent, or ChatGPT or Claude on a paid plan as a conversation assistant. Free options are being tested.**
+**The assistant runs inside an AI coding agent: Claude Code or Codex are recommended. Sustained scientific use normally needs paid access to one of them (a personal subscription, institutional access or API billing). OpenCode is an experimental alternative whose client is free but whose model access, cost and capability depend on the provider. Browser chat routes (ChatGPT or Claude with a GitHub connector) are no longer supported.**
 
 # Strong Gravitational Lensing
 
