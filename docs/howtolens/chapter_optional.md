@@ -4,5 +4,5 @@ This chapter contains optional tutorials expanding on different aspects of how *
 
 The chapter contains the following tutorials:
 
-[Tutorial: Searches](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.9.8.1/notebooks/chapter_optional/tutorial_searches.ipynb)
+[Tutorial: Searches](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.9.11.1/notebooks/chapter_optional/tutorial_searches.ipynb)
 \- Alternative non-linear searches to sample parameter space.
