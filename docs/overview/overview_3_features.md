@@ -43,6 +43,15 @@ galaxy:
 :width: 600
 ```
 
+The lens model a pixelized source composes is drawn below: the source's only sampled parameter is its
+regularization coefficient, while the `reconstruction` — the surface brightness of every source pixel — is solved
+for during the fit.
+
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/pixelization_model.png
+:alt: A pixelized source lens model, whose source reconstruction is solved for during the fit.
+:width: 600
+```
+
 A complete overview of pixelized source reconstructions can be found
 at `notebooks/overview/overview_5_pixelizations.ipynb`.
 
@@ -83,6 +92,15 @@ higher resolutions to determine the source's exact locations in the image-plane:
 ```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/point_4.png
 :alt: Alternative text
 :width: 400
+```
+
+The lens model this composes is drawn below: the source galaxy carries a single `al.ps.Point` component whose
+`centre` is a sampled two-dimensional parameter. (Using `al.ps.PointSolved` instead solves that centre analytically,
+and the figure draws it as a dashed `solved` pill.)
+
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/point_model.png
+:alt: A point-source lens model, with an isothermal lens and a point source whose centre is sampled.
+:width: 600
 ```
 
 Note that the image positions above include the fifth central image of the strong lens, which is often not seen in
@@ -132,6 +150,14 @@ An MGE decomposes the light of a galaxy into tens or hundreds of two dimensional
 
 In the image above, 30 Gaussians are shown, where their sizes go from below the pixel scale (in order to resolve
 point emission) to beyond the size of the galaxy (to capture its extended emission).
+
+The lens model this composes is drawn below: the 60 Gaussians of its two bases collapse into two plates badged
+`30 components`, whose `intensity` parameters are solved for by the inversion rather than sampled.
+
+```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/mge_model.png
+:alt: The MGE lens model, whose sixty Gaussians are drawn as two plates of thirty components.
+:width: 600
+```
 
 An MGE is an extremely powerful way to model and subtract the light of the foreground lens galaxy in strong lens imaging,
 and makes it possible to model the stellar mass of the lens galaxy in a way that is tied to its light.
