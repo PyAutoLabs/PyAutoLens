@@ -415,12 +415,15 @@ def effective_einstein_radius(fit, magzero, xp=np):
     """
     Effective Einstein radius via the tangential critical curve.
 
-    JAX path: ``LensCalc.einstein_radius_jit_from(init_guess=fan)``, where
-    ``fan`` is a fixed 4-seed fan at ±1 arcsec from the lens centre — the
-    JIT-compatible variant required because ``ZeroSolver`` (line 1520 of
-    ``autogalaxy/operate/lens_calc.py``) uses ``lax.cond`` /
-    ``lax.while_loop`` early termination that is incompatible with
-    ``jax.vmap`` but fine under ``jax.jit``.
+    JAX path: ``LensCalc.einstein_radius_jit_from()`` with no seed — the
+    JIT-compatible variant, which since PyAutoGalaxy#614 finds its own Newton
+    seed inside the trace (argmin of the tangential eigen value on a coarse
+    grid, ±3 arcsec by default) instead of needing a caller-supplied
+    ``init_guess``. The earlier fixed 4-seed fan at ±1 arcsec from the origin
+    could not converge for off-centre lenses or Einstein radii outside its
+    basin. ``ZeroSolver`` uses ``lax.cond`` / ``lax.while_loop`` early
+    termination that is incompatible with ``jax.vmap`` but fine under
+    ``jax.jit``.
 
     NumPy path: ``LensCalc.einstein_radius_from(grid=fit.dataset.grids.lp)``.
     """
@@ -429,11 +432,7 @@ def effective_einstein_radius(fit, magzero, xp=np):
     try:
         lens_calc = LensCalc.from_mass_obj(fit.tracer)
         if xp is not np and _jax_zero_contour_available():
-            import jax.numpy as jnp
-            init_guess = jnp.array(
-                [[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0], [0.0, -1.0]]
-            )
-            return lens_calc.einstein_radius_jit_from(init_guess=init_guess)
+            return lens_calc.einstein_radius_jit_from()
         return lens_calc.einstein_radius_from(grid=fit.dataset.grids.lp)
     except (ValueError, AttributeError):
         return xp.nan

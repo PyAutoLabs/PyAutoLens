@@ -272,7 +272,7 @@ def test_effective_einstein_radius_calls_lens_calc_numpy_path(monkeypatch):
             calls["grid"] = grid
             return 1.234
 
-        def einstein_radius_jit_from(self, init_guess):
+        def einstein_radius_jit_from(self, init_guess=None):
             calls["init_guess"] = init_guess
             raise AssertionError("numpy path must not use jit_from")
 
@@ -318,7 +318,7 @@ def test_effective_einstein_radius_jax_path_falls_back_to_numpy_when_dep_missing
             calls["grid"] = grid
             return 5.678
 
-        def einstein_radius_jit_from(self, init_guess):
+        def einstein_radius_jit_from(self, init_guess=None):
             raise AssertionError(
                 "jit path must not run when jax_zero_contour is missing"
             )
