@@ -512,6 +512,11 @@ parameter of the `Delaunay` mesh for which no prior is configured, so the model 
 (via `config/priors` or by setting it in the script). It is **unset configuration** — not solved, and not absent from
 the model. Absence from the figure would read as absence from the model, so `missing` is a state of its own.
 
+The red pill above reflects PyAutoLens' own default configuration, which ships no prior for `areas_factor`. The
+`autolens_workspace` supplies one in `config/priors/mesh/delaunay.yaml`, as a constant `0.5`, so the same code run from
+the workspace draws an ordinary grey fixed pill instead: `missing` is what you see when your own configuration has a
+gap.
+
 ## Reading the Figure
 
 The figure is the **map**; `model.info` is the **legend**. The map shows the shape of the model — which components
