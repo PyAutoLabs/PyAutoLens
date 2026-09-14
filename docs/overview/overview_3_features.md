@@ -95,8 +95,8 @@ higher resolutions to determine the source's exact locations in the image-plane:
 ```
 
 The lens model this composes is drawn below: the source galaxy carries a single `al.ps.Point` component whose
-`centre` is a sampled two-dimensional parameter. (Using `al.ps.PointSolved` instead solves that centre analytically,
-and the figure draws it as a dashed `solved` pill.)
+`centre` is a sampled two-dimensional parameter. (Using `al.ps.PointSolved` instead solves that centre analytically
+rather than sampling it.)
 
 ```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/point_model.png
 :alt: A point-source lens model, with an isothermal lens and a point source whose centre is sampled.
@@ -151,8 +151,8 @@ An MGE decomposes the light of a galaxy into tens or hundreds of two dimensional
 In the image above, 30 Gaussians are shown, where their sizes go from below the pixel scale (in order to resolve
 point emission) to beyond the size of the galaxy (to capture its extended emission).
 
-The lens model this composes is drawn below: the 60 Gaussians of its two bases collapse into two plates badged
-`30 components`, whose `intensity` parameters are solved for by the inversion rather than sampled.
+The lens model this composes is drawn below. It is built from two bases of 30 Gaussians each, whose `intensity`
+parameters are solved for by the inversion rather than sampled.
 
 ```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/mge_model.png
 :alt: The MGE lens model, whose sixty Gaussians are drawn as two plates of thirty components.

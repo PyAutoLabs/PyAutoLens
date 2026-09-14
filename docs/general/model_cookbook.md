@@ -101,7 +101,12 @@ galaxies
             alpha                                                               3.0
 ```
 
-The same model can be drawn as a figure, which shows its structure at a glance:
+The same model can also be visualized as a figure, making its structure easier to understand at a glance.
+
+The figure shows how the model is organized: which parameters belong to each component, and whether they are free,
+fixed, shared, linked by an expression, solved during the fit, or not configured. `model.info` provides the
+corresponding numerical details, including the prior assigned to each free parameter and the value of each fixed
+parameter.
 
 ```python
 af.ModelPlotter(model).figure()
@@ -112,9 +117,7 @@ af.ModelPlotter(model).figure()
 :width: 600
 ```
 
-Every stage below prints `model.info` in the same way; from here on only the figure is shown, because the figure is
-the quicker read of the two. The `Reading the Figure` section at the end of this cookbook explains what every element
-of the figure means.
+Every stage below prints `model.info` in the same way; from here on only the figure is shown.
 
 ## More Complex Lens Models
 
@@ -214,9 +217,8 @@ af.ModelPlotter(model).figure()
 :width: 600
 ```
 
-The two lens galaxies are identical in structure, and so are the two source galaxies, so the figure draws each pair
-once inside a dashed plate badged `2 components` rather than drawing four cards. Their parameters are badged
-`independent`: two separate priors with the same configuration, which is not the same thing as one shared prior.
+The two lens galaxies are identical in structure, and so are the two source galaxies, but their parameters are
+independent: two separate priors with the same configuration, which is not the same thing as one shared prior.
 
 The above lens model consists of only two planes (an image-plane and source-plane), but has four galaxies in total.
 This is because the lens galaxies have the same redshift and the source galaxies have the same redshift.
@@ -259,10 +261,8 @@ af.ModelPlotter(model).figure()
 :width: 600
 ```
 
-The concise API is a shorthand for writing a model, not a different model. Note that this stage gives the lens galaxy
-a `Sersic` bulge *and* a `Sersic` disk, so the two collapse into a single dashed plate badged `2 components`: the
-figure groups repeated sibling components rather than drawing two identical cards, and its `independent` badges say
-that each of the two has its own priors rather than sharing one.
+The concise API is a shorthand for writing a model, not a different model. Note that this stage gives the lens
+galaxy a `Sersic` bulge *and* a `Sersic` disk, and each of the two has its own priors rather than sharing one.
 
 ## Prior Customization
 
@@ -325,14 +325,13 @@ af.ModelPlotter(model).figure()
 :width: 600
 ```
 
-Customizing a prior does not change a parameter's state — a parameter with a customized prior is still sampled — so
-the map does not change when only the numbers do. Print `model.info`, or call
-`af.ModelPlotter(model).figure(detail="priors")`, to read the prior on each parameter.
+Customizing a prior does not change a parameter's state — a parameter with a customized prior is still sampled.
+Print `model.info`, or call `af.ModelPlotter(model).figure(detail="priors")`, to read the prior on each parameter.
 
-The figure does show one thing the code above is easy to misread, though: the last line sets `effective_radius` on the
-**source galaxy**, not on the source galaxy's `bulge`. A `Galaxy` accepts any attribute, so this adds a *new* free
-`effective_radius` parameter to the `source · Galaxy` card, drawn above its `bulge` card, rather than overriding the
-bulge's own prior. Writing `source.bulge.effective_radius = ...` is what customizes the bulge.
+One thing in the code above is easy to misread: the last line sets `effective_radius` on the **source galaxy**, not on
+the source galaxy's `bulge`. A `Galaxy` accepts any attribute, so this adds a *new* free `effective_radius` parameter
+to the source galaxy itself rather than overriding the bulge's own prior. Writing
+`source.bulge.effective_radius = ...` is what customizes the bulge.
 
 ## Model Customization
 
@@ -400,15 +399,12 @@ af.ModelPlotter(model).figure()
 :width: 600
 ```
 
-This is the stage where the figure earns its keep: the paired `centre` is drawn once on its owner badged
-`shared x2`, with a blue link from the `disk` that reuses it (`-> bulge.centre`); the fixed `sersic_index` is a grey
-pill; and each assertion is drawn as a compact dashed-orange label naming both of its operands, rather than as a line
-traced across the figure.
+The `disk` reuses the `bulge`'s `centre` rather than having one of its own, the `sersic_index` is fixed, and the
+model carries two assertions relating its parameters.
 
-The two offset `centre` components of the mass profile are a `relation`, and a relation on a *scalar* parameter is
-drawn with its defining expression on the pill (the galaxy cookbook's `effective_radius` offset shows this). A
-relation on one component of a **tuple** parameter such as `centre` is not yet annotated on the tuple's single pill,
-so the mass `centre` above is drawn as an ordinary sampled pill; `model.info` is the place to read it.
+The two offset `centre` components of the mass profile are a `relation`: they are defined by an expression rather
+than sampled. A relation on one component of a **tuple** parameter such as `centre` is not yet annotated on the model
+figure, so `model.info` is the place to read it.
 
 ## Redshift Free
 
@@ -436,9 +432,8 @@ af.ModelPlotter(model).figure()
 :width: 600
 ```
 
-A free redshift is an ordinary sampled parameter, so it is drawn as an ordinary pill on the galaxy's card. A *fixed*
-redshift is not drawn as a pill at all: it is printed under the galaxy's header as `redshift = 1.0`, which is the one
-number the figure shows on the map rather than in the legend. The source galaxy above shows this.
+A free redshift is an ordinary sampled parameter of the galaxy. A *fixed* redshift is not a parameter of the model
+at all, and the source galaxy above shows this.
 
 The model-fit will automatically enable multi-plane ray tracing and alter the ordering of the planes depending on the
 redshifts of the galaxies.
@@ -451,7 +446,7 @@ function of redshift.
 Redshifts should be made free when modeling three or more planes, as the multi-plane ray-tracing calculations have an
 obvious dependence on the redshifts of the galaxies which could be inferred by the model-fit.
 
-## Solved Parameters
+## Solved and Unconfigured Parameters
 
 Some parameters of a lens model are neither sampled by the non-linear search nor fixed by the user: they are **solved
 for during the fit**, at every likelihood evaluation. The model below contains all three of them:
@@ -492,56 +487,25 @@ af.ModelPlotter(model).figure()
 :width: 600
 ```
 
-Three parameters in the figure carry a dashed `solved` pill:
+Three parameters of this model are solved for during the fit:
 
 - the `intensity` of every linear light profile (`al.lp_linear.*`, and every member of an `al.lp_basis.Basis` built
-  from them), which the inversion solves for by linear algebra. A `Basis` declares no solved amplitude of its own:
-  the solved intensities belong to its member profiles, one per member.
+  from them), which the inversion solves for by linear algebra rather than the search sampling it. A `Basis` has no
+  solved amplitude of its own: the solved intensities belong to its member profiles, one per member.
 - the `reconstruction` of an `al.Pixelization`, which is the solved surface brightness of every source pixel. The only
   sampled parameters of a pixelization are its regularization coefficients.
 - the `centre` of an `al.ps.PointSolved`, which is solved for analytically by the `*Solved` point-source fit classes.
-  Without the annotation this component would look like an empty box; `al.ps.Point`, by contrast, samples its centre
-  and draws an ordinary free `centre` pill.
+  `al.ps.Point`, by contrast, samples its centre as an ordinary free parameter.
 
-**These three have no counterpart in `model.info` at all.** They are additional information the figure supplies, which
-is why they are drawn dashed and named in the legend as *solved during fitting*, and why the figure's footer counts
-them separately from the sampled parameters.
+**These three have no counterpart in `model.info` at all**, because they are not sampled parameters of the model.
 
-A fourth pill in the figure reads `areas_factor · missing`. That is a different thing again: `areas_factor` is a
-parameter of the `Delaunay` mesh for which no prior is configured, so the model cannot be fitted until one is supplied
-(via `config/priors` or by setting it in the script). It is **unset configuration** — not solved, and not absent from
-the model. Absence from the figure would read as absence from the model, so `missing` is a state of its own.
+A different thing again is `areas_factor`, a parameter of the `Delaunay` mesh for which no prior is configured, so the
+model cannot be fitted until one is supplied (via `config/priors` or by setting it in the script). It is **unset
+configuration** — not solved, and not absent from the model.
 
-The red pill above reflects PyAutoLens' own default configuration, which ships no prior for `areas_factor`. The
-`autolens_workspace` supplies one in `config/priors/mesh/delaunay.yaml`, as a constant `0.5`, so the same code run from
-the workspace draws an ordinary grey fixed pill instead: `missing` is what you see when your own configuration has a
-gap.
-
-## Reading the Figure
-
-The figure is the **map**; `model.info` is the **legend**. The map shows the shape of the model — which components
-contain which, which parameters are shared, fixed, related or solved — and the legend gives the numbers: the prior on
-every parameter, and the exact value of every fixed one.
-
-The correspondence between them is an explicit contract:
-
-> Every displayed model element resolves to its corresponding path or grouped paths in `model.info`; every omission and
-> every added annotation (`solved`, `missing`) is explicit.
-
-It is deliberately **not** a line-for-line correspondence, because the two group the model differently:
-
-> The figure partitions **by component**: the MGE model shows two `30 components` plates, split because each basis
-> holds its own `ell_comps` pair. `model.info` groups **per parameter**: it prints a single `0 - 59` block for
-> `centre` spanning both figure plates, two separate ellipticity blocks, and individual `sigma` blocks.
-
-Two further reading notes:
-
-- The background tints follow **nesting depth only**. They are decorative: they help you see which card sits inside
-  which, and they carry no information about the class family of a component. A light profile, a mass profile and a
-  pixelization at the same depth are tinted identically.
-- A plate badge reads `30 components` and means repetition; a parameter badge reads `shared across group` and means
-  one prior reused. These are different statements, so they never share a symbol. A grey `fixed, varies by member`
-  pill means every member has its own fixed value, not one value common to all.
+PyAutoLens' own default configuration ships no prior for `areas_factor`. The `autolens_workspace` supplies one in
+`config/priors/mesh/delaunay.yaml`, as a constant `0.5`, so the same code run from the workspace has an ordinary fixed
+parameter instead: unset configuration is what you see when your own configuration has a gap.
 
 ## Available Model Components
 
@@ -630,10 +594,9 @@ extra galaxy per detected group member, each with a `SersicSph` light profile an
 :width: 600
 ```
 
-The eight extra galaxies are identical in structure, so the figure draws them once inside a dashed plate badged
-`8 components` rather than eight times. Their `centre` pills read `fixed, varies by member` — each galaxy has its own
-fixed centre, not one centre common to all — and their `sigma` priors are badged `independent`, because eight separate
-priors with the same configuration is not the same thing as one shared prior.
+The eight extra galaxies are identical in structure, but each has its own fixed `centre` rather than one centre
+common to all, and each has its own `sigma` prior, because eight separate priors with the same configuration is not
+the same thing as one shared prior.
 
 The following example notebooks show each regime's full model composition:
 
@@ -655,9 +618,9 @@ An MGE lens light model of 2 x 30 linear Gaussians, fitted alongside a pixelized
 :width: 600
 ```
 
-The 60 Gaussians collapse into two plates of `30 components`, split because each basis holds its own `ell_comps`
-pair while all 60 share one `centre`. Every member's `intensity` is `solved`, the source's `reconstruction` is
-`solved`, and the mesh's unconfigured `areas_factor` is `missing`.
+The 60 Gaussians are split across two bases, because each basis holds its own `ell_comps` pair while all 60 share
+one `centre`. Every member's `intensity` is solved for by the inversion, as is the source's `reconstruction`, and the
+mesh's `areas_factor` has no prior configured.
 
 The following example notebooks show how to compose and fit these models:
 
