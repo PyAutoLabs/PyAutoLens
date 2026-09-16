@@ -37,8 +37,10 @@ by this module and is imported lazily.
 """
 
 import os
-from typing import Dict, List, Optional, Union
+import warnings
+from typing import Dict, List, Optional, Tuple, Union
 
+import autoarray as aa
 import autogalaxy as ag
 
 from autogalaxy.galaxy.galaxy import Galaxy
@@ -92,6 +94,74 @@ def _sigma_crit_from(cosmology, redshift_0: float, redshift_1: float) -> float:
     return float(sigma_crit_kpc2 * kpc_per_arcsec**2)
 
 
+def _profile_name_from(profile) -> str:
+    """
+    The name a profile is recorded under in the template's
+    ``meta.skipped_profiles`` list.
+
+    A ``Basis`` (e.g. an MGE) is a single profile holding many inner profiles,
+    so it is named ``Basis(<inner profile> x N)`` to make clear how many
+    components were omitted.
+    """
+    name = type(profile).__name__
+
+    profile_list = getattr(profile, "profile_list", None)
+
+    if profile_list is None:
+        return name
+
+    inner = [type(inner_profile).__name__ for inner_profile in profile_list]
+    unique = sorted(set(inner))
+
+    if len(unique) == 1:
+        return f"{name}({unique[0]} x {len(inner)})"
+    return f"{name}({len(inner)} profiles)"
+
+
+def _record_skipped(metadata: Dict, galaxy_name: str, profile_name: str):
+    metadata.setdefault("skipped_profiles", []).append(
+        {"galaxy": galaxy_name, "profile": profile_name}
+    )
+
+
+def _observation_from(lazy, shape_native, pixel_size: float):
+    """
+    The COOLEST ``Observation`` block, whose pixel grid gives the template the
+    field of view and pixel count that COOLEST's plotting API requires.
+
+    A template written without it has a ``PixelatedRegularGrid`` of zeros,
+    which COOLEST's plotting cannot use, so a warning is raised.
+    """
+    if shape_native is None:
+        warnings.warn(
+            "The COOLEST template is being written with no observation pixel "
+            "grid, so its `observation.pixels` field of view and pixel counts "
+            "are all 0 and COOLEST's plotting API cannot render it. Pass "
+            "`shape_native=(y_pixels, x_pixels)` (with `pixel_size`) or "
+            "`dataset=` the imaging the model was fitted to.",
+            UserWarning,
+        )
+        return lazy.Observation()
+
+    pixels_y, pixels_x = int(shape_native[0]), int(shape_native[1])
+    pixel_size = float(pixel_size)
+
+    grid = lazy.PixelatedRegularGrid(
+        field_of_view_x=(
+            -pixels_x * pixel_size / 2.0,
+            pixels_x * pixel_size / 2.0,
+        ),
+        field_of_view_y=(
+            -pixels_y * pixel_size / 2.0,
+            pixels_y * pixel_size / 2.0,
+        ),
+        num_pix_x=pixels_x,
+        num_pix_y=pixels_y,
+    )
+
+    return lazy.Observation(pixels=grid)
+
+
 def _set_parameters(coolest_profile, parameters: Dict, point_estimate_cls):
     for name, value in parameters.items():
         coolest_profile.parameters[name].set_point_estimate(
@@ -105,6 +175,9 @@ def to_coolest(
     cosmology: Optional[ag.cosmo.LensingCosmology] = None,
     mode: str = "MAP",
     pixel_size: float = 0.1,
+    shape_native: Optional[Tuple[int, int]] = None,
+    dataset=None,
+    on_unsupported: str = "raise",
     metadata: Optional[Dict] = None,
 ) -> str:
     """
@@ -133,14 +206,37 @@ def to_coolest(
         for a simulated one.
     pixel_size
         The instrument pixel size (arcsec) written to the template's minimal
-        instrument block.
+        instrument block and used to compute the observation grid's field of
+        view. Overridden by ``dataset`` if one is passed.
+    shape_native
+        The ``(y_pixels, x_pixels)`` shape of the observation, which with
+        ``pixel_size`` writes the template's ``observation.pixels`` grid (its
+        field of view and pixel counts). COOLEST's plotting API requires this
+        grid; if neither ``shape_native`` nor ``dataset`` is passed the grid is
+        written as zeros and a ``UserWarning`` is raised.
+    dataset
+        The dataset the model was fitted to (e.g. an ``al.Imaging``), or any
+        object with ``shape_native`` and ``pixel_scales`` attributes, from
+        which ``shape_native`` and ``pixel_size`` are taken.
+    on_unsupported
+        What to do with profiles COOLEST cannot represent (e.g. a ``Basis`` of
+        Gaussians, an MGE, or a ``Pixelization``). "raise" (default) raises the
+        converter's error naming the profile; "skip" omits the profile from the
+        template and records it in the template's
+        ``meta["skipped_profiles"]`` as ``{"galaxy": ..., "profile": ...}``,
+        so the supported parts of the model still export.
     metadata
-        Extra metadata stored in the template.
+        Extra metadata stored in the template's ``meta`` block.
 
     Returns
     -------
     The path of the written ``.json`` template file.
     """
+    if on_unsupported not in ("raise", "skip"):
+        raise ValueError(
+            f"The `on_unsupported` input of `to_coolest` must be 'raise' or "
+            f"'skip', but '{on_unsupported}' was passed."
+        )
     PointEstimate, lazy, COOLEST, JSONSerializer = _coolest_modules()
 
     if isinstance(galaxies, Tracer):
@@ -150,15 +246,45 @@ def to_coolest(
         galaxies = list(galaxies)
         cosmology = cosmology or ag.cosmo.Planck15()
 
+    if dataset is not None:
+        pixel_size = float(dataset.pixel_scales[0])
+        shape_native = tuple(dataset.shape_native)
+
     redshift_max = max(galaxy.redshift for galaxy in galaxies)
+
+    metadata = dict(metadata or {})
 
     entities = []
 
     for i, galaxy in enumerate(galaxies):
-        light_dicts = [
-            coolest_dict_from_light(profile=profile)
-            for profile in galaxy.cls_list_from(cls=LightProfile)
-        ]
+        galaxy_name = f"galaxy_{i}"
+
+        # A `Basis` is both a `LightProfile` and a `MassProfile`, so it appears
+        # in both lists below and is recorded only once.
+        skipped_ids = set()
+
+        light_dicts = []
+
+        for profile in galaxy.cls_list_from(cls=LightProfile):
+            try:
+                light_dicts.append(coolest_dict_from_light(profile=profile))
+            except (ag.exc.ProfileException, ValueError):
+                if on_unsupported == "raise":
+                    raise
+                skipped_ids.add(id(profile))
+                _record_skipped(
+                    metadata=metadata,
+                    galaxy_name=galaxy_name,
+                    profile_name=_profile_name_from(profile),
+                )
+
+        if on_unsupported == "skip":
+            for pixelization in galaxy.cls_list_from(cls=aa.Pixelization):
+                _record_skipped(
+                    metadata=metadata,
+                    galaxy_name=galaxy_name,
+                    profile_name=(f"Pixelization({type(pixelization.mesh).__name__})"),
+                )
 
         mass_profiles = galaxy.cls_list_from(cls=MassProfile)
 
@@ -175,12 +301,24 @@ def to_coolest(
         mass_dicts = []
 
         for profile in mass_profiles:
+            if id(profile) in skipped_ids:
+                continue
             if isinstance(profile, (ExternalShear, MassSheet)):
                 field_profiles.append(profile)
             else:
-                mass_dicts.append(
-                    coolest_dict_from_mass(profile=profile, sigma_crit=sigma_crit)
-                )
+                try:
+                    mass_dicts.append(
+                        coolest_dict_from_mass(profile=profile, sigma_crit=sigma_crit)
+                    )
+                except (ag.exc.ProfileException, ValueError):
+                    if on_unsupported == "raise":
+                        raise
+                    skipped_ids.add(id(profile))
+                    _record_skipped(
+                        metadata=metadata,
+                        galaxy_name=galaxy_name,
+                        profile_name=_profile_name_from(profile),
+                    )
 
         light_model = lazy.LightModel(*[d["type"] for d in light_dicts])
         mass_model = lazy.MassModel(*[d["type"] for d in mass_dicts])
@@ -196,7 +334,7 @@ def to_coolest(
 
         entities.append(
             lazy.Galaxy(
-                f"galaxy_{i}",
+                galaxy_name,
                 float(galaxy.redshift),
                 light_model=light_model,
                 mass_model=mass_model,
@@ -205,13 +343,10 @@ def to_coolest(
 
         if field_profiles:
             field_dicts = [
-                coolest_dict_from_mass(profile=profile)
-                for profile in field_profiles
+                coolest_dict_from_mass(profile=profile) for profile in field_profiles
             ]
             field_model = lazy.MassModel(*[d["type"] for d in field_dicts])
-            for coolest_profile, profile_dict in zip(
-                list(field_model), field_dicts
-            ):
+            for coolest_profile, profile_dict in zip(list(field_model), field_dicts):
                 _set_parameters(
                     coolest_profile=coolest_profile,
                     parameters=profile_dict["parameters"],
@@ -228,7 +363,6 @@ def to_coolest(
     h0 = getattr(cosmology.H0, "value", cosmology.H0)
     om0 = getattr(cosmology.Om0, "value", cosmology.Om0)
 
-    metadata = dict(metadata or {})
     metadata.setdefault(
         "generated_by",
         "PyAutoLens (autolens.interop.coolest); theta_E is the profile's "
@@ -240,7 +374,7 @@ def to_coolest(
         mode,
         lazy.CoordinatesOrigin(),
         lazy.LensingEntityList(*entities),
-        lazy.Observation(),
+        _observation_from(lazy=lazy, shape_native=shape_native, pixel_size=pixel_size),
         lazy.Instrument(pixel_size),
         cosmology=lazy.Cosmology(H0=float(h0), Om0=float(om0)),
         metadata=metadata,
@@ -299,9 +433,9 @@ def from_coolest(
     """
     _, _, _, JSONSerializer = _coolest_modules()
 
-    root = JSONSerializer(
-        _path_no_ext(file_path), check_external_files=False
-    ).load(verbose=False)
+    root = JSONSerializer(_path_no_ext(file_path), check_external_files=False).load(
+        verbose=False
+    )
 
     if cosmology is None:
         if root.cosmology is not None:
@@ -349,8 +483,6 @@ def from_coolest(
                 intermediate=intermediate,
             )
 
-        galaxies.append(
-            Galaxy(redshift=float(entity.redshift), **profiles)
-        )
+        galaxies.append(Galaxy(redshift=float(entity.redshift), **profiles))
 
     return Tracer(galaxies=galaxies, cosmology=cosmology)
