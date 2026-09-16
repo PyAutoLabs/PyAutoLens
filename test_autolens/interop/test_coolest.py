@@ -127,13 +127,11 @@ def test__round_trip__nfw_uses_sigma_crit_from_cosmology(tmp_path):
     file_path = interop_coolest.to_coolest(
         galaxies=galaxies, file_path=str(tmp_path / "template"), cosmology=cosmology
     )
-    tracer_back = interop_coolest.from_coolest(
-        file_path=file_path, cosmology=cosmology
-    )
+    tracer_back = interop_coolest.from_coolest(file_path=file_path, cosmology=cosmology)
 
-    nfw_back = [
-        galaxy for galaxy in tracer_back.galaxies if galaxy.redshift == 0.3
-    ][0].mass_0
+    nfw_back = [galaxy for galaxy in tracer_back.galaxies if galaxy.redshift == 0.3][
+        0
+    ].mass_0
 
     assert nfw_back.kappa_s == pytest.approx(0.15, rel=1e-8)
     assert nfw_back.scale_radius == pytest.approx(6.0, rel=1e-8)
@@ -166,9 +164,7 @@ def test__from_coolest__intermediate_returns_power_law_intermediate(tmp_path):
         galaxies=galaxies, file_path=str(tmp_path / "template")
     )
 
-    tracer_back = interop_coolest.from_coolest(
-        file_path=file_path, intermediate=True
-    )
+    tracer_back = interop_coolest.from_coolest(file_path=file_path, intermediate=True)
 
     mass_back = [g for g in tracer_back.galaxies if g.redshift == 0.5][0].mass_0
 
@@ -177,9 +173,9 @@ def test__from_coolest__intermediate_returns_power_law_intermediate(tmp_path):
 
     grid = al.Grid2DIrregular([[1.0, 0.5], [-0.3, 0.7]])
     tracer = al.Tracer(galaxies=galaxies)
-    assert np.asarray(
-        tracer_back.deflections_yx_2d_from(grid=grid)
-    ) == pytest.approx(np.asarray(tracer.deflections_yx_2d_from(grid=grid)), rel=1e-8)
+    assert np.asarray(tracer_back.deflections_yx_2d_from(grid=grid)) == pytest.approx(
+        np.asarray(tracer.deflections_yx_2d_from(grid=grid)), rel=1e-8
+    )
 
 
 def test__round_trip__relative_file_path(tmp_path, monkeypatch):
@@ -225,3 +221,197 @@ def test__from_coolest__missing_point_estimate_raises(tmp_path):
 
     with pytest.raises(ValueError):
         interop_coolest.from_coolest(file_path=f"{path}.json")
+
+
+def unsupported_model_galaxies():
+    """
+    A model COOLEST cannot fully represent: an MGE (`Basis` of Gaussians) lens
+    light, an isothermal mass with shear and a pixelized (Delaunay) source.
+    """
+    lens = al.Galaxy(
+        redshift=0.5,
+        bulge=al.lp_basis.Basis(
+            profile_list=[
+                al.lp.GaussianSph(intensity=1.0, sigma=0.1),
+                al.lp.GaussianSph(intensity=0.5, sigma=0.3),
+            ]
+        ),
+        mass=al.mp.Isothermal(
+            centre=(0.0, 0.0),
+            ell_comps=al.convert.ell_comps_from(axis_ratio=0.7, angle=45.0),
+            einstein_radius=1.6,
+        ),
+        shear=al.mp.ExternalShear(gamma_1=0.02, gamma_2=-0.03),
+    )
+    source = al.Galaxy(
+        redshift=1.0,
+        pixelization=al.Pixelization(
+            mesh=al.mesh.Delaunay(pixels=100),
+            regularization=al.reg.Constant(coefficient=1.0),
+        ),
+    )
+    return [lens, source]
+
+
+def test__to_coolest__shape_native_writes_observation_pixel_grid(tmp_path):
+    file_path = interop_coolest.to_coolest(
+        galaxies=lens_model_galaxies(),
+        file_path=str(tmp_path / "template"),
+        shape_native=(10, 12),
+        pixel_size=0.05,
+    )
+
+    with open(file_path) as f:
+        template = json.load(f)
+
+    pixels = template["observation"]["pixels"]
+
+    assert pixels["field_of_view_x"] == pytest.approx([-0.3, 0.3])
+    assert pixels["field_of_view_y"] == pytest.approx([-0.25, 0.25])
+    assert pixels["num_pix_x"] == 12
+    assert pixels["num_pix_y"] == 10
+
+    # The grid's pixel scale is the instrument pixel size, which is what
+    # COOLEST's plotting API uses to lay the image out.
+    pixel_size = (pixels["field_of_view_x"][1] - pixels["field_of_view_x"][0]) / pixels[
+        "num_pix_x"
+    ]
+
+    assert pixel_size == pytest.approx(template["instrument"]["pixel_size"])
+
+
+def test__to_coolest__dataset_writes_observation_pixel_grid(tmp_path):
+    dataset = al.Imaging(
+        data=al.Array2D.no_mask(
+            values=np.ones((8, 6)),
+            pixel_scales=0.2,
+        ),
+        noise_map=al.Array2D.no_mask(
+            values=np.ones((8, 6)),
+            pixel_scales=0.2,
+        ),
+    )
+
+    file_path = interop_coolest.to_coolest(
+        galaxies=lens_model_galaxies(),
+        file_path=str(tmp_path / "template"),
+        dataset=dataset,
+    )
+
+    with open(file_path) as f:
+        template = json.load(f)
+
+    pixels = template["observation"]["pixels"]
+
+    assert pixels["num_pix_y"] == 8
+    assert pixels["num_pix_x"] == 6
+    assert pixels["field_of_view_y"] == pytest.approx([-0.8, 0.8])
+    assert pixels["field_of_view_x"] == pytest.approx([-0.6, 0.6])
+    assert template["instrument"]["pixel_size"] == pytest.approx(0.2)
+
+
+def test__to_coolest__no_grid_warns_and_writes_zeros(tmp_path):
+    with pytest.warns(UserWarning):
+        file_path = interop_coolest.to_coolest(
+            galaxies=lens_model_galaxies(), file_path=str(tmp_path / "template")
+        )
+
+    with open(file_path) as f:
+        template = json.load(f)
+
+    pixels = template["observation"]["pixels"]
+
+    assert pixels["num_pix_x"] == 0
+    assert pixels["num_pix_y"] == 0
+    assert pixels["field_of_view_x"] == pytest.approx([0.0, 0.0])
+
+
+def test__to_coolest__unsupported_profiles_raise_by_default(tmp_path):
+    import autogalaxy as ag
+
+    with pytest.raises(ag.exc.ProfileException):
+        interop_coolest.to_coolest(
+            galaxies=unsupported_model_galaxies(),
+            file_path=str(tmp_path / "template"),
+            shape_native=(10, 10),
+        )
+
+
+def test__to_coolest__on_unsupported_skip_records_skipped_profiles(tmp_path):
+    file_path = interop_coolest.to_coolest(
+        galaxies=unsupported_model_galaxies(),
+        file_path=str(tmp_path / "template"),
+        shape_native=(10, 10),
+        on_unsupported="skip",
+    )
+
+    with open(file_path) as f:
+        template = json.load(f)
+
+    skipped = template["meta"]["skipped_profiles"]
+
+    profiles = [entry["profile"] for entry in skipped]
+
+    assert any(
+        profile.startswith("Basis(") and "Gaussian" in profile for profile in profiles
+    )
+    assert "Pixelization(Delaunay)" in profiles
+
+    # The `Basis` is both a light and a mass profile but is recorded once.
+    assert len([p for p in profiles if p.startswith("Basis(")]) == 1
+
+    assert [entry["galaxy"] for entry in skipped if "Basis" in entry["profile"]] == [
+        "galaxy_0"
+    ]
+
+    entities = template["lensing_entities"]
+
+    lens_entity = [
+        entity
+        for entity in entities
+        if entity["type"] == "Galaxy" and entity["redshift"] == 0.5
+    ][0]
+
+    # The supported mass profile is still exported, with no light profiles.
+    assert [profile["type"] for profile in lens_entity["mass_model"]] == ["SIE"]
+    assert lens_entity["light_model"] == []
+
+    # The shear is still written as its own MassField entity.
+    assert [entity["type"] for entity in entities].count("MassField") == 1
+
+
+def test__to_coolest__on_unsupported_invalid_raises(tmp_path):
+    with pytest.raises(ValueError):
+        interop_coolest.to_coolest(
+            galaxies=lens_model_galaxies(),
+            file_path=str(tmp_path / "template"),
+            shape_native=(10, 10),
+            on_unsupported="ignore",
+        )
+
+
+def test__from_coolest__skipped_template_returns_mass_profiles_only(tmp_path):
+    file_path = interop_coolest.to_coolest(
+        galaxies=unsupported_model_galaxies(),
+        file_path=str(tmp_path / "template"),
+        shape_native=(10, 10),
+        on_unsupported="skip",
+    )
+
+    tracer_back = interop_coolest.from_coolest(file_path=file_path)
+
+    from autogalaxy.profiles.light.abstract import LightProfile
+    from autogalaxy.profiles.mass.abstract.abstract import MassProfile
+
+    light_profiles = []
+    mass_profiles = []
+
+    for galaxy in tracer_back.galaxies:
+        light_profiles += galaxy.cls_list_from(cls=LightProfile)
+        mass_profiles += galaxy.cls_list_from(cls=MassProfile)
+
+    assert light_profiles == []
+
+    types = sorted(type(profile).__name__ for profile in mass_profiles)
+
+    assert types == ["ExternalShear", "Isothermal"]
