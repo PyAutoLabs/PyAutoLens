@@ -614,9 +614,38 @@ class LOSSampler:
         self.mass_concentration_coefficients = mass_concentration_coefficients
         self.seed = seed
 
-    def galaxies_from(self) -> List[ag.Galaxy]:
+        # The sampled population, cached so `galaxies_from()` and `fields_from()` describe the *same*
+        # line of sight. Without it the two would resample -- and with the default `seed=None` the
+        # second call would draw an entirely different population, which is not a line of sight at all.
+        self._population = None
+
+    def _sampled_population(self):
+        """
+        Returns the sampled line-of-sight population, sampling it on first call and caching it.
+
+        Returns
+        -------
+        A tuple ``(halo_galaxies_per_plane, sheet_kappas_per_plane)``, where the first is one list of
+        halo `Galaxy` objects per plane and the second one ``(z_centre, kappa_negative)`` tuple per
+        plane. They are held per plane, rather than as one flat list of halos, purely so
+        `galaxies_from` can rebuild its historical plane-by-plane ordering exactly.
+        """
+        if self._population is None:
+            self._population = self._sample_population()
+
+        return self._population
+
+    def galaxies_from(self, sheets_as_fields: bool = False) -> List[ag.Galaxy]:
         """
         Sample LOS halos and negative kappa sheets.
+
+        Parameters
+        ----------
+        sheets_as_fields
+            If True, only the halo galaxies are returned and the negative-kappa sheets are left to
+            `fields_from`, which returns them as `MassField` objects for `Tracer(fields=...)`. The
+            default is False, which keeps the historical return -- halos *and* sheet galaxies -- so
+            existing scripts (e.g. the workspace `los_halos` simulators) are unaffected.
 
         Returns
         -------
@@ -625,7 +654,61 @@ class LOSSampler:
             - One ``Galaxy`` per sampled halo, each with an
               ``NFWTruncatedSph`` mass profile.
             - One ``Galaxy`` per plane with a ``MassSheet`` for the
-              negative kappa correction.
+              negative kappa correction (omitted if ``sheets_as_fields=True``).
+        """
+        halo_galaxies_per_plane, sheet_kappas_per_plane = self._sampled_population()
+
+        if sheets_as_fields:
+            return [galaxy for halos in halo_galaxies_per_plane for galaxy in halos]
+
+        galaxies = []
+
+        for halos, (z_cen, kappa_neg) in zip(
+            halo_galaxies_per_plane, sheet_kappas_per_plane
+        ):
+            galaxies += halos
+            galaxies.append(
+                ag.Galaxy(
+                    redshift=z_cen,
+                    mass_sheet=ag.mp.MassSheet(kappa=kappa_neg),
+                )
+            )
+
+        return galaxies
+
+    def fields_from(self) -> List[ag.MassField]:
+        """
+        Returns the negative-kappa sheet of every plane as a `MassField`.
+
+        A negative-kappa sheet is not a galaxy: it is the mean-density correction of the line of
+        sight, which is exactly the external mass a `MassField` exists to hold. Pass the result to
+        `Tracer(fields=...)` beside `galaxies_from(sheets_as_fields=True)`.
+
+        The population is shared with `galaxies_from`, so the sheets returned here are the ones
+        belonging to the same sampled line of sight.
+        """
+        _, sheet_kappas_per_plane = self._sampled_population()
+
+        return [
+            ag.MassField(
+                redshift=z_cen,
+                mass_sheet=ag.mp.MassSheet(kappa=kappa_neg),
+            )
+            for z_cen, kappa_neg in sheet_kappas_per_plane
+        ]
+
+    def galaxies_and_fields_from(self) -> Tuple[List[ag.Galaxy], List[ag.MassField]]:
+        """
+        Returns ``(halo_galaxies, sheet_fields)`` -- the pair `Tracer(galaxies=..., fields=...)` takes.
+
+        This is the convenience door for the `MassField` form; `galaxies_from()` on its own remains
+        the galaxy-attached form and is not deprecated.
+        """
+        return self.galaxies_from(sheets_as_fields=True), self.fields_from()
+
+    def _sample_population(self):
+        """
+        Samples the line-of-sight population once. See `_sampled_population` for the return shape.
         """
         cosmology = self.cosmology
         rng = np.random.RandomState(self.seed)
@@ -680,9 +763,12 @@ class LOSSampler:
                 )
                 mc_coeffs[i] = [A, B]
 
-        galaxies = []
+        halo_galaxies_per_plane = []
+        sheet_kappas_per_plane = []
 
         for i in range(n_planes):
+            plane_halo_galaxies = []
+
             z_lo = boundaries[i]
             z_hi = boundaries[i + 1]
             z_cen = centres[i]
@@ -757,7 +843,7 @@ class LOSSampler:
                         cosmology=cosmology,
                         truncation_factor=self.truncation_factor,
                     )
-                    galaxies.append(
+                    plane_halo_galaxies.append(
                         ag.Galaxy(redshift=z_cen, mass=halo)
                     )
 
@@ -785,11 +871,7 @@ class LOSSampler:
                     quad_limit=quad_limit,
                     quad_epsrel=quad_epsrel,
                 )
-            galaxies.append(
-                ag.Galaxy(
-                    redshift=z_cen,
-                    mass_sheet=ag.mp.MassSheet(kappa=kappa_neg),
-                )
-            )
+            halo_galaxies_per_plane.append(plane_halo_galaxies)
+            sheet_kappas_per_plane.append((z_cen, kappa_neg))
 
-        return galaxies
+        return halo_galaxies_per_plane, sheet_kappas_per_plane

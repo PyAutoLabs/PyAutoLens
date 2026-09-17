@@ -253,6 +253,26 @@ aplt.plot_array(array=tracer.image_2d_from(grid=grid), title="Image")
 :width: 600
 ```
 
+### External fields
+
+Not all of the mass that lenses a source belongs to a galaxy: line-of-sight structure and
+the group or cluster the lens sits in produce an external shear, a mass sheet and
+higher-order terms which describe the tidal field of everything outside the system being
+modelled. A `MassField` is the home for those components — mass at a redshift, with no
+light of its own — and a tracer takes a list of them:
+
+```python
+field = al.MassField(redshift=0.5, shear=al.mp.ExternalShear(gamma_1=0.05, gamma_2=0.05))
+
+tracer = al.Tracer(galaxies=[lens_galaxy, source_galaxy], fields=[field])
+```
+
+Each field is placed in the plane at its redshift and contributes its mass to every lensing
+calculation, exactly as a galaxy's mass profiles do; it simply contributes no light. The
+galaxy-attached form — writing `al.Galaxy(redshift=0.5, shear=al.mp.ExternalShear(...))` —
+remains fully supported and is not deprecated, so nothing you have already written needs to
+change.
+
 ## Units
 
 The units used throughout the strong lensing literature vary, therefore lets quickly describe the units used in

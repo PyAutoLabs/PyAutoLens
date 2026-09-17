@@ -60,6 +60,7 @@ from autogalaxy.gui.clicker import Clicker
 from autogalaxy.gui.scribbler import Scribbler
 from autogalaxy.galaxy.galaxy import Galaxy
 from autogalaxy.galaxy.galaxies import Galaxies
+from autogalaxy.galaxy.mass_field import MassField
 from autogalaxy.galaxy.galaxy_table import GalaxyTable
 from autogalaxy.galaxy.galaxy_table import galaxy_table_from_csv
 from autogalaxy.galaxy.galaxy_table import galaxy_table_to_csv

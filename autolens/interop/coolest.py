@@ -186,14 +186,19 @@ def to_coolest(
 
     Every galaxy becomes a COOLEST ``Galaxy`` lensing entity with its light
     and mass profiles converted to COOLEST conventions. ``ExternalShear`` and
-    ``MassSheet`` profiles are exported as COOLEST ``MassField`` entities (the
-    standard treats external fields separately from galaxies).
+    ``MassSheet`` profiles attached to a galaxy are peeled off and exported as
+    COOLEST ``MassField`` entities named ``mass_field_{i}`` (the standard treats
+    external fields separately from galaxies).
+
+    A ``Tracer``'s own ``fields`` -- its ``ag.MassField`` objects -- are exported
+    as COOLEST ``MassField`` entities too, named ``field_{j}``, carrying every
+    mass profile they hold (not only shears and sheets).
 
     Parameters
     ----------
     galaxies
         The galaxies of the lens model (each with a ``redshift``), or a
-        ``Tracer`` whose galaxies (and cosmology) are used.
+        ``Tracer`` whose galaxies, fields and cosmology are used.
     file_path
         The output path of the template; a ``.json`` extension is appended by
         the COOLEST serializer if not present.
@@ -241,16 +246,21 @@ def to_coolest(
 
     if isinstance(galaxies, Tracer):
         cosmology = cosmology or galaxies.cosmology
+        # Read `fields` before rebinding the name: a list of galaxies has no fields.
+        fields = list(galaxies.fields)
         galaxies = list(galaxies.galaxies)
     else:
         galaxies = list(galaxies)
+        fields = []
         cosmology = cosmology or ag.cosmo.Planck15()
 
     if dataset is not None:
         pixel_size = float(dataset.pixel_scales[0])
         shape_native = tuple(dataset.shape_native)
 
-    redshift_max = max(galaxy.redshift for galaxy in galaxies)
+    redshift_max = max(
+        [galaxy.redshift for galaxy in galaxies] + [field.redshift for field in fields]
+    )
 
     metadata = dict(metadata or {})
 
@@ -360,6 +370,56 @@ def to_coolest(
                 )
             )
 
+    # The tracer's own `MassField` objects. Unlike the legacy peel above, which pulls only
+    # `ExternalShear` / `MassSheet` off a galaxy, a field carries *every* mass profile it holds --
+    # it is already the container for external mass, so there is nothing to select.
+    for j, field in enumerate(fields):
+        field_name = f"field_{j}"
+
+        field_mass_profiles = field.cls_list_from(cls=MassProfile)
+
+        sigma_crit = None
+        if any(isinstance(profile, NFW) for profile in field_mass_profiles):
+            if field.redshift < redshift_max:
+                sigma_crit = _sigma_crit_from(
+                    cosmology=cosmology,
+                    redshift_0=field.redshift,
+                    redshift_1=redshift_max,
+                )
+
+        field_dicts = []
+
+        for profile in field_mass_profiles:
+            try:
+                field_dicts.append(
+                    coolest_dict_from_mass(profile=profile, sigma_crit=sigma_crit)
+                )
+            except (ag.exc.ProfileException, ValueError):
+                if on_unsupported == "raise":
+                    raise
+                _record_skipped(
+                    metadata=metadata,
+                    galaxy_name=field_name,
+                    profile_name=_profile_name_from(profile),
+                )
+
+        field_mass_model = lazy.MassModel(*[d["type"] for d in field_dicts])
+
+        for coolest_profile, profile_dict in zip(list(field_mass_model), field_dicts):
+            _set_parameters(
+                coolest_profile=coolest_profile,
+                parameters=profile_dict["parameters"],
+                point_estimate_cls=PointEstimate,
+            )
+
+        entities.append(
+            lazy.MassField(
+                field_name,
+                float(field.redshift),
+                mass_model=field_mass_model,
+            )
+        )
+
     h0 = getattr(cosmology.H0, "value", cosmology.H0)
     om0 = getattr(cosmology.Om0, "value", cosmology.Om0)
 
@@ -413,9 +473,11 @@ def from_coolest(
 
     Every COOLEST ``Galaxy`` entity becomes a PyAutoLens galaxy with its light
     profiles (``light_0``, ``light_1``, ...) and mass profiles (``mass_0``,
-    ...); every ``MassField`` entity becomes a galaxy holding its external
-    mass profiles. All parameters are converted from COOLEST conventions to
-    PyAutoLens conventions (see ``autogalaxy.interop.coolest``).
+    ...); every ``MassField`` entity becomes an ``ag.MassField`` holding its
+    external mass profiles (``mass_0``, ...), returned in the tracer's
+    ``fields`` rather than its ``galaxies``. All parameters are converted from
+    COOLEST conventions to PyAutoLens conventions (see
+    ``autogalaxy.interop.coolest``).
 
     Parameters
     ----------
@@ -450,8 +512,13 @@ def from_coolest(
     redshift_max = max(float(entity.redshift) for entity in entities)
 
     galaxies = []
+    fields = []
 
     for entity in entities:
+        # A COOLEST `MassField` is the standard's own external-field entity, so it maps onto
+        # PyAutoLens's `MassField` rather than onto a galaxy holding external mass profiles.
+        is_field = type(entity).__name__ == "MassField"
+
         profiles = {}
 
         light_model = getattr(entity, "light_model", None) or []
@@ -483,6 +550,9 @@ def from_coolest(
                 intermediate=intermediate,
             )
 
-        galaxies.append(Galaxy(redshift=float(entity.redshift), **profiles))
+        if is_field:
+            fields.append(ag.MassField(redshift=float(entity.redshift), **profiles))
+        else:
+            galaxies.append(Galaxy(redshift=float(entity.redshift), **profiles))
 
-    return Tracer(galaxies=galaxies, cosmology=cosmology)
+    return Tracer(galaxies=galaxies, fields=fields, cosmology=cosmology)

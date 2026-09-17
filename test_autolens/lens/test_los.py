@@ -108,3 +108,117 @@ def test__galaxies_from__test_mode_caps_halos_per_plane(monkeypatch):
 
     assert len(counts) > 0
     assert all(count <= 3 for count in counts.values())
+
+
+def _test_mode_sampler(monkeypatch):
+    monkeypatch.setenv("PYAUTO_TEST_MODE", "2")
+
+    cosmology = Planck15()
+    _, centres = los.los_planes_from(
+        z_lens=0.5, z_source=1.0, planes_before_lens=4, planes_after_lens=4
+    )
+    n_planes = len(centres)
+    mf, mc = _approx_coefficients(n_planes)
+
+    sampler = los.LOSSampler(
+        z_lens=0.5,
+        z_source=1.0,
+        planes_before_lens=4,
+        planes_after_lens=4,
+        m_min=1e7,
+        m_max=1e10,
+        cone_radius_arcsec=5.0,
+        c_scatter=0.15,
+        truncation_factor=100.0,
+        cosmology=cosmology,
+        mass_function_coefficients=mf,
+        mass_concentration_coefficients=mc,
+        seed=42,
+    )
+
+    return sampler, n_planes
+
+
+def test__fields_from__sheets_are_mass_fields_with_the_legacy_kappa_per_plane(
+    monkeypatch,
+):
+    """
+    A negative-kappa sheet is external mass, not a galaxy. `fields_from` returns exactly the
+    sheets `galaxies_from()` has always returned — same redshift, same kappa, same order —
+    wrapped in a `MassField` instead of a `Galaxy`.
+    """
+    sampler, n_planes = _test_mode_sampler(monkeypatch)
+
+    galaxies = sampler.galaxies_from()
+    fields = sampler.fields_from()
+
+    sheet_galaxies = [
+        g
+        for g in galaxies
+        if hasattr(g, "mass_sheet") and isinstance(g.mass_sheet, al.mp.MassSheet)
+    ]
+
+    assert len(fields) == n_planes
+    assert all(isinstance(field, al.MassField) for field in fields)
+
+    for field, sheet_galaxy in zip(fields, sheet_galaxies):
+        assert field.redshift == sheet_galaxy.redshift
+        assert field.mass_sheet.kappa == pytest.approx(
+            sheet_galaxy.mass_sheet.kappa, rel=1e-12
+        )
+
+
+def test__galaxies_from__sheets_as_fields_returns_halos_only(monkeypatch):
+    sampler, n_planes = _test_mode_sampler(monkeypatch)
+
+    everything = sampler.galaxies_from()
+    halos_only = sampler.galaxies_from(sheets_as_fields=True)
+
+    assert len(halos_only) == len(everything) - n_planes
+    assert all(
+        hasattr(g, "mass") and isinstance(g.mass, al.mp.NFWTruncatedSph)
+        for g in halos_only
+    )
+
+    # The test-mode halo cap still applies on this path.
+    counts = {}
+    for g in halos_only:
+        counts[g.redshift] = counts.get(g.redshift, 0) + 1
+
+    assert len(counts) > 0
+    assert all(count <= 3 for count in counts.values())
+
+
+def test__galaxies_and_fields_from__is_the_pair_the_tracer_takes(monkeypatch):
+    sampler, n_planes = _test_mode_sampler(monkeypatch)
+
+    galaxies, fields = sampler.galaxies_and_fields_from()
+
+    assert galaxies == sampler.galaxies_from(sheets_as_fields=True)
+    assert len(fields) == n_planes
+
+    tracer = al.Tracer(
+        galaxies=galaxies
+        + [
+            al.Galaxy(redshift=0.5, mass=al.mp.IsothermalSph(einstein_radius=1.0)),
+            al.Galaxy(redshift=1.0, bulge=al.lp.SersicSph(intensity=1.0)),
+        ],
+        fields=fields,
+    )
+
+    assert len(tracer.fields) == n_planes
+    assert all(not isinstance(galaxy, al.MassField) for galaxy in tracer.galaxies)
+
+
+def test__the_population_is_sampled_once_and_shared(monkeypatch):
+    """
+    `galaxies_from()` and `fields_from()` must describe the same line of sight, so the
+    sample is cached on the instance rather than redrawn per call.
+    """
+    sampler, _ = _test_mode_sampler(monkeypatch)
+
+    first = sampler.galaxies_from()
+    second = sampler.galaxies_from()
+
+    assert [g.redshift for g in first] == [g.redshift for g in second]
+    assert first[0] is second[0]

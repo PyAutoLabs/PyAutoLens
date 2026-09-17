@@ -64,3 +64,22 @@ Adapt
    :toctree: generated/
 
    AdaptImages
+
+Model Utilities
+---------------
+
+Convenience functions which compose commonly used ``af.Model`` objects.
+
+``mass_field_from`` builds the ``af.Model(al.MassField, ...)`` external-field model that
+goes in a model's ``fields`` collection, sharing the centre of its ``MassSheet`` /
+``ExternalPotential`` components with the lens galaxy model's mass centre.
+
+.. currentmodule:: autolens.analysis.model_util
+
+.. autosummary::
+   :toctree: generated/
+
+   mass_field_from
+   mge_model_from
+   mge_point_model_from
+   hilbert_pixels_from_pixel_scale

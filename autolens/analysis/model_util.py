@@ -15,10 +15,14 @@ Key functions re-exported from ``autogalaxy``:
 PyAutoLens-specific:
 - ``random_galaxies_for_simulation_from`` — sample concrete (lens, source) ``Galaxy``
   instances for synthetic-data generation in ``start_here`` scripts.
+- ``mass_field_from`` — build the ``af.Model(al.MassField, ...)`` external-field model that
+  goes in a model's ``fields`` collection.
 """
 from typing import Optional, Tuple
 
 import numpy as np
+
+import autofit as af
 
 import autolens as al
 
@@ -119,3 +123,91 @@ def random_galaxies_for_simulation_from(
         source = al.Galaxy(redshift=1.0, bulge=source_bulge)
 
     return lens, source
+
+
+def mass_field_from(
+    lens: af.Model,
+    shear: bool = True,
+    mass_sheet: bool = False,
+    potential: bool = False,
+    redshift: Optional[float] = None,
+) -> af.Model:
+    """
+    Build the ``af.Model(al.MassField, ...)`` describing the tidal field of everything
+    outside the modelled system, with its geometry tied to a lens galaxy model.
+
+    The external field is composed of the components no galaxy owns — an ``ExternalShear``,
+    a ``MassSheet``, an ``ExternalPotential`` — and is placed in a model's ``fields``
+    collection rather than bolted onto a galaxy::
+
+        lens = af.Model(al.Galaxy, redshift=0.5, mass=af.Model(al.mp.Isothermal))
+
+        model = af.Collection(
+            galaxies=af.Collection(lens=lens, source=source),
+            fields=af.Collection(field=al.model_util.mass_field_from(lens=lens)),
+        )
+
+    The ``MassSheet`` and ``ExternalPotential`` have a meaningful centre (unlike an
+    ``ExternalShear``, whose deflection field is constant), and that centre is physically
+    the centre of the system the field is expanded about. It is therefore **shared** with
+    the lens galaxy's mass centre — the same prior object, not a copy — so the two move
+    together in the non-linear search and cost no extra dimensions.
+
+    In a multi-deflector system, ``lens`` is the *primary* deflector: the galaxy whose
+    centre the external expansion is about. Pass that galaxy's model, not a secondary one.
+
+    The galaxy-attached form (``af.Model(al.Galaxy, ..., shear=af.Model(al.mp.ExternalShear))``)
+    remains fully supported and is not deprecated; this is a second way to write the same
+    physics, one which keeps the external field out of the galaxy.
+
+    Parameters
+    ----------
+    lens
+        The ``af.Model`` of the (primary) lens galaxy. Its ``mass.centre`` is shared with the
+        field's centred components and, unless ``redshift`` is given, its redshift is the
+        field's redshift.
+    shear
+        If True (default), the field includes an ``ExternalShear``.
+    mass_sheet
+        If True, the field includes a ``MassSheet``, centred on the lens mass.
+    potential
+        If True, the field includes an ``ExternalPotential``, centred on the lens mass.
+    redshift
+        The redshift of the field. Defaults to the lens galaxy model's redshift.
+
+    Returns
+    -------
+    The ``af.Model`` of the ``MassField``, to be placed in the model's ``fields`` collection.
+    """
+    if not hasattr(lens, "mass"):
+        raise ValueError(
+            f"The `lens` model passed to `mass_field_from` has no `mass` attribute: "
+            f"{lens!r}. The external field's centred components are tied to the lens "
+            f"galaxy's mass centre, so the lens model must have a `mass`, e.g. "
+            f"af.Model(al.Galaxy, redshift=0.5, mass=af.Model(al.mp.Isothermal))."
+        )
+
+    redshift = lens.redshift if redshift is None else redshift
+
+    components = {}
+
+    if shear:
+        components["shear"] = af.Model(al.mp.ExternalShear)
+
+    if mass_sheet:
+        components["mass_sheet"] = af.Model(al.mp.MassSheet)
+
+    if potential:
+        components["potential"] = af.Model(al.mp.ExternalPotential)
+
+    field = af.Model(al.MassField, redshift=redshift, **components)
+
+    # The *same* prior object, not a copy: `field.potential.centre is lens.mass.centre` must
+    # hold, so the external expansion and the lens mass share one centre in the search.
+    if mass_sheet:
+        field.mass_sheet.centre = lens.mass.centre
+
+    if potential:
+        field.potential.centre = lens.mass.centre
+
+    return field

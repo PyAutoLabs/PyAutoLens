@@ -33,6 +33,7 @@ from autoarray import validate
 from autogalaxy.profiles.geometry_profiles import GeometryProfile
 from autogalaxy.profiles.light.abstract import LightProfile
 from autogalaxy.profiles.light.snr import LightProfileSNR
+from autogalaxy.galaxy.mass_field import MassField
 from autogalaxy.profiles.mass.abstract.abstract import MassProfile
 from autogalaxy.profiles.point_sources import Point, PointSolved
 
@@ -72,7 +73,7 @@ class MultiPlaneRedshiftWarning(UserWarning):
     """
 
 
-def _warn_if_no_light_is_behind_any_mass(galaxies):
+def _warn_if_no_light_is_behind_any_mass(galaxies, fields=None):
     """
     Warn if every light-bearing galaxy lies in front of (or level with) every
     mass-bearing galaxy, across more than one redshift plane.
@@ -105,11 +106,22 @@ def _warn_if_no_light_is_behind_any_mass(galaxies):
     ----------
     galaxies
         The galaxies the tracer was constructed with.
+    fields
+        The `MassField` objects the tracer was constructed with, if any. A field is
+        mass-bearing exactly like a galaxy's mass profiles, so it participates in the
+        geometry check; passing no fields leaves the check byte-identical to the
+        galaxies-only behaviour it had before fields existed.
     """
     try:
         galaxy_list = list(galaxies)
     except TypeError:
         return
+
+    if fields is not None:
+        try:
+            galaxy_list = galaxy_list + list(fields)
+        except TypeError:
+            return
 
     mass_redshifts = []
     light_redshifts = []
@@ -225,11 +237,67 @@ def _validate_galaxies(galaxies):
             )
 
 
+def _validate_fields(fields):
+    """
+    Raise if ``fields`` is not something the tracer can treat as a collection of
+    ``MassField`` objects.
+
+    This mirrors ``_validate_galaxies`` exactly — same container checks, same
+    string trap, same ``af.ModelInstance`` escape hatch — but names ``MassField``
+    in every message, because the two arguments are not interchangeable and the
+    most likely mistake is passing one where the other belongs.
+
+    A ``Galaxy`` in ``fields`` is called out by name: it is a valid lensing object
+    in the wrong argument, and saying "not a MassField" would not tell the caller
+    where it should have gone.
+
+    Parameters
+    ----------
+    fields
+        The input to validate.
+    """
+    if isinstance(fields, af.ModelInstance):
+        return
+
+    if isinstance(fields, (str, bytes)):
+        raise TypeError(
+            f"fields must be an iterable of MassField objects, but a "
+            f"{type(fields).__name__} was input: {fields!r}. A string is itself "
+            f"iterable, so this is not caught by an iterability check — pass a list "
+            f"of MassField objects, e.g. Tracer(galaxies=[lens, source], "
+            f"fields=[field])"
+        )
+
+    if not isinstance(fields, (list, tuple)):
+        raise TypeError(
+            f"fields must be an iterable of MassField objects, but a "
+            f"{type(fields).__name__} was input: {fields!r}. Pass a list of "
+            f"MassField objects, e.g. Tracer(galaxies=[lens, source], fields=[field])"
+        )
+
+    for index, field in enumerate(fields):
+        if isinstance(field, ag.Galaxy):
+            raise TypeError(
+                f"fields must be an iterable of MassField objects, but the entry at "
+                f"index {index} is a Galaxy: {field!r}. Galaxies go in the galaxies "
+                f"argument, e.g. Tracer(galaxies=[lens, source], fields=[field])"
+            )
+
+        if not hasattr(field, "redshift"):
+            raise TypeError(
+                f"fields must be an iterable of MassField objects, but the entry at "
+                f"index {index} is a {type(field).__name__}: {field!r}. Every entry "
+                f"needs a redshift, which is what the ray-tracing calculation groups "
+                f"the tracer's members into planes by"
+            )
+
+
 class Tracer(ABC, ag.OperateImageGalaxies):
     def __init__(
         self,
         galaxies: Union[List[ag.Galaxy], af.ModelInstance],
         cosmology: ag.cosmo.LensingCosmology = None,
+        fields: Optional[Union[List[MassField], af.ModelInstance]] = None,
     ):
         """
         Performs gravitational lensing ray-tracing calculations based on an input list of galaxies and a cosmology.
@@ -260,17 +328,46 @@ class Tracer(ABC, ag.OperateImageGalaxies):
             The list of galaxies which make up the gravitational lensing ray-tracing system.
         cosmology
             The cosmology used to perform ray-tracing calculations.
+        fields
+            The `MassField` objects describing the tidal field of everything outside the modelled system (e.g. an
+            external shear, a mass sheet, an external potential). Each is placed at its own redshift in the
+            multi-plane calculation exactly like a galaxy's mass, but contributes no light. Attaching these
+            components to a `Galaxy` instead remains fully supported and is not deprecated.
         """
 
         # if isinstance(galaxies, af.ModelInstance):
         #     galaxies = list(galaxies.values())
 
         _validate_galaxies(galaxies=galaxies)
-        _warn_if_no_light_is_behind_any_mass(galaxies=galaxies)
+
+        if fields is not None:
+            _validate_fields(fields=fields)
+
+        _warn_if_no_light_is_behind_any_mass(galaxies=galaxies, fields=fields)
 
         self.galaxies = galaxies
 
+        # Stored as a plain list (never None) so every member-walking property below can concatenate it
+        # unconditionally, and so a tracer with no fields serialises as `fields: []` rather than a null.
+        self.fields = list(fields) if fields is not None else []
+
         self.cosmology = cosmology or ag.cosmo.Planck15()
+
+    @property
+    def members(self) -> List:
+        """
+        Returns every object the tracer places in a plane: its galaxies followed by its fields.
+
+        A `MassField` is not a galaxy and never appears in `galaxies`, but it *is* a redshift-bearing,
+        mass-bearing member of the lensing system. Every lensing-quantity calculation (deflections,
+        convergence, potential, ray-tracing) therefore runs over `members`, whereas every surface which
+        enumerates *galaxies* (e.g. the per-galaxy image dictionary) runs over `galaxies` alone.
+
+        Returns
+        -------
+        The galaxies and fields of the tracer, in input order, galaxies first.
+        """
+        return list(self.galaxies) + list(self.fields)
 
     @property
     def galaxies_ascending_redshift(self) -> List[ag.Galaxy]:
@@ -300,6 +397,32 @@ class Tracer(ABC, ag.OperateImageGalaxies):
         return list(self.galaxies)
 
     @property
+    def members_ascending_redshift(self) -> List:
+        """
+        Returns every member of the tracer -- its galaxies and its fields -- in ascending redshift order.
+
+        This is the list the plane calculation is built from, so that a `MassField` sits in the plane at its
+        own redshift and contributes its mass to the multi-plane ray-tracing exactly as a galaxy's mass does.
+
+        `galaxies_ascending_redshift` keeps its galaxies-only meaning and is unchanged; the two properties
+        agree whenever a tracer has no fields.
+
+        The traced-redshift bypass matches `galaxies_ascending_redshift`: if any member has a JAX-traced
+        `redshift`, the input order is trusted (galaxies first, then fields), because a traced value cannot
+        be used as a sort key.
+
+        Returns
+        -------
+        The galaxies and fields in the tracer in ascending redshift order.
+        """
+        members = self.members
+
+        if not tracer_util._any_traced(members):
+            return sorted(members, key=lambda member: member.redshift)
+
+        return members
+
+    @property
     def plane_redshifts(self) -> List[float]:
         """
         Returns a list of plane redshifts from a list of galaxies, using the redshifts of the galaxies to determine the
@@ -321,8 +444,9 @@ class Tracer(ABC, ag.OperateImageGalaxies):
         -------
         The list of unique redshifts of the planes.
         """
+        # Members, not galaxies: a `MassField` at a redshift no galaxy occupies is a plane of its own.
         return tracer_util.plane_redshifts_from(
-            galaxies=self.galaxies_ascending_redshift
+            galaxies=self.members_ascending_redshift
         )
 
     @property
@@ -353,8 +477,10 @@ class Tracer(ABC, ag.OperateImageGalaxies):
         -------
         The list of list of galaxies grouped into their planes.
         """
+        # Members, not galaxies: a plane may hold a `MassField` beside its galaxies, so that its mass enters
+        # every plane-level lensing calculation while every light calculation sees the field's zeros.
         return tracer_util.planes_from(
-            galaxies=self.galaxies_ascending_redshift,
+            galaxies=self.members_ascending_redshift,
             plane_redshifts=self.plane_redshifts,
         )
 
@@ -366,6 +492,7 @@ class Tracer(ABC, ag.OperateImageGalaxies):
         source_galaxies: List[ag.Galaxy],
         planes_between_lenses: List[int],
         cosmology: ag.cosmo.LensingCosmology = None,
+        fields: Optional[List[MassField]] = None,
     ):
         """
         Returns a tracer where the lens system is split into planes with specified redshift distances between them.
@@ -411,6 +538,9 @@ class Tracer(ABC, ag.OperateImageGalaxies):
             between Earth (redshift 0.0) and the first lens galaxy, the next between the lens and source, etc.
         cosmology
             The cosmology used to perform ray-tracing calculations.
+        fields
+            The `MassField` objects describing the external tidal field. Each has its redshift snapped to the
+            nearest sliced plane redshift, exactly as the `line_of_sight_galaxies` do.
         """
         cosmology = cosmology or ag.cosmo.Planck15()
 
@@ -426,7 +556,11 @@ class Tracer(ABC, ag.OperateImageGalaxies):
 
         galaxies = lens_galaxies + line_of_sight_galaxies + source_galaxies
 
-        for galaxy in galaxies:
+        fields = list(fields) if fields is not None else []
+
+        # Fields are snapped exactly as `line_of_sight_galaxies` are: a field is a redshift-bearing member of
+        # the system, so leaving it off a sliced plane would defeat the whole point of the slicing.
+        for galaxy in galaxies + fields:
             redshift_differences = list(
                 map(lambda z: abs(z - galaxy.redshift), plane_redshifts)
             )
@@ -434,7 +568,7 @@ class Tracer(ABC, ag.OperateImageGalaxies):
                 redshift_differences.index(min(redshift_differences))
             ]
 
-        return Tracer(galaxies=galaxies, cosmology=cosmology)
+        return Tracer(galaxies=galaxies, cosmology=cosmology, fields=fields)
 
     @property
     def total_planes(self) -> int:
@@ -577,9 +711,11 @@ class Tracer(ABC, ag.OperateImageGalaxies):
         cosmology
             The cosmology used for ray-tracing from which angular diameter distances between planes are computed.
         """
+        # A lensing-quantity path: the deflections used to trace to the input redshift must include the
+        # tracer's fields, so this walks members rather than galaxies.
         return tracer_util.grid_2d_at_redshift_from(
             redshift=redshift,
-            galaxies=self.galaxies_ascending_redshift,
+            galaxies=self.members_ascending_redshift,
             grid=grid,
             cosmology=self.cosmology,
         )
@@ -848,16 +984,23 @@ class Tracer(ABC, ag.OperateImageGalaxies):
         traced_grid_list = self.traced_grid_2d_list_from(grid=grid, xp=xp)
 
         for plane_index, galaxies in enumerate(self.planes):
+            # A plane may hold a `MassField` beside its galaxies. This dictionary is keyed by *galaxy*, and
+            # consumed by adaptive features and per-galaxy visualisation, so a field -- whose image is zeros
+            # by construction -- is skipped rather than added as a key with a zeros image.
+            plane_galaxies = [
+                galaxy for galaxy in galaxies if not isinstance(galaxy, MassField)
+            ]
+
             image_2d_list = [
                 galaxy.image_2d_from(
                     grid=traced_grid_list[plane_index],
                     operated_only=operated_only,
                     xp=xp,
                 )
-                for galaxy in galaxies
+                for galaxy in plane_galaxies
             ]
 
-            for galaxy_index, galaxy in enumerate(galaxies):
+            for galaxy_index, galaxy in enumerate(plane_galaxies):
                 galaxy_image_2d_dict[galaxy] = image_2d_list[galaxy_index]
 
         return galaxy_image_2d_dict
@@ -923,11 +1066,10 @@ class Tracer(ABC, ag.OperateImageGalaxies):
         grid
             The 2D (y, x) coordinates where values of the deflections are evaluated.
         """
+        # Members, not galaxies: the deflections of the tracer are the deflections of every mass it holds,
+        # and a `MassField`'s mass is mass.
         return sum(
-            [
-                galaxy.deflections_yx_2d_from(grid=grid, xp=xp)
-                for galaxy in self.galaxies
-            ]
+            [galaxy.deflections_yx_2d_from(grid=grid, xp=xp) for galaxy in self.members]
         )
 
     @aa.decorators.to_vector_yx
@@ -982,8 +1124,9 @@ class Tracer(ABC, ag.OperateImageGalaxies):
         grid
             The 2D (y, x) coordinates where values of the convergence are evaluated.
         """
+        # Members, not galaxies: a field's convergence (e.g. a `MassSheet`) is part of the tracer's convergence.
         return sum(
-            [galaxy.convergence_2d_from(grid=grid, xp=xp) for galaxy in self.galaxies]
+            [galaxy.convergence_2d_from(grid=grid, xp=xp) for galaxy in self.members]
         )
 
     @aa.decorators.to_array
@@ -1009,8 +1152,9 @@ class Tracer(ABC, ag.OperateImageGalaxies):
         grid
             The 2D (y, x) coordinates where values of the potential are evaluated.
         """
+        # Members, not galaxies: a field's potential (e.g. an `ExternalPotential`) is part of the tracer's.
         return sum(
-            [galaxy.potential_2d_from(grid=grid, xp=xp) for galaxy in self.galaxies]
+            [galaxy.potential_2d_from(grid=grid, xp=xp) for galaxy in self.members]
         )
 
     @aa.decorators.to_array
@@ -1031,7 +1175,8 @@ class Tracer(ABC, ag.OperateImageGalaxies):
         function, which performs the calculation and has full latex documentation of the equations used.
         """
         return tracer_util.time_delays_from(
-            galaxies=ag.Galaxies(self.galaxies_ascending_redshift),
+            # Members, not galaxies: a time delay is a lensing quantity computed from the tracer's full mass.
+            galaxies=ag.Galaxies(self.members_ascending_redshift),
             grid=grid,
             xp=xp,
             cosmology=self.cosmology,
@@ -1055,7 +1200,9 @@ class Tracer(ABC, ag.OperateImageGalaxies):
         -------
         True if any galaxy in the tracer has the input class type, else False.
         """
-        return any(map(lambda galaxy: galaxy.has(cls=cls), self.galaxies))
+        # Members, not galaxies: `tracer.has(cls=al.mp.ExternalShear)` must be True for a shear held by a
+        # field, exactly as it is for a shear attached to a galaxy.
+        return any(map(lambda galaxy: galaxy.has(cls=cls), self.members))
 
     def cls_list_from(self, cls: Type) -> List:
         """
@@ -1071,7 +1218,8 @@ class Tracer(ABC, ag.OperateImageGalaxies):
         """
         cls_list = []
 
-        for galaxy in self.galaxies:
+        # Members, not galaxies: this lists *profiles*, and a field's profiles are profiles of the tracer.
+        for galaxy in self.members:
             if galaxy.has(cls=cls):
                 for cls_galaxy in galaxy.cls_list_from(cls=cls):
                     cls_list.append(cls_galaxy)
@@ -1206,9 +1354,11 @@ class Tracer(ABC, ag.OperateImageGalaxies):
             except (AttributeError, IndexError):
                 return None
 
+        # Members, not galaxies: this lists the *attributes of profiles* (e.g. every mass profile centre),
+        # so a field's profiles are included alongside the galaxies'.
         attributes = [
             extract(value, attr_name)
-            for galaxy in self.galaxies
+            for galaxy in self.members
             for value in galaxy.__dict__.values()
             if isinstance(value, cls)
         ]
@@ -1266,6 +1416,10 @@ class Tracer(ABC, ag.OperateImageGalaxies):
 
         attribute_list = []
 
+        # This walks *plane members*, so a `MassField` in a plane contributes its own entry (its mass profile
+        # attributes for `cls=MassProfile`, a `None` for a class it does not hold, filtered out by
+        # `filter_nones=True`). That is the member-aware half of the pair: `extract_attributes_of_galaxies`
+        # below enumerates galaxies and so stays galaxy-only.
         for plane in self.planes:
             for galaxy in plane:
                 attribute_list += [
@@ -1330,6 +1484,9 @@ class Tracer(ABC, ag.OperateImageGalaxies):
             The name of the attribute which is extracted from the class type (e.g. axis_ratio, centre).
         filter_nones
         """
+        # Galaxies, not members: the returned list is indexed *by galaxy*, so a `MassField` would shift every
+        # index and break the caller's pairing. Use `extract_attribute` (whole tracer) or
+        # `extract_attributes_of_planes` (per plane) when a field's profiles must be included.
         if filter_nones:
             return [
                 galaxy.extract_attribute(cls=cls, attr_name=attr_name)
@@ -1363,7 +1520,10 @@ class Tracer(ABC, ag.OperateImageGalaxies):
         profile_name
             The name of the profile component in the tracer.
         """
-        for galaxy in self.galaxies:
+        # Members, not galaxies: a profile is looked up by its component name, and a field's components are
+        # named exactly as a galaxy's are. `extract_plane_index_of_profile` already walks planes (and so
+        # already sees fields), so the two must agree.
+        for galaxy in self.members:
             try:
                 return galaxy.__dict__[profile_name]
             except KeyError:
