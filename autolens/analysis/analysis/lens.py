@@ -132,9 +132,19 @@ class AnalysisLens:
             if getattr(instance, "scaling_galaxies", None) is not None:
                 galaxy_list += list(instance.scaling_galaxies)
 
+        # A model may declare an external field alongside its galaxies, as
+        # `af.Collection(galaxies=..., fields=af.Collection(field=af.Model(al.MassField, ...)))`.
+        # It is folded here rather than into `galaxy_list`, because a `MassField` is not a galaxy.
+        fields = (
+            list(instance.fields)
+            if getattr(instance, "fields", None) is not None
+            else None
+        )
+
         return Tracer(
             galaxies=galaxy_list,
             cosmology=cosmology,
+            fields=fields,
         )
 
     def log_likelihood_penalty_from(

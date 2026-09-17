@@ -27,10 +27,11 @@ from typing import Iterable
 def register_tracer_classes(tracer) -> bool:
     """Register every concrete class reachable from ``tracer`` as a JAX pytree.
 
-    Walks ``tracer.galaxies`` and registers ``Galaxy`` plus each light /
-    mass / point profile class encountered. Also registers ``Tracer``
-    itself with ``no_flatten=("cosmology",)`` so the cosmology rides as
-    aux data across the JIT boundary (it is a per-fit constant).
+    Walks ``tracer.galaxies`` and then ``tracer.fields``, registering
+    ``Galaxy`` and ``MassField`` plus each light / mass / point profile class
+    encountered. Also registers ``Tracer`` itself with
+    ``no_flatten=("cosmology",)`` so the cosmology rides as aux data across the
+    JIT boundary (it is a per-fit constant).
 
     Returns ``True`` if registration ran (or was already complete),
     ``False`` if JAX is not installed (in which case the call is a silent
@@ -43,6 +44,7 @@ def register_tracer_classes(tracer) -> bool:
 
     from autoarray.abstract_ndarray import register_instance_pytree
     from autogalaxy.galaxy.galaxy import Galaxy
+    from autogalaxy.galaxy.mass_field import MassField
     from autolens.lens.tracer import Tracer
 
     register_instance_pytree(Tracer, no_flatten=("cosmology",))
@@ -57,8 +59,17 @@ def register_tracer_classes(tracer) -> bool:
     # redshifts constant.
     register_instance_pytree(Galaxy, no_flatten=("redshift",))
 
+    # A ``MassField`` is a redshift-bearing member of the tracer exactly as a
+    # ``Galaxy`` is, and its redshift is read by the same plane bookkeeping, so
+    # it gets the same ``no_flatten=("redshift",)`` treatment for the same
+    # reason.
+    register_instance_pytree(MassField, no_flatten=("redshift",))
+
     for galaxy in tracer.galaxies:
         _register_object_classes(galaxy)
+
+    for field in tracer.fields:
+        _register_object_classes(field)
 
     return True
 

@@ -321,6 +321,11 @@ class FitImaging(aa.FitImaging, AbstractFitInversion):
 
         for plane_index, galaxies in enumerate(self.tracer.planes):
             for galaxy in galaxies:
+                # A plane may hold a `MassField`, which is not a key of the galaxy dictionary (it has no
+                # light, so `Tracer.galaxy_image_2d_dict_from` skips it); indexing it here would KeyError.
+                if isinstance(galaxy, ag.MassField):
+                    continue
+
                 model_images_of_planes_list[plane_index] += galaxy_model_image_dict[
                     galaxy
                 ]

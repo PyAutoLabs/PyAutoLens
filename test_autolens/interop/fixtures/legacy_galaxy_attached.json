@@ -1,0 +1,459 @@
+{
+  "coordinates_origin": {
+    "dec": "+00d00m00s",
+    "ra": "00h00m00s"
+  },
+  "cosmology": {
+    "H0": 67.74,
+    "Om0": 0.3075,
+    "astropy_name": "FlatLambdaCDM"
+  },
+  "instrument": {
+    "band": "",
+    "name": "",
+    "pixel_size": 0.12,
+    "psf": {
+      "description": null,
+      "type": null
+    },
+    "readout_noise": 0.0
+  },
+  "lensing_entities": [
+    {
+      "light_model": [
+        {
+          "id": "0-galaxy-light-0-Sersic",
+          "parameters": {
+            "I_eff": {
+              "fixed": false,
+              "id": "0-galaxy-light-0-Sersic-I_eff",
+              "point_estimate": {
+                "value": 1.2
+              },
+              "posterior_stats": {
+                "mean": null,
+                "median": null,
+                "percentile_16th": null,
+                "percentile_84th": null
+              },
+              "prior": {
+                "type": null
+              }
+            },
+            "center_x": {
+              "fixed": false,
+              "id": "0-galaxy-light-0-Sersic-center_x",
+              "point_estimate": {
+                "value": -0.03
+              },
+              "posterior_stats": {
+                "mean": null,
+                "median": null,
+                "percentile_16th": null,
+                "percentile_84th": null
+              },
+              "prior": {
+                "type": null
+              }
+            },
+            "center_y": {
+              "fixed": false,
+              "id": "0-galaxy-light-0-Sersic-center_y",
+              "point_estimate": {
+                "value": 0.05
+              },
+              "posterior_stats": {
+                "mean": null,
+                "median": null,
+                "percentile_16th": null,
+                "percentile_84th": null
+              },
+              "prior": {
+                "type": null
+              }
+            },
+            "n": {
+              "fixed": false,
+              "id": "0-galaxy-light-0-Sersic-n",
+              "point_estimate": {
+                "value": 3.5
+              },
+              "posterior_stats": {
+                "mean": null,
+                "median": null,
+                "percentile_16th": null,
+                "percentile_84th": null
+              },
+              "prior": {
+                "type": null
+              }
+            },
+            "phi": {
+              "fixed": false,
+              "id": "0-galaxy-light-0-Sersic-phi",
+              "point_estimate": {
+                "value": -20.0
+              },
+              "posterior_stats": {
+                "mean": null,
+                "median": null,
+                "percentile_16th": null,
+                "percentile_84th": null
+              },
+              "prior": {
+                "type": null
+              }
+            },
+            "q": {
+              "fixed": false,
+              "id": "0-galaxy-light-0-Sersic-q",
+              "point_estimate": {
+                "value": 0.8
+              },
+              "posterior_stats": {
+                "mean": null,
+                "median": null,
+                "percentile_16th": null,
+                "percentile_84th": null
+              },
+              "prior": {
+                "type": null
+              }
+            },
+            "theta_eff": {
+              "fixed": false,
+              "id": "0-galaxy-light-0-Sersic-theta_eff",
+              "point_estimate": {
+                "value": 0.9
+              },
+              "posterior_stats": {
+                "mean": null,
+                "median": null,
+                "percentile_16th": null,
+                "percentile_84th": null
+              },
+              "prior": {
+                "type": null
+              }
+            }
+          },
+          "type": "Sersic"
+        }
+      ],
+      "mass_model": [
+        {
+          "id": "0-galaxy-mass-0-SIE",
+          "parameters": {
+            "center_x": {
+              "fixed": false,
+              "id": "0-galaxy-mass-0-SIE-center_x",
+              "point_estimate": {
+                "value": -0.03
+              },
+              "posterior_stats": {
+                "mean": null,
+                "median": null,
+                "percentile_16th": null,
+                "percentile_84th": null
+              },
+              "prior": {
+                "type": null
+              }
+            },
+            "center_y": {
+              "fixed": false,
+              "id": "0-galaxy-mass-0-SIE-center_y",
+              "point_estimate": {
+                "value": 0.05
+              },
+              "posterior_stats": {
+                "mean": null,
+                "median": null,
+                "percentile_16th": null,
+                "percentile_84th": null
+              },
+              "prior": {
+                "type": null
+              }
+            },
+            "phi": {
+              "fixed": false,
+              "id": "0-galaxy-mass-0-SIE-phi",
+              "point_estimate": {
+                "value": -45.0
+              },
+              "posterior_stats": {
+                "mean": null,
+                "median": null,
+                "percentile_16th": null,
+                "percentile_84th": null
+              },
+              "prior": {
+                "type": null
+              }
+            },
+            "q": {
+              "fixed": false,
+              "id": "0-galaxy-mass-0-SIE-q",
+              "point_estimate": {
+                "value": 0.7
+              },
+              "posterior_stats": {
+                "mean": null,
+                "median": null,
+                "percentile_16th": null,
+                "percentile_84th": null
+              },
+              "prior": {
+                "type": null
+              }
+            },
+            "theta_E": {
+              "fixed": false,
+              "id": "0-galaxy-mass-0-SIE-theta_E",
+              "point_estimate": {
+                "value": 1.279597687640351
+              },
+              "posterior_stats": {
+                "mean": null,
+                "median": null,
+                "percentile_16th": null,
+                "percentile_84th": null
+              },
+              "prior": {
+                "type": null
+              }
+            }
+          },
+          "type": "SIE"
+        }
+      ],
+      "name": "galaxy_0",
+      "redshift": 0.5,
+      "type": "Galaxy"
+    },
+    {
+      "mass_model": [
+        {
+          "id": "1-massfield-mass-0-ExternalShear",
+          "parameters": {
+            "gamma_ext": {
+              "fixed": false,
+              "id": "1-massfield-mass-0-ExternalShear-gamma_ext",
+              "point_estimate": {
+                "value": 0.03605551275463989
+              },
+              "posterior_stats": {
+                "mean": null,
+                "median": null,
+                "percentile_16th": null,
+                "percentile_84th": null
+              },
+              "prior": {
+                "type": null
+              }
+            },
+            "phi_ext": {
+              "fixed": false,
+              "id": "1-massfield-mass-0-ExternalShear-phi_ext",
+              "point_estimate": {
+                "value": 61.845033762989885
+              },
+              "posterior_stats": {
+                "mean": null,
+                "median": null,
+                "percentile_16th": null,
+                "percentile_84th": null
+              },
+              "prior": {
+                "type": null
+              }
+            }
+          },
+          "type": "ExternalShear"
+        },
+        {
+          "id": "1-massfield-mass-1-ConvergenceSheet",
+          "parameters": {
+            "kappa_s": {
+              "fixed": false,
+              "id": "1-massfield-mass-1-ConvergenceSheet-kappa_s",
+              "point_estimate": {
+                "value": 0.05
+              },
+              "posterior_stats": {
+                "mean": null,
+                "median": null,
+                "percentile_16th": null,
+                "percentile_84th": null
+              },
+              "prior": {
+                "type": null
+              }
+            }
+          },
+          "type": "ConvergenceSheet"
+        }
+      ],
+      "name": "mass_field_0",
+      "redshift": 0.5,
+      "type": "MassField"
+    },
+    {
+      "light_model": [
+        {
+          "id": "2-galaxy-light-0-Sersic",
+          "parameters": {
+            "I_eff": {
+              "fixed": false,
+              "id": "2-galaxy-light-0-Sersic-I_eff",
+              "point_estimate": {
+                "value": 0.7
+              },
+              "posterior_stats": {
+                "mean": null,
+                "median": null,
+                "percentile_16th": null,
+                "percentile_84th": null
+              },
+              "prior": {
+                "type": null
+              }
+            },
+            "center_x": {
+              "fixed": false,
+              "id": "2-galaxy-light-0-Sersic-center_x",
+              "point_estimate": {
+                "value": 0.2
+              },
+              "posterior_stats": {
+                "mean": null,
+                "median": null,
+                "percentile_16th": null,
+                "percentile_84th": null
+              },
+              "prior": {
+                "type": null
+              }
+            },
+            "center_y": {
+              "fixed": false,
+              "id": "2-galaxy-light-0-Sersic-center_y",
+              "point_estimate": {
+                "value": 0.1
+              },
+              "posterior_stats": {
+                "mean": null,
+                "median": null,
+                "percentile_16th": null,
+                "percentile_84th": null
+              },
+              "prior": {
+                "type": null
+              }
+            },
+            "n": {
+              "fixed": false,
+              "id": "2-galaxy-light-0-Sersic-n",
+              "point_estimate": {
+                "value": 1.2
+              },
+              "posterior_stats": {
+                "mean": null,
+                "median": null,
+                "percentile_16th": null,
+                "percentile_84th": null
+              },
+              "prior": {
+                "type": null
+              }
+            },
+            "phi": {
+              "fixed": false,
+              "id": "2-galaxy-light-0-Sersic-phi",
+              "point_estimate": {
+                "value": 60.0
+              },
+              "posterior_stats": {
+                "mean": null,
+                "median": null,
+                "percentile_16th": null,
+                "percentile_84th": null
+              },
+              "prior": {
+                "type": null
+              }
+            },
+            "q": {
+              "fixed": false,
+              "id": "2-galaxy-light-0-Sersic-q",
+              "point_estimate": {
+                "value": 0.6
+              },
+              "posterior_stats": {
+                "mean": null,
+                "median": null,
+                "percentile_16th": null,
+                "percentile_84th": null
+              },
+              "prior": {
+                "type": null
+              }
+            },
+            "theta_eff": {
+              "fixed": false,
+              "id": "2-galaxy-light-0-Sersic-theta_eff",
+              "point_estimate": {
+                "value": 0.3
+              },
+              "posterior_stats": {
+                "mean": null,
+                "median": null,
+                "percentile_16th": null,
+                "percentile_84th": null
+              },
+              "prior": {
+                "type": null
+              }
+            }
+          },
+          "type": "Sersic"
+        }
+      ],
+      "mass_model": [],
+      "name": "galaxy_1",
+      "redshift": 1.5,
+      "type": "Galaxy"
+    }
+  ],
+  "likelihoods": null,
+  "meta": {
+    "coolest.__version__": "0.1.11",
+    "generated_by": "PyAutoLens (autolens.interop.coolest); theta_E is the profile's intermediate-axis Einstein radius, NFW rho_c is in solar masses per arcsec**3 with Sigma_crit in solar masses per arcsec**2."
+  },
+  "mode": "MAP",
+  "observation": {
+    "exposure_time": null,
+    "mag_sky_brightness": null,
+    "mag_zero_point": null,
+    "noise": {
+      "type": null
+    },
+    "pixels": {
+      "field_of_view_x": [
+        -0.6,
+        0.6
+      ],
+      "field_of_view_y": [
+        -0.6,
+        0.6
+      ],
+      "fits_file": {
+        "path": null
+      },
+      "num_pix_x": 10,
+      "num_pix_y": 10
+    }
+  },
+  "standard": "COOLEST"
+}

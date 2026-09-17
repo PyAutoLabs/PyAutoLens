@@ -10,6 +10,13 @@ given redshift.  ``Tracer`` groups galaxies by redshift into planes and performs
 multi-plane gravitational lensing ray-tracing, computing lensed images, convergence,
 deflection angles, magnification, critical curves, and caustics.
 
+``MassField`` holds the mass of everything *outside* the modelled system — an external
+shear, a mass sheet, an external potential — at its own redshift and with no light of its
+own; pass a list of them as ``Tracer(galaxies=..., fields=[field])`` and each is placed in
+the plane at its redshift, contributing its mass to every lensing calculation while every
+per-galaxy surface still sees galaxies alone. Attaching these components to a ``Galaxy``
+instead remains fully supported.
+
 .. currentmodule:: autolens
 
 .. autosummary::
@@ -19,6 +26,7 @@ deflection angles, magnification, critical curves, and caustics.
 
    Galaxy
    Galaxies
+   MassField
    Tracer
 
 To treat the redshift of a galaxy as a free parameter in a model, the ``Redshift`` object must

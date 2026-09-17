@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -191,7 +192,11 @@ def test__round_trip__relative_file_path(tmp_path, monkeypatch):
 
     tracer_back = interop_coolest.from_coolest(file_path="template.json")
 
-    assert len(tracer_back.galaxies) == 3
+    # Two galaxies and one field: a COOLEST `MassField` entity (here the shear peeled off
+    # the lens galaxy on export) is imported as an `al.MassField` in `tracer.fields`, not as
+    # a third galaxy. The three lensing entities are unchanged; only where they land is.
+    assert len(tracer_back.galaxies) == 2
+    assert len(tracer_back.fields) == 1
 
 
 def test__from_coolest__missing_point_estimate_raises(tmp_path):
@@ -406,7 +411,10 @@ def test__from_coolest__skipped_template_returns_mass_profiles_only(tmp_path):
     light_profiles = []
     mass_profiles = []
 
-    for galaxy in tracer_back.galaxies:
+    # `members`, not `galaxies`: the exported `MassField` entity now imports as an
+    # `al.MassField` in `tracer.fields`, so the shear is a member of the tracer rather than
+    # a profile of a galaxy. The set of imported profiles is unchanged.
+    for galaxy in tracer_back.members:
         light_profiles += galaxy.cls_list_from(cls=LightProfile)
         mass_profiles += galaxy.cls_list_from(cls=MassProfile)
 
@@ -415,3 +423,224 @@ def test__from_coolest__skipped_template_returns_mass_profiles_only(tmp_path):
     types = sorted(type(profile).__name__ for profile in mass_profiles)
 
     assert types == ["ExternalShear", "Isothermal"]
+
+
+# ======================================================================================
+# MassField
+# ======================================================================================
+
+
+def legacy_galaxy_attached_tracer():
+    """
+    The galaxy-attached form: an `ExternalShear` and a `MassSheet` bolted onto the lens
+    galaxy. This form remains fully supported and its export must never change, which is
+    what `test__to_coolest__legacy_galaxy_attached_export_is_byte_identical` pins.
+    """
+    lens = al.Galaxy(
+        redshift=0.5,
+        bulge=al.lp.Sersic(
+            centre=(0.05, -0.03),
+            ell_comps=al.convert.ell_comps_from(axis_ratio=0.8, angle=70.0),
+            intensity=1.2,
+            effective_radius=0.9,
+            sersic_index=3.5,
+        ),
+        mass=al.mp.Isothermal(
+            centre=(0.05, -0.03),
+            ell_comps=al.convert.ell_comps_from(axis_ratio=0.7, angle=45.0),
+            einstein_radius=1.3,
+        ),
+        shear=al.mp.ExternalShear(gamma_1=0.02, gamma_2=-0.03),
+        mass_sheet=al.mp.MassSheet(centre=(0.0, 0.0), kappa=0.05),
+    )
+    source = al.Galaxy(
+        redshift=1.5,
+        bulge=al.lp.Sersic(
+            centre=(0.1, 0.2),
+            ell_comps=al.convert.ell_comps_from(axis_ratio=0.6, angle=-30.0),
+            intensity=0.7,
+            effective_radius=0.3,
+            sersic_index=1.2,
+        ),
+    )
+    return al.Tracer(galaxies=[lens, source], cosmology=al.cosmo.Planck15())
+
+
+def test__to_coolest__legacy_galaxy_attached_export_is_byte_identical(tmp_path):
+    """
+    Regression: the template written for a galaxy-attached external field must be exactly
+    what it was before the `fields` slot existed — same entity names (`mass_field_{i}`),
+    same ordering, same numbers.
+
+    The fixture was written from the pre-change tree. The comparison is of the JSON text,
+    normalised only through `json.load` (the template's `meta` carries no timestamp, only
+    the coolest version and a fixed `generated_by` string, so nothing volatile is elided).
+    """
+    file_path = interop_coolest.to_coolest(
+        galaxies=legacy_galaxy_attached_tracer(),
+        file_path=str(tmp_path / "template"),
+        shape_native=(10, 10),
+        pixel_size=0.12,
+    )
+
+    # `fixtures/`, not `files/`: the repository's root `.gitignore` excludes every directory
+    # named `files`, so a fixture written there would never reach CI.
+    fixture_path = (
+        Path(__file__).resolve().parent / "fixtures" / "legacy_galaxy_attached.json"
+    )
+
+    with open(file_path) as f:
+        written = f.read()
+
+    with open(fixture_path) as f:
+        expected = f.read()
+
+    assert written == expected
+
+    names = [entity["name"] for entity in json.loads(written)["lensing_entities"]]
+
+    assert names == ["galaxy_0", "mass_field_0", "galaxy_1"]
+
+
+def test__from_coolest__legacy_export_imports_its_peeled_sheets_as_a_mass_field(
+    tmp_path,
+):
+    """
+    The one import behaviour change: a COOLEST `MassField` entity — including the one the
+    legacy peel writes for a galaxy-attached shear/sheet — comes back as an `al.MassField`
+    in `tracer.fields`, not as an extra galaxy in `tracer.galaxies`.
+    """
+    file_path = interop_coolest.to_coolest(
+        galaxies=legacy_galaxy_attached_tracer(),
+        file_path=str(tmp_path / "template"),
+        shape_native=(10, 10),
+    )
+
+    tracer_back = interop_coolest.from_coolest(file_path=file_path)
+
+    assert len(tracer_back.galaxies) == 2
+    assert len(tracer_back.fields) == 1
+    assert isinstance(tracer_back.fields[0], al.MassField)
+    assert tracer_back.fields[0].redshift == 0.5
+
+    types = sorted(
+        type(profile).__name__
+        for profile in tracer_back.fields[0].cls_list_from(cls=al.mp.MassProfile)
+    )
+
+    assert types == ["ExternalShear", "MassSheet"]
+
+
+def test__to_coolest__tracer_fields_are_written_as_their_own_entities(tmp_path):
+    tracer = al.Tracer(
+        galaxies=lens_model_galaxies(),
+        fields=[
+            al.MassField(
+                redshift=0.5,
+                shear=al.mp.ExternalShear(gamma_1=0.01, gamma_2=0.02),
+                mass_sheet=al.mp.MassSheet(centre=(0.0, 0.0), kappa=0.04),
+            )
+        ],
+    )
+
+    file_path = interop_coolest.to_coolest(
+        galaxies=tracer, file_path=str(tmp_path / "template"), shape_native=(10, 10)
+    )
+
+    with open(file_path) as f:
+        template = json.load(f)
+
+    entities = template["lensing_entities"]
+    names = [entity["name"] for entity in entities]
+
+    # `mass_field_0` is the legacy peel of the lens galaxy's own shear; `field_0` is the
+    # tracer's `MassField`, carrying both of its profiles.
+    assert "field_0" in names
+
+    field_entity = [e for e in entities if e["name"] == "field_0"][0]
+
+    assert field_entity["type"] == "MassField"
+    assert field_entity["redshift"] == 0.5
+    assert sorted(p["type"] for p in field_entity["mass_model"]) == [
+        "ConvergenceSheet",
+        "ExternalShear",
+    ]
+
+
+def test__round_trip__a_tracer_with_fields_returns_its_field(tmp_path):
+    shear = al.mp.ExternalShear(gamma_1=0.01, gamma_2=0.02)
+    mass_sheet = al.mp.MassSheet(centre=(0.0, 0.0), kappa=0.04)
+
+    tracer = al.Tracer(
+        galaxies=[
+            al.Galaxy(
+                redshift=0.5,
+                mass=al.mp.Isothermal(
+                    centre=(0.05, -0.03),
+                    ell_comps=al.convert.ell_comps_from(axis_ratio=0.7, angle=45.0),
+                    einstein_radius=1.3,
+                ),
+            ),
+            al.Galaxy(redshift=1.5, bulge=al.lp.Sersic(intensity=0.7)),
+        ],
+        fields=[al.MassField(redshift=0.5, shear=shear, mass_sheet=mass_sheet)],
+    )
+
+    file_path = interop_coolest.to_coolest(
+        galaxies=tracer, file_path=str(tmp_path / "template"), shape_native=(10, 10)
+    )
+    tracer_back = interop_coolest.from_coolest(file_path=file_path)
+
+    assert len(tracer_back.fields) == 1
+    assert all(not isinstance(galaxy, al.MassField) for galaxy in tracer_back.galaxies)
+
+    profiles = {
+        type(profile).__name__: profile
+        for profile in tracer_back.fields[0].cls_list_from(cls=al.mp.MassProfile)
+    }
+
+    assert profiles["ExternalShear"].gamma_1 == pytest.approx(shear.gamma_1, abs=1e-12)
+    assert profiles["ExternalShear"].gamma_2 == pytest.approx(shear.gamma_2, abs=1e-12)
+    assert profiles["MassSheet"].kappa == pytest.approx(mass_sheet.kappa, abs=1e-12)
+
+    deflections = tracer.deflections_yx_2d_from(grid=grid())
+    deflections_back = tracer_back.deflections_yx_2d_from(grid=grid())
+
+    assert np.asarray(deflections_back) == pytest.approx(
+        np.asarray(deflections), rel=1e-6, abs=1e-10
+    )
+
+
+def test__to_coolest__a_field_with_an_unsupported_profile_raises_or_is_recorded(
+    tmp_path,
+):
+    tracer = al.Tracer(
+        galaxies=lens_model_galaxies(),
+        fields=[
+            al.MassField(
+                redshift=0.5,
+                potential=al.mp.ExternalPotential(gamma_1=0.01, tau_1=0.02),
+            )
+        ],
+    )
+
+    with pytest.raises((al.exc.ProfileException, ValueError)):
+        interop_coolest.to_coolest(
+            galaxies=tracer,
+            file_path=str(tmp_path / "template_raise"),
+            shape_native=(10, 10),
+        )
+
+    file_path = interop_coolest.to_coolest(
+        galaxies=tracer,
+        file_path=str(tmp_path / "template_skip"),
+        shape_native=(10, 10),
+        on_unsupported="skip",
+    )
+
+    with open(file_path) as f:
+        template = json.load(f)
+
+    skipped = template["meta"]["skipped_profiles"]
+
+    assert {"galaxy": "field_0", "profile": "ExternalPotential"} in skipped

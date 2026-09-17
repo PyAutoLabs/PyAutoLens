@@ -45,6 +45,22 @@ class Result(AgResultDataset):
         """
         return self.analysis.tracer_via_instance_from(instance=self.instance)
 
+    @property
+    def max_log_likelihood_fields(self) -> List[ag.MassField]:
+        """
+        An instance of the list of `MassField` objects corresponding to the maximum log likelihood model inferred by
+        the non-linear search.
+
+        Mirrors `max_log_likelihood_galaxies` (which reads the galaxies off the same instance), and returns an empty
+        list for the overwhelming majority of models, which declare no `fields` collection at all.
+        """
+        fields = getattr(self.instance, "fields", None)
+
+        if fields is None:
+            return []
+
+        return list(fields)
+
     def source_plane_light_profile_centre_from(
         self, plane_redshift: Optional[float] = None
     ) -> aa.Grid2DIrregular:
@@ -251,7 +267,10 @@ class Result(AgResultDataset):
             by `factor` and rounded up to the `threshold`.
         """
 
-        tracer = Tracer(galaxies=self.max_log_likelihood_galaxies)
+        tracer = Tracer(
+            galaxies=self.max_log_likelihood_galaxies,
+            fields=self.max_log_likelihood_fields,
+        )
 
         positions = (
             self.image_plane_multiple_image_positions(plane_redshift=plane_redshift)
