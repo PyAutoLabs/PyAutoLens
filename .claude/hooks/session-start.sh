@@ -69,12 +69,150 @@ case "$(dirname "$HOOK_SELF")" in
     */policy)        REPO_DIR="$(cd "$(dirname "$HOOK_SELF")/.."    && pwd)" ;;
     *)               REPO_DIR="${CLAUDE_PROJECT_DIR:-$PWD}" ;;
 esac
-WORKSPACE_ROOT="$(dirname "$REPO_DIR")"
 EXTRAS_FILE="$REPO_DIR/.claude/session-python.txt"
 
 # stderr, not stdout: a SessionStart hook's stdout is fed to the agent as
 # session context.
 log() { printf '[session-start] %s\n' "$*" >&2; }
+
+# And where is the WORKSPACE ROOT — the directory holding the checkouts?
+#
+# NOT `dirname "$REPO_DIR"`, which is what this was. That is the root only in a
+# FLAT workspace. Group the checkouts into family directories and the parent of
+# a repo is a family directory, which really exists, really is writable and
+# really is not a repo — so every guard below passes and all three consumers go
+# wrong in silence: $PYAUTO_ROOT is exported to the whole session as the family
+# directory, a second `.claude/` root is written INTO it, and the unshallow
+# sweep and the generated fan-out reach that one family instead of every
+# checkout.
+#
+# The rule is the one `PyAutoBrain/bin/_pyauto_root.sh` already ships, in the
+# same order, so the session and the Brain's resolvers cannot disagree:
+#
+#   1. an explicit $PYAUTO_ROOT — the operator's word, taken verbatim;
+#   2. the nearest ANCESTOR holding a .pyauto-root marker — the only rule that
+#      survives the workspace growing subdirectories, because "does this
+#      directory hold a checkout?" is answered yes by a family directory the
+#      moment the checkouts move into one;
+#   3. the parent of this checkout when it holds a sibling organ;
+#   4. the parent regardless, reported as unverified.
+#
+# The resolver itself is used where it is reachable, so there is one
+# implementation to correct. But it CANNOT be a dependency: this hook is
+# installed into every repo and runs in containers that hold a single checkout,
+# no PyAutoBrain and no marker anywhere above them — the session that most
+# needs the hook is the one least likely to have a workspace around it. So the
+# same rule runs inline wherever the resolver is absent, steps 3 and 4 never
+# require a marker, and the resolver is read in a subshell that reports only
+# its two answers: a resolver that is broken, or from a version this copy of
+# the hook has never seen, can then never fail a session start.
+PYAUTO_ROOT_MARKER=".pyauto-root"
+
+# The nearest ancestor of $1 holding the marker. A checkout is never its own
+# workspace root, so the walk starts one level up.
+marked_root() {
+    local d
+    d="$(dirname "$1")"
+    while [ "$d" != "/" ]; do
+        if [ -f "$d/$PYAUTO_ROOT_MARKER" ]; then
+            printf '%s' "$d"
+            return 0
+        fi
+        d="$(dirname "$d")"
+    done
+    if [ -f "/$PYAUTO_ROOT_MARKER" ]; then
+        printf '%s' "/"
+        return 0
+    fi
+    return 1
+}
+
+# A directory counts as a workspace root if it holds an organ checkout. Any
+# organ: a remote session may hold exactly one, and it is still a root.
+holds_an_organ() {
+    [ -d "$1/PyAutoMind" ] || [ -d "$1/PyAutoBrain" ] || [ -d "$1/PyAutoHeart" ] \
+        || [ -d "$1/PyAutoHands" ] || [ -d "$1/PyAutoMemory" ] || [ -d "$1/PyAutoGut" ] \
+        || [ -d "$1/PyAutoNerves" ] || [ -d "$1/PyAutoCortex" ]
+}
+
+# Assigns WORKSPACE_ROOT and WORKSPACE_ROOT_REASON rather than printing: one
+# decision produces two answers, and a command substitution would drop the
+# reason — which is the whole lesson of a defect whose every consequence was
+# silent.
+resolve_workspace_root() {
+    local helper answer
+    # 1. The operator's word, never second-guessed. The marker only decides
+    #    how the reason reads, so a wrong value from a caller stays visible.
+    if [ -n "${PYAUTO_ROOT:-}" ]; then
+        WORKSPACE_ROOT="$PYAUTO_ROOT"
+        if [ -f "$WORKSPACE_ROOT/$PYAUTO_ROOT_MARKER" ]; then
+            WORKSPACE_ROOT_REASON="PYAUTO_ROOT"
+        else
+            WORKSPACE_ROOT_REASON="PYAUTO_ROOT (unverified - no $PYAUTO_ROOT_MARKER marker)"
+        fi
+        return 0
+    fi
+    # The shared resolver, if this checkout can see one: either this checkout
+    # IS the Brain, or the Brain is beside it.
+    #
+    # Its answer is ACCEPTED ONLY IF IT CONTAINS THIS CHECKOUT, because the
+    # resolver anchors on the BRAIN checkout, not on this one. In a worktree
+    # bundle the bundle's PyAutoBrain is a symlink into the canonical
+    # workspace, so the resolver follows it and answers with the canonical
+    # root — and this session would then export somebody else's workspace to
+    # the whole session, write a `.claude/` root into it and unshallow its
+    # repos. Measured on this very bundle: the resolver said
+    # /home/…/PyAutoLabs for a hook running in /home/…/PyAutoLabs-wt/<task>.
+    # `scripts/session_bootstrap.sh` guards the same trap the same way; the
+    # test is "is it an ancestor", not "is the checkout directly under it", so
+    # a checkout inside a family directory still passes.
+    local repo_real root_real
+    repo_real="$(readlink -f "$REPO_DIR" 2>/dev/null || printf '%s' "$REPO_DIR")"
+    for helper in "$REPO_DIR/bin/_pyauto_root.sh" \
+                  "$(dirname "$REPO_DIR")/PyAutoBrain/bin/_pyauto_root.sh"; do
+        [ -r "$helper" ] || continue
+        # `|` separates the two answers; no reason the resolver states contains
+        # one. The subshell drops this script's `set -euo pipefail` so that a
+        # resolver which fails, or which one day needs something this container
+        # does not have, degrades to the inline rule instead of to a dead
+        # session.
+        answer="$( (
+            set +euo pipefail
+            # shellcheck source=/dev/null
+            . "$helper" >/dev/null 2>&1
+            printf '%s|%s' "${PYAUTO_ROOT:-}" "${PYAUTO_ROOT_REASON:-}"
+        ) 2>/dev/null )" || answer=""
+        [ -n "${answer%%|*}" ] && [ -d "${answer%%|*}" ] || continue
+        root_real="$(readlink -f "${answer%%|*}" 2>/dev/null || printf '%s' "${answer%%|*}")"
+        case "$repo_real" in
+            "${root_real%/}"/*) ;;
+            *) continue ;;
+        esac
+        WORKSPACE_ROOT="${answer%%|*}"
+        WORKSPACE_ROOT_REASON="${answer#*|}"
+        return 0
+    done
+    # 2. A marked ancestor — the root naming itself, which stays right however
+    #    deep under it this checkout sits.
+    if answer="$(marked_root "$REPO_DIR")"; then
+        WORKSPACE_ROOT="$answer"
+        WORKSPACE_ROOT_REASON="$PYAUTO_ROOT_MARKER marker"
+        return 0
+    fi
+    # 3. Beside this checkout — nothing above us says anything, so what sits
+    #    beside us is all there is: a single-repo remote session, a CI matrix,
+    #    a spawned template. 4. Failing that, the parent anyway: the best guess
+    #    available, and a real path a diagnostic can name.
+    local parent
+    parent="$(dirname "$REPO_DIR")"
+    WORKSPACE_ROOT="$parent"
+    if holds_an_organ "$WORKSPACE_ROOT"; then
+        WORKSPACE_ROOT_REASON="beside this checkout"
+    else
+        WORKSPACE_ROOT_REASON="unverified (no sibling organ beside this checkout)"
+    fi
+}
+resolve_workspace_root
 
 is_py312() {
     [ -x "$1" ] && "$1" -c 'import sys; raise SystemExit(sys.version_info[:2] != (3, 12))' >/dev/null 2>&1
@@ -421,17 +559,38 @@ repair_uv_tools() {
 # couple of seconds once per container and removes a whole class of wrong
 # answer. Bounded and non-fatal: a slow or blocked network leaves a shallow
 # clone and a warning, never a failed session start.
-ensure_full_clone() {
+unshallow_checkout() {
     local repo
-    for repo in "$WORKSPACE_ROOT"/*/; do
-        [ -e "${repo}.git/shallow" ] || continue
-        log "unshallowing $(basename "$repo") (shallow clones make ancestry checks lie)"
-        if timeout 120 git -C "$repo" fetch --unshallow --quiet 2>/dev/null \
-           || timeout 120 git -C "$repo" fetch --depth=2147483647 --quiet 2>/dev/null; then
-            log "  $(basename "$repo"): full history ($(git -C "$repo" rev-list --count HEAD 2>/dev/null) commits)"
-        else
-            log "  WARNING: $(basename "$repo") is still shallow — run 'git fetch --unshallow' before trusting any ancestry check"
+    repo="${1%/}/"   # the callers glob, but do not rely on the trailing slash
+    [ -e "${repo}.git/shallow" ] || return 0
+    log "unshallowing $(basename "${repo%/}") (shallow clones make ancestry checks lie)"
+    if timeout 120 git -C "$repo" fetch --unshallow --quiet 2>/dev/null \
+       || timeout 120 git -C "$repo" fetch --depth=2147483647 --quiet 2>/dev/null; then
+        log "  $(basename "${repo%/}"): full history ($(git -C "$repo" rev-list --count HEAD 2>/dev/null) commits)"
+    else
+        log "  WARNING: $(basename "${repo%/}") is still shallow — run 'git fetch --unshallow' before trusting any ancestry check"
+    fi
+}
+
+# Two levels, not one. A workspace is `<root>/<repo>` or, once its checkouts
+# are grouped, `<root>/<family>/<repo>` — and a family directory has no `.git`,
+# so a one-level walk steps straight over every checkout inside it and leaves
+# them shallow while reporting nothing. A directory that IS a checkout is never
+# descended into (a repo's own subdirectories are not siblings), and the walk
+# stops at two levels because that is the shape of the workspace: an unbounded
+# walk over every checked-out repo is not something a session start can afford.
+ensure_full_clone() {
+    local entry child
+    for entry in "$WORKSPACE_ROOT"/*/; do
+        [ -d "$entry" ] || continue
+        if [ -e "${entry}.git" ]; then
+            unshallow_checkout "$entry"
+            continue
         fi
+        for child in "$entry"*/; do
+            [ -d "$child" ] && [ -e "${child}.git" ] || continue
+            unshallow_checkout "$child"
+        done
     done
 }
 
@@ -473,7 +632,7 @@ install_workspace_settings() {
 
     local settings="$root/.claude/settings.json"
     local fanout="$root/.claude/hooks/session-start.sh"
-    [ -w "$root" ] || { log "WARNING: $root not writable; multi-repo sessions will keep skipping the hook"; return 0; }
+    [ -w "$root" ] || { log "WARNING: $root not writable ($WORKSPACE_ROOT_REASON); multi-repo sessions will keep skipping the hook"; return 0; }
 
     mkdir -p "$(dirname "$fanout")"
     rm -f "$fanout"   # never write through a symlink; see write_venv_shim
@@ -485,11 +644,27 @@ install_workspace_settings() {
 # second and later ones cost ~0.2s.
 set -u
 ROOT="$(cd "$(dirname "$(readlink -f "$0")")/../.." && pwd)"
-for repo in "$ROOT"/*/; do
-    hook="${repo}.claude/hooks/session-start.sh"
-    [ -x "$hook" ] || continue
-    CLAUDE_PROJECT_DIR="${repo%/}" "$hook" || \
+
+# Run one checkout's hook. Non-zero only when there is no hook to run, which is
+# how a family directory is told apart from a checkout.
+run_repo_hook() {
+    hook="${1%/}/.claude/hooks/session-start.sh"
+    [ -x "$hook" ] || return 1
+    CLAUDE_PROJECT_DIR="${1%/}" "$hook" || \
         printf '[session-start] WARNING: %s failed\n' "$hook" >&2
+    return 0
+}
+
+# Two levels: the checkouts directly under the root, and those one level down
+# inside a family directory once the workspace groups them. Anything that
+# already carries a hook is run, never walked into.
+for entry in "$ROOT"/*/; do
+    [ -d "$entry" ] || continue
+    run_repo_hook "$entry" && continue
+    for child in "$entry"*/; do
+        [ -d "$child" ] || continue
+        run_repo_hook "$child" || true
+    done
 done
 FANOUT
     chmod 0755 "$fanout"
@@ -511,7 +686,7 @@ FANOUT
   }
 }
 SETTINGS
-        log "installed $settings — multi-repo sessions in this container now run the hook"
+        log "installed $settings ($WORKSPACE_ROOT_REASON) — multi-repo sessions in this container now run the hook"
     fi
 }
 
@@ -560,8 +735,11 @@ if ensure_venv; then
             echo "export VIRTUAL_ENV=\"$VENV\""
             echo "export PATH=\"$VENV/bin:\$PATH\""
             # The workspace root, so the Brain's shell/python resolvers agree
-            # with the session instead of each re-deriving it.
+            # with the session instead of each re-deriving it — and how it was
+            # reached, because an unverified root that a consumer inherits is
+            # exactly the answer that used to be wrong without saying so.
             echo "export PYAUTO_ROOT=\"$WORKSPACE_ROOT\""
+            echo "export PYAUTO_ROOT_REASON=\"$WORKSPACE_ROOT_REASON\""
         } >>"$CLAUDE_ENV_FILE"
     fi
     log "default python is now $("$VENV/bin/python" -V 2>&1) ($VENV/bin)"
