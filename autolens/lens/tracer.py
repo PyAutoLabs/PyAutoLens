@@ -242,7 +242,8 @@ def _validate_fields(fields):
     Raise if ``fields`` is not something the tracer can treat as a collection of
     ``MassField`` objects.
 
-    This mirrors ``_validate_galaxies`` exactly — same container checks, same
+    A bare ``MassField`` is accepted as a one-element collection. Otherwise this
+    mirrors ``_validate_galaxies`` — same container checks, same
     string trap, same ``af.ModelInstance`` escape hatch — but names ``MassField``
     in every message, because the two arguments are not interchangeable and the
     most likely mistake is passing one where the other belongs.
@@ -258,6 +259,9 @@ def _validate_fields(fields):
     """
     if isinstance(fields, af.ModelInstance):
         return
+
+    if isinstance(fields, MassField):
+        fields = [fields]
 
     if isinstance(fields, (str, bytes)):
         raise TypeError(
@@ -297,7 +301,7 @@ class Tracer(ABC, ag.OperateImageGalaxies):
         self,
         galaxies: Union[List[ag.Galaxy], af.ModelInstance],
         cosmology: ag.cosmo.LensingCosmology = None,
-        fields: Optional[Union[List[MassField], af.ModelInstance]] = None,
+        fields: Optional[Union[MassField, List[MassField], af.ModelInstance]] = None,
     ):
         """
         Performs gravitational lensing ray-tracing calculations based on an input list of galaxies and a cosmology.
@@ -330,7 +334,8 @@ class Tracer(ABC, ag.OperateImageGalaxies):
             The cosmology used to perform ray-tracing calculations.
         fields
             The `MassField` objects describing the tidal field of everything outside the modelled system (e.g. an
-            external shear, a mass sheet, an external potential). Each is placed at its own redshift in the
+            external shear, a mass sheet, an external potential). Pass a list or a single
+            `MassField`; the tracer stores a fresh list in either case. Each is placed at its own redshift in the
             multi-plane calculation exactly like a galaxy's mass, but contributes no light. Attaching these
             components to a `Galaxy` instead remains fully supported and is not deprecated.
         """
@@ -343,13 +348,15 @@ class Tracer(ABC, ag.OperateImageGalaxies):
         if fields is not None:
             _validate_fields(fields=fields)
 
+        fields = tracer_util.fields_list_from(fields)
+
         _warn_if_no_light_is_behind_any_mass(galaxies=galaxies, fields=fields)
 
         self.galaxies = galaxies
 
         # Stored as a plain list (never None) so every member-walking property below can concatenate it
         # unconditionally, and so a tracer with no fields serialises as `fields: []` rather than a null.
-        self.fields = list(fields) if fields is not None else []
+        self.fields = fields
 
         self.cosmology = cosmology or ag.cosmo.Planck15()
 
@@ -492,7 +499,7 @@ class Tracer(ABC, ag.OperateImageGalaxies):
         source_galaxies: List[ag.Galaxy],
         planes_between_lenses: List[int],
         cosmology: ag.cosmo.LensingCosmology = None,
-        fields: Optional[List[MassField]] = None,
+        fields: Optional[Union[MassField, List[MassField]]] = None,
     ):
         """
         Returns a tracer where the lens system is split into planes with specified redshift distances between them.
@@ -541,6 +548,7 @@ class Tracer(ABC, ag.OperateImageGalaxies):
         fields
             The `MassField` objects describing the external tidal field. Each has its redshift snapped to the
             nearest sliced plane redshift, exactly as the `line_of_sight_galaxies` do.
+            Accepts a list or a single `MassField`.
         """
         cosmology = cosmology or ag.cosmo.Planck15()
 
@@ -556,7 +564,7 @@ class Tracer(ABC, ag.OperateImageGalaxies):
 
         galaxies = lens_galaxies + line_of_sight_galaxies + source_galaxies
 
-        fields = list(fields) if fields is not None else []
+        fields = tracer_util.fields_list_from(fields)
 
         # Fields are snapped exactly as `line_of_sight_galaxies` are: a field is a redshift-bearing member of
         # the system, so leaving it off a sliced plane would defeat the whole point of the slicing.

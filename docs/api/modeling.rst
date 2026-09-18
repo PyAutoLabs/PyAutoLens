@@ -73,6 +73,10 @@ Convenience functions which compose commonly used ``af.Model`` objects.
 ``mass_field_from`` builds the ``af.Model(al.MassField, ...)`` external-field model that
 goes in a model's ``fields`` collection, sharing the centre of its ``MassSheet`` /
 ``ExternalPotential`` components with the lens galaxy model's mass centre.
+The primary form is ``fields=af.Collection(field=field)``. For a single field,
+``fields=field`` is also supported. It shortens prior paths from
+``fields.field.shear.gamma_1`` to ``fields.shear.gamma_1`` and therefore gives a
+different result identifier by design. Existing collection-form identifiers are unchanged.
 
 .. currentmodule:: autolens.analysis.model_util
 

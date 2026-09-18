@@ -149,3 +149,43 @@ def test__log_likelihood_function__a_field_shear_matches_the_galaxy_attached_she
     )
 
     assert field_likelihood == pytest.approx(galaxy_likelihood, 1.0e-8)
+
+
+def test__tracer_via_instance_from__bare_field_is_folded_into_tracer_fields(
+    analysis_imaging_7x7,
+):
+    model = af.Collection(
+        galaxies=af.Collection(
+            lens=af.Model(al.Galaxy, redshift=0.5, mass=al.mp.Isothermal),
+            source=af.Model(al.Galaxy, redshift=1.0, bulge=al.lp.Sersic),
+        ),
+        fields=af.Model(
+            al.MassField, redshift=0.5, shear=af.Model(al.mp.ExternalShear)
+        ),
+    )
+    instance = model.instance_from_prior_medians()
+
+    tracer = analysis_imaging_7x7.tracer_via_instance_from(instance=instance)
+
+    assert tracer.fields == [instance.fields]
+    assert all(field is not instance.fields for field in tracer.galaxies)
+
+
+def test__log_likelihood__bare_and_collection_fields_agree(masked_imaging_7x7):
+    analysis = al.AnalysisImaging(dataset=masked_imaging_7x7, use_jax=False)
+    galaxies = af.Collection(
+        lens=al.Galaxy(redshift=0.5, mass=al.mp.IsothermalSph(einstein_radius=1.0)),
+        source=al.Galaxy(redshift=1.0, bulge=al.lp.SersicSph(intensity=1.0)),
+    )
+    field = af.Model(
+        al.MassField,
+        redshift=0.5,
+        shear=al.mp.ExternalShear(gamma_1=0.05, gamma_2=0.06),
+    )
+    flat = af.Collection(galaxies=galaxies, fields=field).instance_from_prior_medians()
+    collection = af.Collection(
+        galaxies=galaxies, fields=af.Collection(field=field)
+    ).instance_from_prior_medians()
+    assert analysis.log_likelihood_function(flat) == pytest.approx(
+        analysis.log_likelihood_function(collection), rel=0, abs=1.0e-8
+    )

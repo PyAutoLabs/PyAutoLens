@@ -4,6 +4,7 @@ Utility functions supporting the ``Tracer`` ray-tracing calculations.
 This module contains lower-level helpers that are called by ``Tracer`` but kept separate
 to avoid cluttering the main class.  Key functions:
 
+- ``fields_list_from`` — normalizes an optional single field or collection to a fresh list.
 - ``plane_redshifts_from`` — derives the list of unique plane redshifts from a list of
   galaxies, collapsing multiple galaxies at the same redshift into a single plane.
 - ``ordered_plane_redshifts_with_slicing_from`` — extends the above with optional
@@ -19,6 +20,18 @@ import autogalaxy as ag
 import autogalaxy.plot as aplt
 
 from autolens import exc
+
+
+def fields_list_from(fields) -> List[ag.MassField]:
+    """Return a fresh list from no fields, a single MassField, or a field collection.
+
+    Container and entry validation remain the responsibility of the caller.
+    """
+    if fields is None:
+        return []
+    if isinstance(fields, ag.MassField):
+        return [fields]
+    return list(fields)
 
 
 def _redshift_is_traced(redshift) -> bool:

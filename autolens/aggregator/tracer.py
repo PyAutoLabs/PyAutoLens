@@ -100,11 +100,7 @@ def _tracer_from(
 
         # Mirrors the `fields` fold in `AnalysisLens.tracer_via_instance_from`: a model may declare an
         # external field alongside its galaxies, and a `MassField` is not a galaxy.
-        fields = (
-            list(instance.fields)
-            if getattr(instance, "fields", None) is not None
-            else None
-        )
+        fields = tracer_util.fields_list_from(getattr(instance, "fields", None))
 
         tracer = Tracer(galaxies=galaxy_list, cosmology=cosmology, fields=fields)
 

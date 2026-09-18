@@ -15,7 +15,8 @@ shear, a mass sheet, an external potential — at its own redshift and with no l
 own; pass a list of them as ``Tracer(galaxies=..., fields=[field])`` and each is placed in
 the plane at its redshift, contributing its mass to every lensing calculation while every
 per-galaxy surface still sees galaxies alone. Attaching these components to a ``Galaxy``
-instead remains fully supported.
+instead remains fully supported. For one field, ``Tracer(galaxies=..., fields=field)``
+is also accepted; ``tracer.fields`` is always stored as a list.
 
 .. currentmodule:: autolens
 

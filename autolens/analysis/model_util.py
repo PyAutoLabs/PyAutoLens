@@ -147,6 +147,12 @@ def mass_field_from(
             fields=af.Collection(field=al.model_util.mass_field_from(lens=lens)),
         )
 
+    For a single field, ``fields=al.model_util.mass_field_from(lens=lens)`` is also
+    supported. This shortens prior paths (``fields.shear.gamma_1`` instead of
+    ``fields.field.shear.gamma_1``), so the two forms have different result identifiers
+    by design. The collection form above remains the primary example and retains its
+    existing identifier.
+
     The ``MassSheet`` and ``ExternalPotential`` have a meaningful centre (unlike an
     ``ExternalShear``, whose deflection field is constant), and that centre is physically
     the centre of the system the field is expanded about. It is therefore **shared** with
@@ -177,7 +183,8 @@ def mass_field_from(
 
     Returns
     -------
-    The ``af.Model`` of the ``MassField``, to be placed in the model's ``fields`` collection.
+    The ``af.Model`` of the ``MassField``, to be placed in the model's ``fields`` collection
+    or supplied directly as ``fields`` for a single field.
     """
     if not hasattr(lens, "mass"):
         raise ValueError(
