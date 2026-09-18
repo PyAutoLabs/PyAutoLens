@@ -162,7 +162,7 @@ resolve_workspace_root() {
     # root — and this session would then export somebody else's workspace to
     # the whole session, write a `.claude/` root into it and unshallow its
     # repos. Measured on this very bundle: the resolver said
-    # /home/…/PyAutoLabs for a hook running in /home/…/PyAutoLabs-wt/<task>.
+    # the canonical workspace for a hook running in a task bundle beside it.
     # `scripts/session_bootstrap.sh` guards the same trap the same way; the
     # test is "is it an ancestor", not "is the checkout directly under it", so
     # a checkout inside a family directory still passes.
