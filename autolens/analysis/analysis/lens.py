@@ -135,11 +135,7 @@ class AnalysisLens:
         # A model may declare an external field alongside its galaxies, as
         # `af.Collection(galaxies=..., fields=af.Collection(field=af.Model(al.MassField, ...)))`.
         # It is folded here rather than into `galaxy_list`, because a `MassField` is not a galaxy.
-        fields = (
-            list(instance.fields)
-            if getattr(instance, "fields", None) is not None
-            else None
-        )
+        fields = tracer_util.fields_list_from(getattr(instance, "fields", None))
 
         return Tracer(
             galaxies=galaxy_list,

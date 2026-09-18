@@ -440,3 +440,23 @@ def test__positions_likelihood_from__loads_cached_positions_on_second_call(
     assert isinstance(second, al.PositionsLH)
     assert second.positions.array == pytest.approx(first.positions.array, 1.0e-8)
     assert second.threshold == pytest.approx(first.threshold, 1.0e-8)
+
+
+@pytest.mark.parametrize("form", ["flat", "collection", "absent", "none", "empty"])
+def test__max_log_likelihood_fields__normalizes_model_slot(form, analysis_imaging_7x7):
+    field = al.MassField(redshift=0.5, shear=al.mp.ExternalShear(gamma_1=0.05))
+    instance = af.ModelInstance()
+    if form == "flat":
+        instance.fields = field
+    elif form == "collection":
+        instance.fields = af.ModelInstance({"field": field})
+    elif form == "none":
+        instance.fields = None
+    elif form == "empty":
+        instance.fields = af.ModelInstance()
+    result = res.Result(
+        samples_summary=al.m.MockSamplesSummary(max_log_likelihood_instance=instance),
+        analysis=analysis_imaging_7x7,
+    )
+    expected = [field] if form in ("flat", "collection") else []
+    assert result.max_log_likelihood_fields == expected

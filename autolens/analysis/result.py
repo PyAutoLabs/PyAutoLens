@@ -31,6 +31,7 @@ from autolens.point.max_separation import (
     SourceMaxSeparation,
 )
 from autolens.lens.tracer import Tracer
+from autolens.lens import tracer_util
 from autolens.point.solver import PointSolver
 from autonerves.test_mode import is_test_mode, skip_checks
 
@@ -54,12 +55,7 @@ class Result(AgResultDataset):
         Mirrors `max_log_likelihood_galaxies` (which reads the galaxies off the same instance), and returns an empty
         list for the overwhelming majority of models, which declare no `fields` collection at all.
         """
-        fields = getattr(self.instance, "fields", None)
-
-        if fields is None:
-            return []
-
-        return list(fields)
+        return tracer_util.fields_list_from(getattr(self.instance, "fields", None))
 
     def source_plane_light_profile_centre_from(
         self, plane_redshift: Optional[float] = None

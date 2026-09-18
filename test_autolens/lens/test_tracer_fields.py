@@ -530,3 +530,122 @@ def test__regression__the_model_identifier_is_unchanged_by_the_fields_slot():
     assert result.returncode == 0, result.stderr
 
     assert result.stdout.strip().splitlines()[-1] == "fef2697b5c32ba56bb18a7baecb7b0f6"
+
+
+@pytest.fixture(name="bare_field")
+def make_bare_field():
+    return al.MassField(
+        redshift=0.75, shear=_shear(), mass_sheet=al.mp.MassSheet(kappa=0.1)
+    )
+
+
+def test__bare_field__stored_as_single_member_and_equivalent_to_list(bare_field, grid):
+    galaxies = [_lens(), _source()]
+    bare = al.Tracer(galaxies=galaxies, fields=bare_field)
+    listed = al.Tracer(galaxies=galaxies, fields=[bare_field])
+
+    assert bare.fields == [bare_field]
+    assert bare.fields[0] is bare_field
+    assert bare.members == listed.members
+    assert bare.plane_redshifts == listed.plane_redshifts == [0.5, 0.75, 1.0]
+    for method in ("deflections_yx_2d_from", "convergence_2d_from"):
+        assert np.asarray(getattr(bare, method)(grid)) == pytest.approx(
+            np.asarray(getattr(listed, method)(grid)), abs=1.0e-8
+        )
+    assert np.any(np.asarray(bare.convergence_2d_from(grid)) != 0)
+
+
+def test__fields_list__storage_does_not_alias_input(bare_field):
+    fields = [bare_field]
+    tracer = al.Tracer(galaxies=[_lens(), _source()], fields=fields)
+    fields.clear()
+    assert tracer.fields == [bare_field]
+
+
+def test__bare_field__geometry_warning_is_not_skipped():
+    with pytest.warns(MultiPlaneRedshiftWarning):
+        al.Tracer(
+            galaxies=[al.Galaxy(redshift=0.5, bulge=al.lp.Sersic(intensity=1.0))],
+            fields=al.MassField(redshift=1.0, shear=_shear()),
+        )
+
+
+def test__bare_field__json_matches_list_and_round_trips(bare_field, tmp_path):
+    galaxies = [_lens(), _source()]
+    bare = al.Tracer(galaxies=galaxies, fields=bare_field)
+    listed = al.Tracer(galaxies=galaxies, fields=[bare_field])
+    bare_path, list_path = tmp_path / "bare.json", tmp_path / "list.json"
+    output_to_json(bare, file_path=bare_path)
+    output_to_json(listed, file_path=list_path)
+    assert bare_path.read_bytes() == list_path.read_bytes()
+    restored = from_json(file_path=bare_path)
+    assert isinstance(restored.fields, list)
+    assert isinstance(restored.fields[0], al.MassField)
+    assert al.to_dict(restored) == al.to_dict(listed)
+
+
+def test__sliced_tracer_from__bare_field_redshift_is_snapped():
+    field = al.MassField(redshift=0.42, shear=_shear())
+    tracer = al.Tracer.sliced_tracer_from(
+        lens_galaxies=[al.Galaxy(redshift=0.5)],
+        line_of_sight_galaxies=[],
+        source_galaxies=[al.Galaxy(redshift=2.0)],
+        planes_between_lenses=[1, 1],
+        fields=field,
+    )
+    assert tracer.fields == [field]
+    assert field.redshift == 0.5
+
+
+def test__bare_galaxy_in_fields__still_rejected():
+    with pytest.raises(TypeError, match="Pass a list of MassField objects"):
+        al.Tracer(galaxies=[_lens()], fields=_source())
+
+
+@pytest.mark.parametrize("fields", [None, [], (), af.ModelInstance()])
+def test__empty_fields__stored_as_empty_list(fields):
+    assert al.Tracer(galaxies=[_lens(), _source()], fields=fields).fields == []
+
+
+def test__generator_fields__rejected_without_consuming_entries(bare_field):
+    fields = (field for field in [bare_field])
+    with pytest.raises(TypeError, match="Pass a list of MassField objects"):
+        al.Tracer(galaxies=[_lens(), _source()], fields=fields)
+    assert next(fields) is bare_field
+
+
+_FIELDS_IDENTIFIER_SNIPPET = """
+import autofit as af
+import autolens as al
+
+paths = []
+for flat in (False, True):
+    field = af.Model(al.MassField, redshift=0.5, shear=af.Model(al.mp.ExternalShear))
+    model = af.Collection(
+        galaxies=af.Collection(
+            lens=af.Model(al.Galaxy, redshift=0.5, mass=af.Model(al.mp.Isothermal)),
+            source=af.Model(al.Galaxy, redshift=1.0, bulge=af.Model(al.lp.Sersic)),
+        ),
+        fields=field if flat else af.Collection(field=field),
+    )
+    assert model.prior_count == 14
+    field_paths = {path for path in model.unique_prior_paths if path[0] == "fields"}
+    prefix = ("fields", "shear") if flat else ("fields", "field", "shear")
+    assert field_paths == {prefix + ("gamma_1",), prefix + ("gamma_2",)}
+    paths.append({path for path in model.unique_prior_paths if path[0] != "fields"})
+    # Captured before the bare-field implementation, under shipped configuration.
+    expected = "36a0be37c9667958bafca2f01e487f80" if flat else "c5cf98ea7733689dc8c0ede6939c1d83"
+    assert model.identifier == expected, model.identifier
+assert paths[0] == paths[1]
+"""
+
+
+def test__fields_model_forms__prior_paths_counts_and_identifiers_are_preserved():
+    result = subprocess.run(
+        [sys.executable, "-c", _FIELDS_IDENTIFIER_SNIPPET],
+        capture_output=True,
+        text=True,
+        cwd=Path(__file__).resolve().parents[2],
+        env={**os.environ, "PYAUTO_SKIP_WORKSPACE_VERSION_CHECK": "1"},
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
