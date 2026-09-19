@@ -631,6 +631,23 @@ The following example notebooks show how to compose and fit these models:
 
 When performing non-linear search chaining, the inferred model of one phase can be linked to the model.
 
+For a model with a separate external field, carry the mass and field together:
+
+```python
+mass, field = al.util.chaining.mass_and_fields_from(
+    mass=af.Model(al.mp.PowerLaw),
+    mass_result=result_1.model.galaxies.lens.mass,
+    fields_result=result_1.model.fields,
+)
+model_2 = af.Collection(
+    galaxies=af.Collection(lens=af.Model(al.Galaxy, redshift=0.5, mass=mass), source=source),
+    fields=field,
+)
+```
+
+`result_1.model.fields` passes posterior priors into the next stage; use
+`result_1.instance.fields` to fix the field to the previous fit's values.
+
 The following example notebooks show how to compose and fit these models:
 
 <https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/guides/modeling/chaining.ipynb>
