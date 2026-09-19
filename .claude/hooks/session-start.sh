@@ -132,7 +132,12 @@ marked_root() {
 holds_an_organ() {
     [ -d "$1/PyAutoMind" ] || [ -d "$1/PyAutoBrain" ] || [ -d "$1/PyAutoHeart" ] \
         || [ -d "$1/PyAutoHands" ] || [ -d "$1/PyAutoMemory" ] || [ -d "$1/PyAutoGut" ] \
-        || [ -d "$1/PyAutoNerves" ] || [ -d "$1/PyAutoCortex" ]
+        || [ -d "$1/PyAutoNerves" ] || [ -d "$1/PyAutoCortex" ] \
+        || [ -d "$1/PyAutoScientist" ] || [ -d "$1/organs/PyAutoMind" ] \
+        || [ -d "$1/organs/PyAutoBrain" ] || [ -d "$1/organs/PyAutoHeart" ] \
+        || [ -d "$1/organs/PyAutoHands" ] || [ -d "$1/organs/PyAutoMemory" ] \
+        || [ -d "$1/organs/PyAutoGut" ] || [ -d "$1/organs/PyAutoNerves" ] \
+        || [ -d "$1/organs/PyAutoCortex" ] || [ -d "$1/organs/PyAutoScientist" ]
 }
 
 # Assigns WORKSPACE_ROOT and WORKSPACE_ROOT_REASON rather than printing: one
@@ -169,7 +174,9 @@ resolve_workspace_root() {
     local repo_real root_real
     repo_real="$(readlink -f "$REPO_DIR" 2>/dev/null || printf '%s' "$REPO_DIR")"
     for helper in "$REPO_DIR/bin/_pyauto_root.sh" \
-                  "$(dirname "$REPO_DIR")/PyAutoBrain/bin/_pyauto_root.sh"; do
+                  "$(dirname "$REPO_DIR")/PyAutoBrain/bin/_pyauto_root.sh" \
+                  "$(dirname "$REPO_DIR")/organs/PyAutoBrain/bin/_pyauto_root.sh" \
+                  "$(dirname "$(dirname "$REPO_DIR")")/organs/PyAutoBrain/bin/_pyauto_root.sh"; do
         [ -r "$helper" ] || continue
         # `|` separates the two answers; no reason the resolver states contains
         # one. The subshell drops this script's `set -euo pipefail` so that a
@@ -205,6 +212,7 @@ resolve_workspace_root() {
     #    available, and a real path a diagnostic can name.
     local parent
     parent="$(dirname "$REPO_DIR")"
+    [ "$(basename "$parent")" = organs ] && parent="$(dirname "$parent")"
     WORKSPACE_ROOT="$parent"
     if holds_an_organ "$WORKSPACE_ROOT"; then
         WORKSPACE_ROOT_REASON="beside this checkout"
