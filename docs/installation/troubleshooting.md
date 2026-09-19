@@ -18,11 +18,13 @@ If you are trying to [install via pip](https://pyautolens.readthedocs.io/en/late
 still having issues, we recommend you try to [install via conda](https://pyautogalaxy.readthedocs.io/en/latest/installation/conda.html)
 instead, or visa versa.
 
-## Support
+## Community & Support
 
-If you are still having issues with installation, please raise an issue on the
-[autolens_workspace issues page](https://github.com/PyAutoLabs/autolens_workspace/issues) with a description of the
-problem and your system setup (operating system, Python version, etc.).
+Questions, help with your code or your analysis, and ideas: the
+[PyAutoLabs Discussions](https://github.com/orgs/PyAutoLabs/discussions).
+Bug reports with a reproducer (a snippet, the traceback, your versions):
+an issue on the library's tracker. The Slack is for collaborators, by
+invitation.
 
 ## Current Working Directory
 

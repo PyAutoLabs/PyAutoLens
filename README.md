@@ -42,12 +42,13 @@ The [**PyAutoLens AI Assistant**](https://github.com/PyAutoLabs/autolens_assista
 
 ## Community & Support
 
-Support for **PyAutoLens** is available via our Slack workspace, where the community shares updates, discusses
-gravitational lensing analysis, and helps troubleshoot problems.
+Questions, help with your code or your analysis, and ideas: the
+[PyAutoLabs Discussions](https://github.com/orgs/PyAutoLabs/discussions).
+Bug reports with a reproducer (a snippet, the traceback, your versions):
+an issue on the library's tracker. The Slack is for collaborators, by
+invitation.
 
-Slack is invitation-only. If you'd like to join, please send an email requesting an invite.
-
-For installation issues, bug reports, or feature requests, please raise an issue on the [GitHub issues page](https://github.com/PyAutoLabs/PyAutoLens/issues).
+The collaborator Slack workspace shares project updates and discussions about gravitational lensing analysis.
 
 ## HowToLens
 
