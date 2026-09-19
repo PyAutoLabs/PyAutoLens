@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Ask a question / get help
+    url: https://github.com/orgs/PyAutoLabs/discussions/categories/help-questions
+    about: Ask installation, usage, or analysis questions in the PyAutoLabs Discussions hub.
+  - name: Suggest an idea / propose an implementation
+    url: https://github.com/orgs/PyAutoLabs/discussions/categories/ideas-proposals
+    about: Suggest an idea or develop an implementation proposal with the community.
+  - name: Report an error / investigate a bug
+    url: https://github.com/orgs/PyAutoLabs/discussions/categories/bugs-errors
+    about: Discuss an error or investigate whether unexpected behavior is a bug.
