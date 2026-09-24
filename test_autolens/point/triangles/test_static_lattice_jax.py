@@ -247,3 +247,49 @@ def test__vmap_matches_scalar_solves():
         np.testing.assert_allclose(
             _finite_sorted(batched[i]), scalar, rtol=0.0, atol=1e-10
         )
+
+
+def test__source_on_a_step_0_vertex_returns_the_two_true_images():
+    """
+    Pinned tie regression (human gate decision, 2026-09-24: PASS).
+
+    The source of a simple SIE is placed bit-exactly on the image of the traced step-0 lattice
+    vertex v = (-0.8, -1.99185843) (flat triangle vertex 31 732 of the +-9.9" / 0.2" lattice),
+    and solved under ``jit`` with the source a traced input, as in a likelihood. The system has
+    exactly two images: the vertex itself and a counter-image at ~(0.41013634, 0.89463539)
+    (Newton roots of the lens equation; NumPy's 7 positions collapse onto the same two roots).
+
+    The static step-0 lattice returns exactly those two images. The pre-phase-3 flat table
+    (main before PyAutoArray#568 phase 3) returns three here: it keeps two triangles either side
+    of the tie vertex, |p - v| ~ 9e-4 each, which both Newton-converge to the vertex root -- it
+    double-counts one image. That flat control is not self-consistent at such measure-zero ties
+    either: eager and ``jit`` solves differ in the step-0 kept set and often in the image count,
+    and a 1e-9 nudge of the source gives two images on both paths. The phase-3 image-count gate
+    therefore passes this case as the removal of a duplicate, not the loss of an image.
+    """
+    solver = _solver()
+    register_tracer_classes(_tracer())
+
+    lattice = CoordinateArrayTriangles.for_limits_and_scale(
+        y_min=-9.9, y_max=9.9, x_min=-9.9, x_max=9.9, scale=0.2
+    )
+    vertex = np.asarray(lattice.triangles).reshape(-1, 2)[31732]
+    np.testing.assert_allclose(vertex, (-0.8, -1.99185843), rtol=0.0, atol=1e-8)
+
+    lens_only = al.Tracer(
+        galaxies=[_tracer().galaxies[0], al.Galaxy(redshift=1.0)]
+    )
+    deflection = np.asarray(
+        lens_only.deflections_yx_2d_from(
+            grid=al.Grid2DIrregular([tuple(vertex)])
+        ).array
+    )[0]
+    source = tuple(float(value) for value in vertex - deflection)
+
+    positions = _finite_sorted(_solve(solver, 1.6, source))
+
+    true_images = np.array([vertex, (0.41013634, 0.89463539)])
+    assert positions.shape == (2, 2)
+    np.testing.assert_allclose(
+        positions, true_images, rtol=0.0, atol=2.0 * solver.pixel_scale_precision
+    )
