@@ -108,17 +108,40 @@ class AbstractSolver:
         """
         Build the initial triangle tiling for the stored image-plane extent, using
         the JAX or NumPy triangle implementation depending on ``xp``.
+
+        On the JAX path the tiling carries its static vertex table
+        (``static_vertices=True``, see
+        `autoarray.structures.triangles.coordinate_array.static_vertex_table`): the
+        step-0 lattice depends only on the solver's geometry, which is static pytree
+        aux data, so its geometrically unique vertices are a cached compile-time
+        constant. Step 0's ``triangles.vertices`` -- the grid every step-0 deflection is
+        evaluated on -- is then the ``(V, 2)`` unique table instead of the flat
+        ``(3N, 2)`` one (11 859 rather than 69 849 rows for the +-9.9" / 0.2" lattice
+        of a 100x100, 0.2" grid), and ``triangles.indices`` gathers the traced
+        vertices back to the triangles. Later steps are data-dependent and keep the
+        flat table. A change of geometry changes the pytree aux data, so it retraces
+        with the matching table. The NumPy path is unchanged (its sibling deduplicates
+        with dynamic shapes).
         """
         if xp.__name__.startswith("jax"):
             from autoarray.structures.triangles.coordinate_array import (
-                CoordinateArrayTriangles as triangle_cls,
-            )
-        else:
-            from autoarray.structures.triangles.coordinate_array_np import (
-                CoordinateArrayTrianglesNp as triangle_cls,
+                CoordinateArrayTriangles,
             )
 
-        return triangle_cls.for_limits_and_scale(
+            return CoordinateArrayTriangles.for_limits_and_scale(
+                y_min=self.y_min,
+                y_max=self.y_max,
+                x_min=self.x_min,
+                x_max=self.x_max,
+                scale=self.scale,
+                static_vertices=True,
+            )
+
+        from autoarray.structures.triangles.coordinate_array_np import (
+            CoordinateArrayTrianglesNp,
+        )
+
+        return CoordinateArrayTrianglesNp.for_limits_and_scale(
             y_min=self.y_min,
             y_max=self.y_max,
             x_min=self.x_min,
