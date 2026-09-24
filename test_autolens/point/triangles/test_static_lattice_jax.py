@@ -19,6 +19,21 @@ import numpy as np
 import pytest
 
 
+# Plain data, defined outside the jax guard: module-level @parametrize reads it at collection
+# time, including on the NumPy-only matrix env.
+# Generic, near-caustic (the SIE's tangential caustic is ~0.1" across) and outer sources.
+SOURCES = [
+    (0.07, 0.07),
+    (0.0, 0.0),
+    (0.012, 0.0),
+    (0.0, 0.015),
+    (0.03, 0.03),
+    (0.3, -0.2),
+    (1.2, 0.1),
+    (1.58, 0.0),
+]
+
+
 if importlib.util.find_spec("jax") is None:
     pytestmark = pytest.mark.skip(reason="requires jax (the [optional] extras)")
 
@@ -104,17 +119,6 @@ else:
         positions = positions[np.all(np.isfinite(positions), axis=1)]
         return positions[np.lexsort((positions[:, 1], positions[:, 0]))]
 
-    # Generic, near-caustic (the SIE's tangential caustic is ~0.1" across) and outer sources.
-    SOURCES = [
-        (0.07, 0.07),
-        (0.0, 0.0),
-        (0.012, 0.0),
-        (0.0, 0.015),
-        (0.03, 0.03),
-        (0.3, -0.2),
-        (1.2, 0.1),
-        (1.58, 0.0),
-    ]
 
 
 def test__step_0_deflects_the_unique_lattice_vertices(monkeypatch):
