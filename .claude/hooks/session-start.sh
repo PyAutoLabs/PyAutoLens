@@ -132,12 +132,12 @@ marked_root() {
 holds_an_organ() {
     [ -d "$1/PyAutoMind" ] || [ -d "$1/PyAutoBrain" ] || [ -d "$1/PyAutoHeart" ] \
         || [ -d "$1/PyAutoHands" ] || [ -d "$1/PyAutoMemory" ] || [ -d "$1/PyAutoGut" ] \
-        || [ -d "$1/PyAutoNerves" ] || [ -d "$1/PyAutoCortex" ] \
+        || [ -d "$1/PyAutoNerves" ] || [ -d "$1/PyAutoCortex" ] || [ -d "$1/PyAutoEyes" ] \
         || [ -d "$1/organs/PyAutoMind" ] \
         || [ -d "$1/organs/PyAutoBrain" ] || [ -d "$1/organs/PyAutoHeart" ] \
         || [ -d "$1/organs/PyAutoHands" ] || [ -d "$1/organs/PyAutoMemory" ] \
         || [ -d "$1/organs/PyAutoGut" ] || [ -d "$1/organs/PyAutoNerves" ] \
-        || [ -d "$1/organs/PyAutoCortex" ]
+        || [ -d "$1/organs/PyAutoCortex" ] || [ -d "$1/organs/PyAutoEyes" ]
 }
 
 # Assigns WORKSPACE_ROOT and WORKSPACE_ROOT_REASON rather than printing: one
