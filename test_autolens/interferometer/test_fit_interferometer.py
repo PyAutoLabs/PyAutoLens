@@ -424,9 +424,6 @@ def test__fit_figure_of_merit__sparse_operator__lens_light_profile_and_source_mg
         fit = al.FitInterferometer(dataset=interferometer_7, tracer=tracer)
         fit_sparse = al.FitInterferometer(dataset=dataset_sparse, tracer=tracer)
 
-        assert (
-            fit_sparse.inversion.dataset.sparse_dirty_image is not None
-        ) is has_lens_light
 
         assert isinstance(fit_sparse.inversion, aa.InversionInterferometerSparse)
         assert isinstance(fit.inversion, aa.InversionInterferometerMapping)
@@ -435,3 +432,28 @@ def test__fit_figure_of_merit__sparse_operator__lens_light_profile_and_source_mg
             fit.log_likelihood, rel=1.0e-8
         )
         assert fit_sparse.log_evidence == pytest.approx(fit.log_evidence, rel=1.0e-8)
+
+        assert (
+            fit_sparse.inversion.dataset.sparse_dirty_image is not None
+        ) is has_lens_light
+
+        # The image `i_p` the sparse dirty image is corrected with (`d~ - W~ i_p`) must be exactly the image
+        # the fit's `profile_visibilities` are the Fourier transform of.
+        profile_visibilities = tracer.visibilities_from(
+            grid=dataset_sparse.grids.lp, transformer=dataset_sparse.transformer
+        )
+
+        np.testing.assert_allclose(
+            dataset_sparse.transformer.visibilities_from(
+                image=fit_sparse.profile_image
+            ).array,
+            profile_visibilities.array,
+            rtol=1.0e-12,
+            atol=1.0e-12,
+        )
+        np.testing.assert_allclose(
+            fit_sparse.profile_visibilities.array,
+            profile_visibilities.array,
+            rtol=1.0e-12,
+            atol=1.0e-12,
+        )

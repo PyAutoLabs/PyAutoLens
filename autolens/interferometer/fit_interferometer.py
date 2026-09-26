@@ -113,14 +113,27 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
             return jnp
         return np
 
+    @cached_property
+    def profile_image(self) -> aa.Array2D:
+        """
+        Returns the summed image of every ordinary (non-linear) light profile in the tracer, which is Fourier
+        transformed to the `profile_visibilities`.
+        """
+        return self.tracer.image_2d_from(grid=self.grids.lp, xp=self._xp)
+
     @property
     def profile_visibilities(self) -> aa.Visibilities:
         """
         Returns the visibilities of every light profile in the tracer, which are computed by performing a Fourier
         transform to the sum of light profile images.
         """
-        return self.tracer.visibilities_from(
-            grid=self.grids.lp, transformer=self.dataset.transformer, xp=self._xp
+        if self.tracer.has(cls=ag.LightProfile):
+            return self.dataset.transformer.visibilities_from(
+                image=self.profile_image, xp=self._xp
+            )
+
+        return aa.Visibilities.zeros(
+            shape_slim=(self.dataset.transformer.uv_wavelengths.shape[0],)
         )
 
     @property
@@ -133,10 +146,8 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
 
     @property
     def tracer_to_inversion(self) -> TracerToInversion:
-        profile_subtracted_visibilities = self.profile_subtracted_visibilities
-
         dataset = aa.DatasetInterface(
-            data=profile_subtracted_visibilities,
+            data=self.profile_subtracted_visibilities,
             noise_map=self.noise_map,
             grids=self.grids,
             transformer=self.dataset.transformer,
@@ -144,8 +155,7 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
             sparse_dirty_image=sparse_dirty_image_from(
                 dataset=self.dataset,
                 galaxies=self.tracer.galaxies,
-                visibilities=profile_subtracted_visibilities,
-                noise_map=self.noise_map,
+                image=self.profile_image,
                 xp=self._xp,
             ),
         )
