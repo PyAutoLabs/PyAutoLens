@@ -457,3 +457,50 @@ def test__fit_figure_of_merit__sparse_operator__lens_light_profile_and_source_mg
             rtol=1.0e-12,
             atol=1.0e-12,
         )
+
+
+def test__profile_visibilities__linear_light_only__zeros_without_fourier_transform(
+    interferometer_7, monkeypatch
+):
+    """
+    A tracer whose light is entirely linear (a lens with only mass and a source MGE `Basis` of linear
+    Gaussians) has an all-zero ordinary light image, so `profile_visibilities` must be zeros without
+    performing a Fourier transform.
+    """
+    calls = []
+
+    visibilities_from = interferometer_7.transformer.visibilities_from
+
+    def spy(*args, **kwargs):
+        calls.append(1)
+        return visibilities_from(*args, **kwargs)
+
+    monkeypatch.setattr(interferometer_7.transformer, "visibilities_from", spy)
+
+    source = al.Galaxy(
+        redshift=1.0,
+        bulge=al.lp_basis.Basis(
+            profile_list=[
+                al.lp_linear.Gaussian(sigma=sigma, centre=(0.1, 0.1))
+                for sigma in (0.3, 1.0, 3.0)
+            ]
+        ),
+    )
+
+    tracer = al.Tracer(
+        galaxies=[
+            al.Galaxy(
+                redshift=0.5,
+                mass=al.mp.Isothermal(centre=(0.0, 0.0), einstein_radius=1.0),
+            ),
+            source,
+        ]
+    )
+
+    fit = al.FitInterferometer(dataset=interferometer_7, tracer=tracer)
+
+    profile_visibilities = fit.profile_visibilities
+
+    assert calls == []
+    assert profile_visibilities.shape == interferometer_7.data.shape
+    assert np.all(profile_visibilities.array == 0.0)

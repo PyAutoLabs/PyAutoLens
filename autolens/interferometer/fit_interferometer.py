@@ -24,7 +24,10 @@ import autoarray as aa
 import autogalaxy as ag
 
 from autogalaxy.abstract_fit import AbstractFitInversion
-from autogalaxy.interferometer.fit_interferometer import sparse_dirty_image_from
+from autogalaxy.interferometer.fit_interferometer import (
+    _has_light_profile_non_linear,
+    sparse_dirty_image_from,
+)
 
 from autolens.lens.tracer import Tracer
 from autolens.lens.to_inversion import TracerToInversion
@@ -126,8 +129,12 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
         """
         Returns the visibilities of every light profile in the tracer, which are computed by performing a Fourier
         transform to the sum of light profile images.
+
+        If the tracer has no ordinary (non-linear) light profile (e.g. its light is entirely an MGE of linear
+        Gaussians), the image is all zeros and the Fourier transform is skipped. This is decided structurally,
+        so it is safe under `jax.jit`.
         """
-        if self.tracer.has(cls=ag.LightProfile):
+        if _has_light_profile_non_linear(galaxies=self.tracer.galaxies):
             return self.dataset.transformer.visibilities_from(
                 image=self.profile_image, xp=self._xp
             )
