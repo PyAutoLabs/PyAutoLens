@@ -24,6 +24,10 @@ import autoarray as aa
 import autogalaxy as ag
 
 from autogalaxy.abstract_fit import AbstractFitInversion
+from autogalaxy.interferometer.fit_interferometer import (
+    _has_light_profile_non_linear,
+    sparse_dirty_image_from,
+)
 
 from autolens.lens.tracer import Tracer
 from autolens.lens.to_inversion import TracerToInversion
@@ -112,14 +116,31 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
             return jnp
         return np
 
+    @cached_property
+    def profile_image(self) -> aa.Array2D:
+        """
+        Returns the summed image of every ordinary (non-linear) light profile in the tracer, which is Fourier
+        transformed to the `profile_visibilities`.
+        """
+        return self.tracer.image_2d_from(grid=self.grids.lp, xp=self._xp)
+
     @property
     def profile_visibilities(self) -> aa.Visibilities:
         """
         Returns the visibilities of every light profile in the tracer, which are computed by performing a Fourier
         transform to the sum of light profile images.
+
+        If the tracer has no ordinary (non-linear) light profile (e.g. its light is entirely an MGE of linear
+        Gaussians), the image is all zeros and the Fourier transform is skipped. This is decided structurally,
+        so it is safe under `jax.jit`.
         """
-        return self.tracer.visibilities_from(
-            grid=self.grids.lp, transformer=self.dataset.transformer, xp=self._xp
+        if _has_light_profile_non_linear(galaxies=self.tracer.galaxies):
+            return self.dataset.transformer.visibilities_from(
+                image=self.profile_image, xp=self._xp
+            )
+
+        return aa.Visibilities.zeros(
+            shape_slim=(self.dataset.transformer.uv_wavelengths.shape[0],)
         )
 
     @property
@@ -138,6 +159,12 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
             grids=self.grids,
             transformer=self.dataset.transformer,
             sparse_operator=self.dataset.sparse_operator,
+            sparse_dirty_image=sparse_dirty_image_from(
+                dataset=self.dataset,
+                galaxies=self.tracer.galaxies,
+                image=self.profile_image,
+                xp=self._xp,
+            ),
         )
 
         return TracerToInversion(

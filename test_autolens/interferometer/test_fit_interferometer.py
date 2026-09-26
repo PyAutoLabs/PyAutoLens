@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import autoarray as aa
 import autolens as al
 
 
@@ -386,3 +387,120 @@ def test__model_visibilities_of_planes_list(interferometer_7):
         + fit.galaxy_model_visibilities_dict[galaxy_pix_1].array,
         1.0e-4,
     )
+
+
+def test__fit_figure_of_merit__sparse_operator__lens_light_profile_and_source_mge__matches_dense(
+    interferometer_7,
+):
+    """
+    With the sparse operator applied, a lens ordinary light profile plus a source MGE (linear Gaussians)
+    must reproduce the dense fit: the lens light's visibilities are subtracted before the inversion, so the
+    sparse data vector must use the dirty image of the profile-subtracted visibilities.
+    """
+    dataset_sparse = interferometer_7.apply_sparse_operator(use_jax=False)
+
+    lens = al.Galaxy(
+        redshift=0.5,
+        bulge=al.lp.Sersic(intensity=0.1, centre=(0.05, 0.05)),
+        mass=al.mp.Isothermal(centre=(0.0, 0.0), einstein_radius=1.0),
+    )
+    source = al.Galaxy(
+        redshift=1.0,
+        bulge=al.lp_basis.Basis(
+            profile_list=[
+                al.lp_linear.Gaussian(sigma=sigma, centre=(0.1, 0.1))
+                for sigma in (0.3, 1.0, 3.0)
+            ]
+        ),
+    )
+
+    # The second case, with no lens light, is the all-linear control which uses the cached dirty image.
+    for galaxies, has_lens_light in (
+        ([lens, source], True),
+        ([al.Galaxy(redshift=0.5, mass=lens.mass), source], False),
+    ):
+        tracer = al.Tracer(galaxies=galaxies)
+
+        fit = al.FitInterferometer(dataset=interferometer_7, tracer=tracer)
+        fit_sparse = al.FitInterferometer(dataset=dataset_sparse, tracer=tracer)
+
+
+        assert isinstance(fit_sparse.inversion, aa.InversionInterferometerSparse)
+        assert isinstance(fit.inversion, aa.InversionInterferometerMapping)
+
+        assert fit_sparse.log_likelihood == pytest.approx(
+            fit.log_likelihood, rel=1.0e-8
+        )
+        assert fit_sparse.log_evidence == pytest.approx(fit.log_evidence, rel=1.0e-8)
+
+        assert (
+            fit_sparse.inversion.dataset.sparse_dirty_image is not None
+        ) is has_lens_light
+
+        # The image `i_p` the sparse dirty image is corrected with (`d~ - W~ i_p`) must be exactly the image
+        # the fit's `profile_visibilities` are the Fourier transform of.
+        profile_visibilities = tracer.visibilities_from(
+            grid=dataset_sparse.grids.lp, transformer=dataset_sparse.transformer
+        )
+
+        np.testing.assert_allclose(
+            dataset_sparse.transformer.visibilities_from(
+                image=fit_sparse.profile_image
+            ).array,
+            profile_visibilities.array,
+            rtol=1.0e-12,
+            atol=1.0e-12,
+        )
+        np.testing.assert_allclose(
+            fit_sparse.profile_visibilities.array,
+            profile_visibilities.array,
+            rtol=1.0e-12,
+            atol=1.0e-12,
+        )
+
+
+def test__profile_visibilities__linear_light_only__zeros_without_fourier_transform(
+    interferometer_7, monkeypatch
+):
+    """
+    A tracer whose light is entirely linear (a lens with only mass and a source MGE `Basis` of linear
+    Gaussians) has an all-zero ordinary light image, so `profile_visibilities` must be zeros without
+    performing a Fourier transform.
+    """
+    calls = []
+
+    visibilities_from = interferometer_7.transformer.visibilities_from
+
+    def spy(*args, **kwargs):
+        calls.append(1)
+        return visibilities_from(*args, **kwargs)
+
+    monkeypatch.setattr(interferometer_7.transformer, "visibilities_from", spy)
+
+    source = al.Galaxy(
+        redshift=1.0,
+        bulge=al.lp_basis.Basis(
+            profile_list=[
+                al.lp_linear.Gaussian(sigma=sigma, centre=(0.1, 0.1))
+                for sigma in (0.3, 1.0, 3.0)
+            ]
+        ),
+    )
+
+    tracer = al.Tracer(
+        galaxies=[
+            al.Galaxy(
+                redshift=0.5,
+                mass=al.mp.Isothermal(centre=(0.0, 0.0), einstein_radius=1.0),
+            ),
+            source,
+        ]
+    )
+
+    fit = al.FitInterferometer(dataset=interferometer_7, tracer=tracer)
+
+    profile_visibilities = fit.profile_visibilities
+
+    assert calls == []
+    assert profile_visibilities.shape == interferometer_7.data.shape
+    assert np.all(profile_visibilities.array == 0.0)
