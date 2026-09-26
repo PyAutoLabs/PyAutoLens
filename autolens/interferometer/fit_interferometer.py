@@ -24,6 +24,7 @@ import autoarray as aa
 import autogalaxy as ag
 
 from autogalaxy.abstract_fit import AbstractFitInversion
+from autogalaxy.interferometer.fit_interferometer import sparse_dirty_image_from
 
 from autolens.lens.tracer import Tracer
 from autolens.lens.to_inversion import TracerToInversion
@@ -132,12 +133,21 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
 
     @property
     def tracer_to_inversion(self) -> TracerToInversion:
+        profile_subtracted_visibilities = self.profile_subtracted_visibilities
+
         dataset = aa.DatasetInterface(
-            data=self.profile_subtracted_visibilities,
+            data=profile_subtracted_visibilities,
             noise_map=self.noise_map,
             grids=self.grids,
             transformer=self.dataset.transformer,
             sparse_operator=self.dataset.sparse_operator,
+            sparse_dirty_image=sparse_dirty_image_from(
+                dataset=self.dataset,
+                galaxies=self.tracer.galaxies,
+                visibilities=profile_subtracted_visibilities,
+                noise_map=self.noise_map,
+                xp=self._xp,
+            ),
         )
 
         return TracerToInversion(
