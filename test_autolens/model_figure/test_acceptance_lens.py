@@ -182,11 +182,37 @@ def test__mge__shared_centre_is_badged_on_its_owner():
     assert "shared across group" in badges
 
 
-def test__mge__areas_factor_is_missing_on_the_mesh(mge_spec):
+def test__mge__areas_factor_is_a_fixed_constant_on_the_mesh(mge_spec):
     row = rows_of(mge_spec)["galaxies.source.pixelization.mesh.areas_factor"]
+
+    assert row.sampling == "fixed"
+    assert row.prior_cls_name == "Constant"
+
+
+def test__mge__unconfigured_regularization_coefficient_is_missing():
+    # `CurvatureMask` ships no prior for `coefficient`: the real-class witness
+    # of the `missing` state (it was `Delaunay.areas_factor` until that was
+    # configured as a Constant).
+    import autolens as al
+
+    model = lens_models.mge_pixelized(regularization=al.reg.CurvatureMask)
+    spec = af.GraphSpec.from_model(model)
+
+    row = rows_of(spec)["galaxies.source.pixelization.regularization.coefficient"]
 
     assert row.sampling == "missing"
     assert row.prior_cls_name == "ConfigException"
+    assert spec.counts["missing"] == 1
+    # the missing coefficient is not sampled: one fewer than the case's 14
+    assert spec.counts["unique_sampled_scalars"] == model.prior_count == 13
+
+    presentation = af.ModelPlotter(model).presentation()
+
+    card = card_of(presentation, "galaxies/source/pixelization/regularization")
+    pill = pill_named(card, "coefficient")
+
+    assert pill is not None
+    assert pill.text == "coefficient · missing"
 
 
 def test__mge__reconstruction_is_solved_on_the_pixelization_card():
@@ -215,11 +241,12 @@ def test__mge__counts(mge_spec):
     assert mge_spec.counts["plates"] == 2
     # `centre_0`, `centre_1`, and each basis's own `ell_comps` pair.
     assert mge_spec.counts["shared_priors"] == 6
-    assert mge_spec.counts["fixed_leaf_slots"] == 64
+    # `pixels`, `zeroed_pixels` and the Constant `areas_factor` among them.
+    assert mge_spec.counts["fixed_leaf_slots"] == 65
     # 60 member intensities plus the source reconstruction.
     assert mge_spec.counts["solved"] == 61
-    # `Delaunay.areas_factor`, which has no prior configured.
-    assert mge_spec.counts["missing"] == 1
+    # nothing in the case is unconfigured (see the `CurvatureMask` witness).
+    assert mge_spec.counts["missing"] == 0
 
 
 # ---------------------------------------------------------------------------
