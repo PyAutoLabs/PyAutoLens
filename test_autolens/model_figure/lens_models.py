@@ -105,7 +105,7 @@ def mge_basis(total_gaussians: int = 30, gaussian_per_basis: int = 2):
     return af.Model(al.lp_basis.Basis, profile_list=bulge_gaussian_list)
 
 
-def mge_pixelized():
+def mge_pixelized(regularization=None):
     """
     Acceptance case (b) -- MGE lens light, pixelized source.
 
@@ -113,7 +113,11 @@ def mge_pixelized():
     ``features/multi_gaussian_expansion/modeling.py`` plus an ``Isothermal`` and
     an ``ExternalShear``; the source is the ``Pixelization`` of
     ``features/pixelization/modeling.py`` built on a ``Delaunay`` mesh, whose
-    ``areas_factor`` has no prior configured and is therefore ``missing``.
+    ``areas_factor`` is configured as a ``Constant`` and is therefore ``fixed``.
+
+    ``regularization`` swaps the ``ConstantSplit`` for another real class --
+    ``al.reg.CurvatureMask``, whose ``coefficient`` has no prior configured, is
+    the case's witness of the ``missing`` state.
     """
     lens = af.Model(
         al.Galaxy,
@@ -126,7 +130,7 @@ def mge_pixelized():
     pixelization = af.Model(
         al.Pixelization,
         mesh=af.Model(al.mesh.Delaunay, pixels=500, zeroed_pixels=0),
-        regularization=af.Model(al.reg.ConstantSplit),
+        regularization=af.Model(regularization or al.reg.ConstantSplit),
     )
 
     source = af.Model(al.Galaxy, redshift=1.0, pixelization=pixelization)
