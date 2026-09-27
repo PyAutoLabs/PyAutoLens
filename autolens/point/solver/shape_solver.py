@@ -21,6 +21,7 @@ from typing import Tuple, List, Iterator, Optional, Union
 
 import autoarray as aa
 
+from autoarray.structures.triangles.array import MAX_CONTAINING_SIZE
 from autoarray.structures.triangles.shape import Shape
 
 import autogalaxy as ag
@@ -582,8 +583,9 @@ class ShapeSolver(AbstractSolver):
     ---
     ``ShapeSolver`` is a NumPy-only solver and rejects ``use_jax=True`` / ``xp=jax.numpy``.
     The JAX triangle containers keep static shapes by truncating every refinement step to
-    ``ArrayTriangles.MAX_CONTAINING_SIZE`` (15) triangles — ample for a ``Point``, which
-    lies inside a handful of triangles, and meaningless for a shape with area, whose kept
+    ``autoarray.structures.triangles.array.MAX_CONTAINING_SIZE`` triangles (the cap the
+    `NotImplementedError` message quotes) — ample for a ``Point``, which lies inside a
+    handful of triangles, and meaningless for a shape with area, whose kept
     set grows with the size of its images. Before this was found, ``use_jax=True`` was
     silently ignored (``find_magnification`` hardcoded ``xp=np``); routing it through
     ``self._xp`` instead would have replaced a silently-ignored flag with a silently wrong
@@ -594,10 +596,11 @@ class ShapeSolver(AbstractSolver):
 
     # The one message both rejection routes raise, so a caller sees the same explanation
     # whether they set `use_jax=True` or passed `xp=jax.numpy` -- and, since it is a plain
-    # string, whether or not JAX is installed.
+    # string, whether or not JAX is installed. The cap is read from the (NumPy-only)
+    # `autoarray.structures.triangles.array` module, so the number cannot drift from it.
     _JAX_REJECTED_MESSAGE = (
         "ShapeSolver does not support JAX. The JAX triangle containers truncate "
-        "every refinement step to ArrayTriangles.MAX_CONTAINING_SIZE (15) "
+        f"every refinement step to MAX_CONTAINING_SIZE ({MAX_CONTAINING_SIZE}) "
         "triangles to keep static shapes, which is enough for a Point but not for "
         "a Shape with area: the kept triangles of an extended source number in the "
         "thousands, so the JAX path silently measures a small fraction of the "
