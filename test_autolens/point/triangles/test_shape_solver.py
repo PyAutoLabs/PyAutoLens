@@ -20,6 +20,7 @@ from scipy import ndimage
 import autoarray as aa
 import autolens as al
 
+from autoarray.structures.triangles.array import MAX_CONTAINING_SIZE
 from autoarray.structures.triangles.shape import Circle, Polygon, Square, Triangle
 from autolens.point.solver.shape_solver import ShapeSolver
 
@@ -575,7 +576,7 @@ def test_use_jax_solver_is_rejected_rather_than_silently_wrong(image_grid, sis_t
         with pytest.raises(NotImplementedError) as exc_info:
             call()
 
-        assert "MAX_CONTAINING_SIZE" in str(exc_info.value)
+        assert f"MAX_CONTAINING_SIZE ({MAX_CONTAINING_SIZE})" in str(exc_info.value)
 
 
 def test_explicit_jax_module_is_rejected_rather_than_silently_wrong(
@@ -598,17 +599,18 @@ def test_explicit_jax_module_is_rejected_rather_than_silently_wrong(
             tracer=sis_tracer, shape=Circle(0.3, 0.0, radius=0.1), xp=jnp
         )
 
-    assert "MAX_CONTAINING_SIZE" in str(exc_info.value)
+    assert f"MAX_CONTAINING_SIZE ({MAX_CONTAINING_SIZE})" in str(exc_info.value)
 
 
 @pytest.mark.xfail(
     strict=True,
     reason=(
         "DEFERRED: the JAX triangle containers truncate every refinement step to "
-        "ArrayTriangles.MAX_CONTAINING_SIZE (15) triangles to keep static shapes. That is "
-        "enough for a Point but not for a Shape with area, so the JAX path keeps 15 of the "
-        "~800 triangles the NumPy path keeps and measures a magnification of 0.13 where "
-        "the truth is 6.86. Lifting the cap is a redesign of the JAX containers (the cap "
+        f"MAX_CONTAINING_SIZE ({MAX_CONTAINING_SIZE}) triangles to keep static shapes. That "
+        "is enough for a Point but not for a Shape with area, so the JAX path keeps "
+        f"{MAX_CONTAINING_SIZE} of the "
+        "~800 triangles the NumPy path keeps and measures a magnification orders of "
+        "magnitude too small (0.13 at the original cap of 15, where the truth is 6.86). Lifting the cap is a redesign of the JAX containers (the cap "
         "is what makes their shapes static, and an extended source has no static bound), "
         "not a fix in ShapeSolver, so it is deferred and ShapeSolver raises on use_jax "
         "instead. Remove this xfail when the containers grow a dynamic kept set."
