@@ -37,6 +37,17 @@ class AnalysisPoint(AgAnalysis, AnalysisLens):
     Visualizer = VisualizerPoint
     Result = ResultPoint
 
+    # Gradient-based searches (`Fitness.grad`, `af.MultiStartAdam` & co.)
+    # differentiate this likelihood in forward mode (`jax.jacfwd` over the flat
+    # parameter vector). The point-source likelihood contains an inner
+    # forward-mode lensing Hessian, so reverse mode would run
+    # reverse-over-forward through every mass profile; forward mode measured
+    # 2-4.5x faster and up to 8x faster to compile through 24 free parameters
+    # (autolens_profiling #327/#331). Forward mode carries one tangent per free
+    # parameter, so for a very large model (or memory-bound vmapped starts)
+    # override it per search: `af.MultiStartAdam(gradient_mode="reverse")`.
+    gradient_mode = "forward"
+
     def __init__(
         self,
         dataset: PointDataset,
