@@ -142,6 +142,10 @@ def subplot_fit(
     * Dirty chi-squared map
     * Source plane image (full extent)
 
+    On an array-free dataset (``fit.dataset.is_array_free``) there are no visibilities, so a
+    2 × 3 grid of the natural-weighted dirty image, dirty model image and dirty residual map
+    plus the zoomed and unzoomed source plane is written to the same filename instead.
+
     Parameters
     ----------
     fit : FitInterferometer
@@ -164,6 +168,37 @@ def subplot_fit(
         )
 
     _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
+
+    if fit.dataset.is_array_free:
+        # An array-free dataset (from_stream / from_sparse_terms) has no visibilities, so the
+        # visibility-space and unweighted dirty panels are replaced by the natural-weighted
+        # dirty image / model / residual (from the sparse terms) and the source plane.
+        fig, axes = subplots(2, 3, figsize=conf_subplot_figsize(2, 3))
+        axes_flat = list(axes.flatten())
+
+        plot_array(array=fit.dataset.dirty_image_natural, ax=axes_flat[0],
+                   title=_pf("Dirty Image (Natural)"), colormap=colormap)
+        plot_array(array=fit.dirty_model_image_natural, ax=axes_flat[1],
+                   title=_pf("Dirty Model Image (Natural)"), colormap=colormap,
+                   lines=image_plane_lines, line_colors=image_plane_line_colors)
+        plot_array(array=fit.dirty_residual_map_natural, ax=axes_flat[2],
+                   title=_pf("Dirty Residual Map (Natural)"), colormap=colormap)
+        _plot_source_plane(fit, axes_flat[3], final_plane_index,
+                           zoom_to_brightest=True, colormap=colormap,
+                           title=_pf("Source Plane (Zoomed)"),
+                           lines=source_plane_lines,
+                           line_colors=source_plane_line_colors)
+        _plot_source_plane(fit, axes_flat[4], final_plane_index,
+                           zoom_to_brightest=False, colormap=colormap,
+                           title=_pf("Source Plane (No Zoom)"),
+                           lines=source_plane_lines,
+                           line_colors=source_plane_line_colors)
+        axes_flat[5].axis("off")
+
+        tight_layout()
+        save_figure(fig, path=output_path, filename="fit", format=output_format)
+        return
+
     fig, axes = subplots(3, 4, figsize=conf_subplot_figsize(3, 4))
     axes_flat = list(axes.flatten())
 
@@ -265,6 +300,9 @@ def subplot_fit_dirty_images(
       Dirty Image | Dirty Signal-To-Noise Map | Dirty Model Image (critical curves)
       Dirty Residual Map | Dirty Norm Residual Map | Dirty Chi-Squared Map
 
+    On an array-free dataset (``fit.dataset.is_array_free``) a 1 × 3 subplot of the
+    natural-weighted dirty image, dirty model image and dirty residual map is written instead.
+
     Parameters
     ----------
     fit : FitInterferometer
@@ -286,6 +324,25 @@ def subplot_fit_dirty_images(
         )
 
     _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
+
+    if fit.dataset.is_array_free:
+        fig, axes = subplots(1, 3, figsize=conf_subplot_figsize(1, 3))
+        axes_flat = list(axes.flatten())
+
+        plot_array(array=fit.dataset.dirty_image_natural, ax=axes_flat[0],
+                   title=_pf("Dirty Image (Natural)"), colormap=colormap,
+                   use_log10=use_log10)
+        plot_array(array=fit.dirty_model_image_natural, ax=axes_flat[1],
+                   title=_pf("Dirty Model Image (Natural)"), colormap=colormap,
+                   use_log10=use_log10, lines=image_plane_lines,
+                   line_colors=image_plane_line_colors)
+        plot_array(array=fit.dirty_residual_map_natural, ax=axes_flat[2],
+                   title=_pf("Dirty Residual Map (Natural)"), colormap=colormap)
+
+        tight_layout()
+        save_figure(fig, path=output_path, filename="fit_dirty_images", format=output_format)
+        return
+
     fig, axes = subplots(2, 3, figsize=conf_subplot_figsize(2, 3))
     axes_flat = list(axes.flatten())
 
@@ -329,6 +386,9 @@ def subplot_fit_interferometer_combined(
     different panel choice because interferometer fits are most informatively
     visualised in dirty-image space.
 
+    A fit on an array-free dataset (``fit.dataset.is_array_free``) has no visibilities, so its row
+    shows the natural-weighted dirty image, dirty model image, source plane and dirty residual map.
+
     Parameters
     ----------
     fit_list : list of FitInterferometer
@@ -362,17 +422,23 @@ def subplot_fit_interferometer_combined(
             tracer, cc_grid
         )
 
+        array_free = fit.dataset.is_array_free
+
         plot_array(
-            array=fit.dirty_image,
+            array=fit.dataset.dirty_image_natural if array_free else fit.dirty_image,
             ax=row_axes[0],
-            title=_pf(f"Dirty Image (ch {row})"),
+            title=_pf(
+                f"Dirty Image (Natural) (ch {row})"
+                if array_free
+                else f"Dirty Image (ch {row})"
+            ),
             colormap=colormap,
         )
 
         plot_array(
-            array=fit.dirty_model_image,
+            array=fit.dirty_model_image_natural if array_free else fit.dirty_model_image,
             ax=row_axes[1],
-            title=_pf("Dirty Model Image"),
+            title=_pf("Dirty Model Image (Natural)" if array_free else "Dirty Model Image"),
             colormap=colormap,
             lines=ip_lines,
             line_colors=ip_colors,
@@ -391,13 +457,21 @@ def subplot_fit_interferometer_combined(
         except Exception:
             row_axes[2].axis("off")
 
-        plot_array(
-            array=fit.dirty_normalized_residual_map,
-            ax=row_axes[3],
-            title=_pf("Dirty Norm Residual"),
-            colormap=colormap,
-            cb_unit=r"$\sigma$",
-        )
+        if array_free:
+            plot_array(
+                array=fit.dirty_residual_map_natural,
+                ax=row_axes[3],
+                title=_pf("Dirty Residual Map (Natural)"),
+                colormap=colormap,
+            )
+        else:
+            plot_array(
+                array=fit.dirty_normalized_residual_map,
+                ax=row_axes[3],
+                title=_pf("Dirty Norm Residual"),
+                colormap=colormap,
+                cb_unit=r"$\sigma$",
+            )
 
     tight_layout()
     save_figure(fig, path=output_path, filename="fit_combined", format=output_format)
@@ -456,8 +530,18 @@ def subplot_fit_real_space(
                            lines=source_plane_lines, line_colors=source_plane_line_colors)
     else:
         # Pixelized source: dirty model image + source reconstruction
-        plot_array(array=fit.dirty_model_image, ax=axes_flat[0],
-                   title=_pf("Reconstructed Image"), colormap=colormap)
+        # An array-free dataset has no transformer: its dirty model image is the
+        # natural-weighted one formed from the sparse terms.
+        plot_array(
+            array=(
+                fit.dirty_model_image_natural
+                if fit.dataset.is_array_free
+                else fit.dirty_model_image
+            ),
+            ax=axes_flat[0],
+            title=_pf("Reconstructed Image"),
+            colormap=colormap,
+        )
         _plot_source_plane(fit, axes_flat[1], final_plane_index,
                            zoom_to_brightest=True, colormap=colormap,
                            title=_pf("Source Reconstruction"),
@@ -532,9 +616,15 @@ def subplot_tracer_from_fit(
     axes_flat = list(axes.flatten())
 
     # Panel 0: Dirty Model Image
-    plot_array(array=fit.dirty_model_image, ax=axes_flat[0], title=_pf("Dirty Model Image"),
-               lines=image_plane_lines, line_colors=image_plane_line_colors,
-               colormap=colormap)
+    if fit.dataset.is_array_free:
+        plot_array(array=fit.dirty_model_image_natural, ax=axes_flat[0],
+                   title=_pf("Dirty Model Image (Natural)"),
+                   lines=image_plane_lines, line_colors=image_plane_line_colors,
+                   colormap=colormap)
+    else:
+        plot_array(array=fit.dirty_model_image, ax=axes_flat[0], title=_pf("Dirty Model Image"),
+                   lines=image_plane_lines, line_colors=image_plane_line_colors,
+                   colormap=colormap)
 
     # Panel 1: Lensed source image (image-plane projection).
     # Use galaxy_image_dict so that pixelized (inversion) sources are included.

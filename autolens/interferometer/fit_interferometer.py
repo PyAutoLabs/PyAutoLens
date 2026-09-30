@@ -343,6 +343,67 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
         return {**galaxy_image_dict, **galaxy_linear_obj_image_dict}
 
     @property
+    def model_image_natural(self) -> aa.Array2D:
+        """
+        The real-space (image-plane) model image `m` of the fit, on the dataset's `real_space_mask`: the lensed
+        image of every ordinary (non-linear) light profile (`profile_image`) plus, when the fit has an
+        inversion, the solved linear objects' reconstruction mapped to the image plane
+        (`inversion.mapped_reconstructed_data`, linear light profiles and pixelized sources) -- the real-space
+        image whose visibilities are `model_data`.
+
+        It is built from these two terms rather than from `galaxy_image_dict`, whose entry for a galaxy with
+        both ordinary and linear light holds only the linear reconstruction.
+
+        It needs neither visibilities nor a transformer, so it is available on an array-free dataset (built by
+        `Interferometer.from_stream` / `from_sparse_terms`), where it is the image the natural-weighted dirty
+        model image `dirty_model_image_natural` is formed from. (There `profile_image` is all zeros, because a
+        fit with ordinary light on an array-free dataset raises before it gets here.)
+        """
+        image = np.asarray(
+            getattr(self.profile_image, "array", self.profile_image), dtype=np.float64
+        )
+
+        if self.inversion is not None:
+            reconstruction = self.inversion.mapped_reconstructed_data
+            image = image + np.asarray(
+                getattr(reconstruction, "array", reconstruction), dtype=np.float64
+            )
+
+        return aa.Array2D(
+            values=image,
+            mask=self.dataset.real_space_mask,
+        )
+
+    @property
+    def dirty_model_image_natural(self) -> aa.Array2D:
+        """
+        The naturally weighted, normalised dirty image of the model visibilities, `W~ m / sum(w)`, formed from
+        `model_image_natural` with the dataset's `sparse_operator` (see
+        `autoarray.fit.fit_interferometer.dirty_model_image_natural_from`).
+
+        It is the model counterpart of the dataset's `dirty_image_natural` and needs no visibilities, so it is
+        how a fit on an array-free dataset is visualized. It is available on any dataset carrying a
+        `sparse_operator` (array-free, or in-memory after `apply_sparse_operator()`); otherwise it raises an
+        `aa.exc.DatasetException`.
+        """
+        return aa.fit.fit_interferometer.dirty_model_image_natural_from(
+            dataset=self.dataset, image=self.model_image_natural
+        )
+
+    @property
+    def dirty_residual_map_natural(self) -> aa.Array2D:
+        """
+        The naturally weighted dirty residual map, `dirty_image_natural - dirty_model_image_natural`, which is
+        `Re(F^H W (d - F m)) / sum(w)`: the natural dirty image of the visibility residuals, computed without
+        them.
+        """
+        return aa.Array2D(
+            values=np.asarray(self.dataset.dirty_image_natural.array)
+            - np.asarray(self.dirty_model_image_natural.array),
+            mask=self.dataset.real_space_mask,
+        )
+
+    @property
     def galaxy_signal_to_noise_map_dict(self) -> Dict[ag.Galaxy, np.ndarray]:
         """
         A dictionary which associates every galaxy in the tracer with its signal-to-noise map.
