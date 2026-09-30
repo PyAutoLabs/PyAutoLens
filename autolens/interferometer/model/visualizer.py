@@ -157,7 +157,7 @@ class VisualizerInterferometer(af.Visualizer):
         if fit.inversion is not None:
             try:
                 plotter.inversion(
-                    inversion=fit.inversion,
+                    inversion=fit.inversion_with_data,
                 )
             except IndexError:
                 pass
