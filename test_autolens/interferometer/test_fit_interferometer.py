@@ -829,3 +829,135 @@ def test__fit_figure_of_merit__array_free_dataset__lens_light_profile__raises(
 
     with pytest.raises(aa.exc.DatasetException):
         al.FitInterferometer(dataset=dataset_array_free, tracer=tracer).figure_of_merit
+
+
+def test__natural_dirty_images__array_free_pixelized_source_fit(interferometer_7):
+    dataset = _array_free_dataset_from(interferometer_7)
+
+    fit = al.FitInterferometer(dataset=dataset, tracer=_pixelized_source_tracer())
+
+    assert fit.inversion.transformer is None
+
+    model_image = fit.model_image_natural
+
+    assert isinstance(model_image, aa.Array2D)
+    np.testing.assert_allclose(
+        model_image.array,
+        fit.inversion.mapped_reconstructed_data.array,
+        rtol=1.0e-12,
+        atol=1.0e-12 * np.abs(model_image.array).max(),
+    )
+
+    np.testing.assert_allclose(
+        fit.dirty_residual_map_natural.array,
+        dataset.dirty_image_natural.array - fit.dirty_model_image_natural.array,
+        rtol=1.0e-12,
+    )
+
+    # The in-memory sparse fit's natural dirty model image equals the transformer's
+    # natural dirty image of the model visibilities `F m`, and the array-free one.
+    dataset_memory = interferometer_7.apply_sparse_operator(use_jax=False)
+
+    fit_memory = al.FitInterferometer(
+        dataset=dataset_memory, tracer=_pixelized_source_tracer()
+    )
+
+    expected = _natural_dirty_image_of_model_data(
+        dataset=dataset_memory, fit=fit_memory
+    )
+
+    np.testing.assert_allclose(
+        fit_memory.dirty_model_image_natural.array,
+        expected.array,
+        rtol=1.0e-8,
+        atol=1.0e-8 * np.abs(expected.array).max(),
+    )
+    np.testing.assert_allclose(
+        fit.dirty_model_image_natural.array,
+        fit_memory.dirty_model_image_natural.array,
+        rtol=1.0e-6,
+        atol=1.0e-6 * np.abs(expected.array).max(),
+    )
+
+
+def _natural_dirty_image_of_model_data(dataset, fit):
+    """
+    The independent reference for `fit.dirty_model_image_natural`: the transformer's natural-weighted dirty
+    image of the fit's actual model visibilities `fit.model_data`, `Re(F^H (w m_vis)) / sum(w)` with
+    `w = 1 / sigma^2` per component (the weighting of `Interferometer.dirty_image_natural`).
+    """
+    noise_map = dataset.noise_map.array
+    visibilities = np.asarray(fit.model_data.array)
+    weighted = aa.Visibilities(
+        visibilities=visibilities.real * noise_map.real**-2.0
+        + 1j * visibilities.imag * noise_map.imag**-2.0
+    )
+    return dataset.transformer.image_from(visibilities=weighted) / float(
+        np.sum(noise_map.real**-2.0)
+    )
+
+
+@pytest.mark.parametrize("linear_component", ["linear_light_profile", "pixelization"])
+def test__natural_dirty_images__galaxy_with_ordinary_and_linear_light__matches_model_data(
+    interferometer_7, linear_component
+):
+    """
+    A galaxy with both an ordinary light profile and a linear component (a lens with a linear light profile,
+    or a source with a pixelization) has only its linear reconstruction in `galaxy_image_dict`;
+    `model_image_natural` must still include the ordinary (lensed) light, so `dirty_model_image_natural` is
+    the natural dirty image of the fit's model visibilities `model_data`.
+    """
+    dataset = interferometer_7.apply_sparse_operator(use_jax=False)
+
+    pixelization = al.Pixelization(
+        mesh=al.mesh.RectangularUniform(shape=(3, 3)),
+        regularization=al.reg.Constant(coefficient=1.0e-3),
+    )
+
+    if linear_component == "linear_light_profile":
+        lens = al.Galaxy(
+            redshift=0.5,
+            bulge=al.lp.Sersic(intensity=0.001, centre=(0.05, 0.05)),
+            disk=al.lp_linear.Sersic(centre=(0.0, 0.1)),
+            mass=al.mp.Isothermal(centre=(0.0, 0.0), einstein_radius=1.0),
+        )
+        source = al.Galaxy(redshift=1.0, bulge=al.lp.Sersic(intensity=0.001))
+    else:
+        lens = al.Galaxy(
+            redshift=0.5,
+            mass=al.mp.Isothermal(centre=(0.0, 0.0), einstein_radius=1.0),
+        )
+        source = al.Galaxy(
+            redshift=1.0,
+            bulge=al.lp.Sersic(intensity=1.0e-4),
+            pixelization=pixelization,
+        )
+
+    fit = al.FitInterferometer(
+        dataset=dataset, tracer=al.Tracer(galaxies=[lens, source])
+    )
+
+    # Both the ordinary and the linear light contribute, so omitting either is detectable.
+    assert np.abs(fit.profile_image.array).max() > 0.0
+    assert np.abs(fit.inversion.mapped_reconstructed_data.array).max() > 0.0
+
+    np.testing.assert_allclose(
+        fit.model_image_natural.array,
+        fit.profile_image.array + fit.inversion.mapped_reconstructed_data.array,
+        rtol=1.0e-12,
+    )
+
+    expected = _natural_dirty_image_of_model_data(dataset=dataset, fit=fit)
+
+    np.testing.assert_allclose(
+        fit.dirty_model_image_natural.array,
+        expected.array,
+        rtol=1.0e-8,
+        atol=1.0e-8 * np.abs(expected.array).max(),
+    )
+    np.testing.assert_allclose(
+        fit.dirty_residual_map_natural.array,
+        dataset.dirty_image_natural.array - expected.array,
+        rtol=1.0e-8,
+        atol=1.0e-8 * np.abs(expected.array).max(),
+    )

@@ -140,7 +140,7 @@ class VisualizerImaging(af.Visualizer):
             try:
                 fit.inversion.reconstruction
             except exc.InversionException:
-                logger(
+                logger.warning(
                     ag.exc.invalid_linear_algebra_for_visualization_message()
                 )
                 return

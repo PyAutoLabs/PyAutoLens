@@ -49,9 +49,14 @@ class VisualizerInterferometer(af.Visualizer):
 
             positions = ag.Grid2DIrregular(positions_list)
 
-            plotter.image_with_positions(
-                image=analysis.dataset.dirty_image, positions=positions
-            )
+            # An array-free dataset (from_stream / from_sparse_terms) has no visibilities to
+            # form the unweighted dirty image from, so its natural-weighted one is shown.
+            if analysis.dataset.is_array_free:
+                image = analysis.dataset.dirty_image_natural
+            else:
+                image = analysis.dataset.dirty_image
+
+            plotter.image_with_positions(image=image, positions=positions)
 
         if analysis.adapt_images is not None:
             plotter.adapt_images(adapt_images=analysis.adapt_images)
@@ -116,7 +121,7 @@ class VisualizerInterferometer(af.Visualizer):
                 source_plane_line_colors=sp_colors,
             )
         except exc.InversionException:
-            logger(ag.exc.invalid_linear_algebra_for_visualization_message())
+            logger.warning(ag.exc.invalid_linear_algebra_for_visualization_message())
             return
 
         if quick_update:
