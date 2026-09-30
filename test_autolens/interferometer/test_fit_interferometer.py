@@ -504,3 +504,232 @@ def test__profile_visibilities__linear_light_only__zeros_without_fourier_transfo
     assert calls == []
     assert profile_visibilities.shape == interferometer_7.data.shape
     assert np.all(profile_visibilities.array == 0.0)
+
+    # Sparse: nothing is subtracted from the visibilities, so the likelihood must not even build the (zero)
+    # profile visibilities: the inversion is passed `data=None` and reads its data term from the sparse
+    # operator's cached scalar.
+    dataset_sparse = interferometer_7.apply_sparse_operator(use_jax=False)
+
+    # The sparse dataset reuses the dense dataset's transformer, so one spy covers both.
+    assert dataset_sparse.transformer is interferometer_7.transformer
+
+    zeros_calls = []
+
+    zeros = aa.Visibilities.zeros
+
+    def zeros_spy(*args, **kwargs):
+        zeros_calls.append(1)
+        return zeros(*args, **kwargs)
+
+    monkeypatch.setattr(aa.Visibilities, "zeros", zeros_spy)
+
+    fit_sparse = al.FitInterferometer(dataset=dataset_sparse, tracer=tracer)
+
+    figure_of_merit = fit_sparse.figure_of_merit
+
+    assert fit_sparse._uses_precomputed_data_term
+    assert fit_sparse.inversion.dataset.data is None
+    assert calls == []
+    assert zeros_calls == []
+    assert "profile_visibilities" not in fit_sparse.__dict__
+    assert "profile_subtracted_visibilities" not in fit_sparse.__dict__
+
+    # The value is the one given by passing the visibilities explicitly (the array path).
+    with monkeypatch.context() as m:
+        m.setattr(
+            al.FitInterferometer,
+            "_uses_precomputed_data_term",
+            property(lambda self: False),
+        )
+
+        fit_array = al.FitInterferometer(dataset=dataset_sparse, tracer=tracer)
+
+        assert fit_array.inversion.dataset.data is not None
+        assert figure_of_merit == pytest.approx(fit_array.figure_of_merit, rel=1.0e-12)
+
+    # Output paths still see real (zero) profile visibilities.
+    assert np.all(fit_sparse.profile_visibilities.array == 0.0)
+
+
+def _pixelized_source_tracer(coefficient=1.0, lens_light=False):
+    lens = al.Galaxy(
+        redshift=0.5,
+        mass=al.mp.Isothermal(centre=(0.0, 0.0), einstein_radius=1.0),
+    )
+
+    if lens_light:
+        lens.bulge = al.lp.Sersic(intensity=0.1, centre=(0.05, 0.05))
+
+    source = al.Galaxy(
+        redshift=1.0,
+        pixelization=al.Pixelization(
+            mesh=al.mesh.RectangularUniform(shape=(3, 3)),
+            regularization=al.reg.Constant(coefficient=coefficient),
+        ),
+    )
+
+    return al.Tracer(galaxies=[lens, source])
+
+
+def test__fit_figure_of_merit__sparse_operator__pixelization_only__data_term_scalar_matches_dense(
+    interferometer_7, monkeypatch
+):
+    """
+    A lens with only mass and a pixelized source on the sparse path passes `data=None` to its inversion, whose
+    `fast_chi_squared` then reads the data term cached on the sparse operator; the log evidence must match the
+    dense fit, and be exactly the value obtained when the visibilities are passed explicitly.
+    """
+    dataset_sparse = interferometer_7.apply_sparse_operator(use_jax=False)
+
+    tracer = _pixelized_source_tracer()
+
+    fit = al.FitInterferometer(dataset=interferometer_7, tracer=tracer)
+    fit_sparse = al.FitInterferometer(dataset=dataset_sparse, tracer=tracer)
+
+    assert isinstance(fit.inversion, aa.InversionInterferometerMapping)
+    assert isinstance(fit_sparse.inversion, aa.InversionInterferometerSparse)
+
+    assert fit_sparse._uses_precomputed_data_term
+    assert fit_sparse.inversion.dataset.data is None
+
+    assert fit_sparse.log_likelihood == pytest.approx(fit.log_likelihood, rel=1.0e-8)
+    assert fit_sparse.log_evidence == pytest.approx(fit.log_evidence, rel=1.0e-8)
+    assert fit_sparse.noise_normalization == fit.noise_normalization
+
+    # Output quantities that read the visibilities get them via `inversion_with_data`.
+    inversion_with_data = fit_sparse.inversion_with_data
+
+    assert inversion_with_data.dataset.data is fit_sparse.data
+    assert inversion_with_data.reconstruction is fit_sparse.inversion.reconstruction
+    assert inversion_with_data.fast_chi_squared == pytest.approx(
+        fit_sparse.inversion.fast_chi_squared, rel=1.0e-12
+    )
+
+    mapper = inversion_with_data.cls_list_from(cls=aa.Mapper)[0]
+
+    np.testing.assert_array_equal(
+        inversion_with_data.data_subtracted_dict[mapper].array,
+        interferometer_7.data.array,
+    )
+
+    # The dense fit's inversion already carries its data, so it is returned unchanged.
+    assert fit.inversion_with_data is fit.inversion
+
+    # Control: with the gate forced off the visibilities are passed explicitly, and the figure of merit is
+    # bit-identical.
+    figure_of_merit = fit_sparse.figure_of_merit
+
+    monkeypatch.setattr(
+        "autolens.interferometer.fit_interferometer.uses_precomputed_data_term_from",
+        lambda **kwargs: False,
+    )
+
+    fit_forced = al.FitInterferometer(dataset=dataset_sparse, tracer=tracer)
+
+    assert not fit_forced._uses_precomputed_data_term
+    assert fit_forced.inversion.dataset.data is not None
+    assert fit_forced.figure_of_merit == figure_of_merit
+
+
+def test__fit_figure_of_merit__sparse_operator__pixelization_only__no_visibility_arrays(
+    interferometer_7, monkeypatch
+):
+    """
+    On the gated sparse path the likelihood must perform no Fourier transform and build no visibility-sized
+    zeros, and must never evaluate `profile_visibilities` or `profile_subtracted_visibilities`.
+    """
+    dataset_sparse = interferometer_7.apply_sparse_operator(use_jax=False)
+
+    calls = []
+
+    visibilities_from = dataset_sparse.transformer.visibilities_from
+
+    def spy(*args, **kwargs):
+        calls.append(1)
+        return visibilities_from(*args, **kwargs)
+
+    monkeypatch.setattr(dataset_sparse.transformer, "visibilities_from", spy)
+
+    zeros_calls = []
+
+    zeros = aa.Visibilities.zeros
+
+    def zeros_spy(*args, **kwargs):
+        zeros_calls.append(1)
+        return zeros(*args, **kwargs)
+
+    monkeypatch.setattr(aa.Visibilities, "zeros", zeros_spy)
+
+    fit = al.FitInterferometer(
+        dataset=dataset_sparse, tracer=_pixelized_source_tracer()
+    )
+
+    fit.figure_of_merit
+
+    assert calls == []
+    assert zeros_calls == []
+    assert "profile_visibilities" not in fit.__dict__
+    assert "profile_subtracted_visibilities" not in fit.__dict__
+
+    # Output paths still see real (zero) profile visibilities.
+    assert np.all(fit.profile_visibilities.array == 0.0)
+
+
+def test__fit_figure_of_merit__sparse_operator__light_profile__unchanged_vs_data_passed(
+    interferometer_7, monkeypatch
+):
+    """
+    With a lens ordinary light profile the sparse fit must keep passing the profile-subtracted visibilities, so
+    its figure of merit is exactly the one computed with the data passed explicitly.
+    """
+    dataset_sparse = interferometer_7.apply_sparse_operator(use_jax=False)
+
+    tracer = _pixelized_source_tracer(lens_light=True)
+
+    fit_sparse = al.FitInterferometer(dataset=dataset_sparse, tracer=tracer)
+
+    assert not fit_sparse._uses_precomputed_data_term
+
+    figure_of_merit = fit_sparse.figure_of_merit
+
+    monkeypatch.setattr(
+        al.FitInterferometer,
+        "_uses_precomputed_data_term",
+        property(lambda self: False),
+    )
+
+    fit_forced = al.FitInterferometer(dataset=dataset_sparse, tracer=tracer)
+
+    assert fit_forced.figure_of_merit == figure_of_merit
+    np.testing.assert_array_equal(
+        fit_sparse.inversion.dataset.data.array,
+        (interferometer_7.data - fit_sparse.profile_visibilities).array,
+    )
+
+
+def test__fit_figure_of_merit__sparse_operator__pixelization_only__jax_jit_matches_numpy(
+    interferometer_7,
+):
+    jax = pytest.importorskip("jax")
+    import jax.numpy as jnp
+
+    dataset_sparse = interferometer_7.apply_sparse_operator(use_jax=False)
+
+    def figure_of_merit_from(coefficient, xp):
+        fit = al.FitInterferometer(
+            dataset=dataset_sparse,
+            tracer=_pixelized_source_tracer(coefficient=coefficient),
+            xp=xp,
+        )
+
+        assert fit.inversion.dataset.data is None
+
+        return fit.figure_of_merit
+
+    figure_of_merit_numpy = figure_of_merit_from(coefficient=1.0, xp=np)
+
+    figure_of_merit_jax = jax.jit(lambda c: figure_of_merit_from(c, xp=jnp))(1.0)
+
+    assert float(figure_of_merit_jax) == pytest.approx(
+        figure_of_merit_numpy, rel=1.0e-8
+    )

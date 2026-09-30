@@ -15,6 +15,7 @@ mirrors the imaging analogue but operates entirely in the visibility (uv) domain
 
 The ``TracerToInversion`` helper is used to assemble the linear system in step 4.
 """
+import copy
 import numpy as np
 from typing import Dict, List, Optional
 
@@ -27,6 +28,7 @@ from autogalaxy.abstract_fit import AbstractFitInversion
 from autogalaxy.interferometer.fit_interferometer import (
     _has_light_profile_non_linear,
     sparse_dirty_image_from,
+    uses_precomputed_data_term_from,
 )
 
 from autolens.lens.tracer import Tracer
@@ -124,7 +126,7 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
         """
         return self.tracer.image_2d_from(grid=self.grids.lp, xp=self._xp)
 
-    @property
+    @cached_property
     def profile_visibilities(self) -> aa.Visibilities:
         """
         Returns the visibilities of every light profile in the tracer, which are computed by performing a Fourier
@@ -143,7 +145,7 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
             shape_slim=(self.dataset.transformer.uv_wavelengths.shape[0],)
         )
 
-    @property
+    @cached_property
     def profile_subtracted_visibilities(self) -> aa.Visibilities:
         """
         Returns the interferometer dataset's visibilities with all transformed light profile images in the fit's
@@ -152,9 +154,38 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
         return self.data - self.profile_visibilities
 
     @property
+    def _uses_precomputed_data_term(self) -> bool:
+        """
+        Whether this fit's inversion reads its data term from the scalar cached on the dataset's
+        `sparse_operator` (see `uses_precomputed_data_term_from`), in which case `tracer_to_inversion` passes
+        `data=None` and the likelihood never evaluates `profile_visibilities` or
+        `profile_subtracted_visibilities`.
+        """
+        return uses_precomputed_data_term_from(
+            dataset=self.dataset,
+            galaxies=self.tracer.galaxies,
+            data=self.data,
+            noise_map=self.noise_map,
+        )
+
+    @property
     def tracer_to_inversion(self) -> TracerToInversion:
+        """
+        Returns the object which builds this fit's inversion from its tracer's linear objects.
+
+        The inversion fits the `profile_subtracted_visibilities`, except on the sparse path when no galaxy has an
+        ordinary light profile (`_uses_precomputed_data_term`): nothing is then subtracted, and `data=None` is passed
+        so the sparse inversion takes its data vector from the operator's cached dirty image and the data term of
+        its `fast_chi_squared` from the operator's cached scalar, touching no visibility-sized array. The
+        visibilities remain available to outputs via `fit.data`.
+        """
+        if self._uses_precomputed_data_term:
+            data = None
+        else:
+            data = self.profile_subtracted_visibilities
+
         dataset = aa.DatasetInterface(
-            data=self.profile_subtracted_visibilities,
+            data=data,
             noise_map=self.noise_map,
             grids=self.grids,
             transformer=self.dataset.transformer,
@@ -207,6 +238,34 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
         """
         if self.perform_inversion:
             return self.tracer_to_inversion.inversion
+
+    @property
+    def inversion_with_data(self) -> Optional[aa.AbstractInversion]:
+        """
+        The fit's `inversion`, guaranteed to carry the visibilities it fitted as its dataset's `data`, for
+        output quantities that read them (e.g. `data_subtracted_dict`, plotted by `subplot_of_mapper`).
+
+        On the sparse path with no ordinary light profile (`_uses_precomputed_data_term`) the likelihood's
+        inversion is built with `data=None`, so that it touches no visibility-sized array. Nothing was subtracted
+        from the visibilities in that case, so the data it fitted are `fit.data`: this returns a shallow copy of
+        the inversion (solved first, so it shares the reconstruction and every other cached quantity) whose dataset interface carries
+        `fit.data`. In every other case it returns `inversion` itself.
+        """
+        inversion = self.inversion
+
+        if inversion is None or inversion.dataset.data is not None:
+            return inversion
+
+        # Solve first, so the copy shares the reconstruction (and everything it cached) rather than repeating it.
+        inversion.reconstruction
+
+        dataset = copy.copy(inversion.dataset)
+        dataset.data = self.data
+
+        inversion_with_data = copy.copy(inversion)
+        inversion_with_data.dataset = dataset
+
+        return inversion_with_data
 
     @property
     def model_data(self) -> aa.Visibilities:
