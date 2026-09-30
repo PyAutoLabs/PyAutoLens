@@ -187,3 +187,104 @@ def test__shared_state_from__populates_mesh_geometry_fields(interferometer_7):
     shared = analysis.shared_state_from(instance=instance)
     assert shared.source_plane_mesh_grid is not None
     assert shared.image_plane_mesh_grid is not None
+
+
+class _FitStub:
+    """
+    The part of a `PyAutoFit` aggregator `Fit` the interferometer loader reads: `value(name)` returning the
+    `dataset.fits` HDU list written by `save_attributes` and the saved `transformer_class` json (if any).
+    """
+
+    def __init__(self, paths):
+        self.paths = paths
+        self.children = []
+
+    def value(self, name):
+        from astropy.io import fits
+        from autonerves.dictable import from_dict
+
+        if name == "dataset":
+            return fits.open(self.paths.image_path / "dataset.fits")
+
+        if name == "transformer_class":
+            path = self.paths._files_path / "transformer_class.json"
+
+            if not path.exists():
+                return None
+
+            return from_dict(self.paths.load_json("transformer_class"))
+
+        return None
+
+
+def test__save_attributes__array_free_dataset__aggregator_round_trip(
+    interferometer_7, tmp_path
+):
+    """
+    `save_attributes` writes an array-free dataset's `SparseTerms` to `dataset.fits` and the aggregator loader
+    (shared with autogalaxy) rebuilds it via `Interferometer.from_sparse_terms`, so a fit of the reloaded
+    dataset with a tracer reproduces the original `log_evidence`.
+    """
+    from astropy.io import fits
+
+    from autolens.aggregator import _interferometer_from
+
+    dataset = aa.Interferometer.from_stream(
+        [
+            (
+                interferometer_7.uv_wavelengths,
+                interferometer_7.data,
+                interferometer_7.noise_map,
+            )
+        ],
+        real_space_mask=interferometer_7.real_space_mask,
+        transformer_class=type(interferometer_7.transformer),
+    )
+
+    paths = af.DirectoryPaths(name="array_free_round_trip", path_prefix=str(tmp_path))
+
+    analysis = al.AnalysisInterferometer(dataset=dataset, use_jax=False)
+    analysis.save_attributes(paths=paths)
+
+    with fits.open(paths.image_path / "dataset.fits") as hdu_list:
+        assert [hdu.name for hdu in hdu_list] == [
+            "MASK",
+            "NUFFT_PRECISION_OPERATOR",
+            "DIRTY_IMAGE",
+            "DIRTY_BEAM",
+            "SPARSE_TERMS_SCALARS",
+        ]
+
+    assert not (paths._files_path / "transformer_class.json").exists()
+
+    dataset_reloaded = _interferometer_from(fit=_FitStub(paths=paths))[0]
+
+    assert dataset_reloaded.is_array_free
+    assert (
+        dataset_reloaded.sparse_operator.data_term
+        == dataset.sparse_operator.data_term
+    )
+    assert (
+        dataset_reloaded.sparse_operator.noise_normalization
+        == dataset.sparse_operator.noise_normalization
+    )
+
+    lens = al.Galaxy(
+        redshift=0.5,
+        mass=al.mp.Isothermal(centre=(0.0, 0.0), einstein_radius=1.0),
+    )
+    source = al.Galaxy(
+        redshift=1.0,
+        pixelization=al.Pixelization(
+            mesh=al.mesh.RectangularUniform(shape=(3, 3)),
+            regularization=al.reg.Constant(coefficient=1.0),
+        ),
+    )
+    tracer = al.Tracer(galaxies=[lens, source])
+
+    log_evidence = al.FitInterferometer(dataset=dataset, tracer=tracer).log_evidence
+    log_evidence_reloaded = al.FitInterferometer(
+        dataset=dataset_reloaded, tracer=tracer
+    ).log_evidence
+
+    assert log_evidence_reloaded == pytest.approx(log_evidence, rel=1.0e-8)

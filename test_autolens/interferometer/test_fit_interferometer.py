@@ -733,3 +733,99 @@ def test__fit_figure_of_merit__sparse_operator__pixelization_only__jax_jit_match
     assert float(figure_of_merit_jax) == pytest.approx(
         figure_of_merit_numpy, rel=1.0e-8
     )
+
+
+def _array_free_dataset_from(dataset):
+    """
+    The array-free counterpart of `dataset` (no visibilities, uv-wavelengths or transformer), built by
+    streaming its visibilities through `Interferometer.from_stream` with the same transformer class.
+    """
+    return aa.Interferometer.from_stream(
+        [(dataset.uv_wavelengths, dataset.data, dataset.noise_map)],
+        real_space_mask=dataset.real_space_mask,
+        transformer_class=type(dataset.transformer),
+    )
+
+
+def test__fit_figure_of_merit__array_free_dataset__pixelization_only__matches_in_memory_sparse(
+    interferometer_7,
+):
+    dataset_sparse = interferometer_7.apply_sparse_operator(use_jax=False)
+    dataset_array_free = _array_free_dataset_from(interferometer_7)
+
+    assert dataset_array_free.is_array_free
+
+    tracer = _pixelized_source_tracer()
+
+    fit_sparse = al.FitInterferometer(dataset=dataset_sparse, tracer=tracer)
+    fit_array_free = al.FitInterferometer(dataset=dataset_array_free, tracer=tracer)
+
+    assert fit_array_free._uses_precomputed_data_term
+    assert fit_array_free.inversion.dataset.data is None
+    assert isinstance(fit_array_free.inversion, aa.InversionInterferometerSparse)
+
+    assert fit_array_free.figure_of_merit == pytest.approx(
+        fit_sparse.figure_of_merit, rel=1.0e-8
+    )
+    assert fit_array_free.log_evidence == pytest.approx(
+        fit_sparse.log_evidence, rel=1.0e-8
+    )
+
+    assert fit_array_free.profile_visibilities is None
+    assert fit_array_free.profile_subtracted_visibilities is None
+    assert fit_array_free.inversion_with_data is fit_array_free.inversion
+
+
+def test__fit_figure_of_merit__array_free_dataset__pixelization_only__jax_jit_matches_numpy(
+    interferometer_7,
+):
+    jax = pytest.importorskip("jax")
+    import jax.numpy as jnp
+
+    dataset_sparse = interferometer_7.apply_sparse_operator(use_jax=False)
+    dataset_array_free = _array_free_dataset_from(interferometer_7)
+
+    def figure_of_merit_from(coefficient, dataset, xp):
+        fit = al.FitInterferometer(
+            dataset=dataset,
+            tracer=_pixelized_source_tracer(coefficient=coefficient),
+            xp=xp,
+        )
+
+        assert fit.inversion.dataset.data is None
+
+        return fit.figure_of_merit
+
+    figure_of_merit_sparse = figure_of_merit_from(
+        coefficient=1.0, dataset=dataset_sparse, xp=np
+    )
+    figure_of_merit_numpy = figure_of_merit_from(
+        coefficient=1.0, dataset=dataset_array_free, xp=np
+    )
+
+    figure_of_merit_jax = jax.jit(
+        lambda c: figure_of_merit_from(c, dataset=dataset_array_free, xp=jnp)
+    )(1.0)
+
+    assert figure_of_merit_numpy == pytest.approx(figure_of_merit_sparse, rel=1.0e-8)
+    assert float(figure_of_merit_jax) == pytest.approx(
+        figure_of_merit_numpy, rel=1.0e-8
+    )
+
+
+def test__fit_figure_of_merit__array_free_dataset__lens_light_profile__raises(
+    interferometer_7,
+):
+    dataset_array_free = _array_free_dataset_from(interferometer_7)
+
+    tracer = _pixelized_source_tracer(lens_light=True)
+
+    fit = al.FitInterferometer(dataset=dataset_array_free, tracer=tracer)
+
+    assert not fit._uses_precomputed_data_term
+
+    with pytest.raises(aa.exc.DatasetException):
+        fit.profile_visibilities
+
+    with pytest.raises(aa.exc.DatasetException):
+        al.FitInterferometer(dataset=dataset_array_free, tracer=tracer).figure_of_merit
