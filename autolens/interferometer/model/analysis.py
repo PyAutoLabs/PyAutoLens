@@ -17,11 +17,11 @@ import numpy as np
 from typing import Optional
 
 from autonerves.dictable import to_dict
-from autonerves.fitsable import hdu_list_for_output_from
 
 import autofit as af
 import autoarray as aa
 import autogalaxy as ag
+from autogalaxy.interferometer.model.analysis import interferometer_hdu_list_from
 
 from autolens.analysis.analysis.dataset import AnalysisDataset
 from autolens.analysis.exceptions import raise_fit_exception
@@ -351,16 +351,9 @@ class AnalysisInterferometer(AnalysisDataset):
         """
         super().save_attributes(paths=paths)
 
-        hdu_list = hdu_list_for_output_from(
-            values_list=[
-                self.dataset.real_space_mask.astype("float"),
-                self.dataset.data.in_array,
-                self.dataset.noise_map.in_array,
-                self.dataset.uv_wavelengths,
-            ],
-            ext_name_list=["mask", "data", "noise_map", "uv_wavelengths"],
-            header_dict=self.dataset.real_space_mask.header_dict,
-        )
+        # An array-free dataset writes its `SparseTerms` instead of the visibility arrays (see
+        # `autogalaxy.interferometer.model.analysis.interferometer_hdu_list_from`).
+        hdu_list = interferometer_hdu_list_from(dataset=self.dataset)
 
         # `dataset.fits` is written once per search, to the `image` folder, and is written
         # unconditionally (it is not gated on any visualization setting). The write is skipped
@@ -374,7 +367,10 @@ class AnalysisInterferometer(AnalysisDataset):
         if not dataset_path.exists():
             hdu_list.writeto(dataset_path, overwrite=True)
 
-        paths.save_json(
-            "transformer_class",
-            to_dict(self.dataset.transformer.__class__),
-        )
+        # An array-free dataset has no transformer; its transformer class name is recorded in
+        # the `dataset.fits` header instead.
+        if self.dataset.transformer is not None:
+            paths.save_json(
+                "transformer_class",
+                to_dict(self.dataset.transformer.__class__),
+            )

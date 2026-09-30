@@ -127,7 +127,7 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
         return self.tracer.image_2d_from(grid=self.grids.lp, xp=self._xp)
 
     @cached_property
-    def profile_visibilities(self) -> aa.Visibilities:
+    def profile_visibilities(self) -> Optional[aa.Visibilities]:
         """
         Returns the visibilities of every light profile in the tracer, which are computed by performing a Fourier
         transform to the sum of light profile images.
@@ -135,7 +135,26 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
         If the tracer has no ordinary (non-linear) light profile (e.g. its light is entirely an MGE of linear
         Gaussians), the image is all zeros and the Fourier transform is skipped. This is decided structurally,
         so it is safe under `jax.jit`.
+
+        On an array-free dataset (built by `Interferometer.from_stream` / `from_sparse_terms`, which has no
+        `uv_wavelengths` and so no transformer) there are no visibilities to compute: this returns `None` when
+        the tracer has no ordinary light profile, and raises an `exc.DatasetException` when it does, because
+        subtracting a light profile's visibilities needs the visibility arrays.
         """
+        if self.dataset.transformer is None:
+            if _has_light_profile_non_linear(galaxies=self.tracer.galaxies):
+                raise aa.exc.DatasetException(
+                    "This FitInterferometer's dataset is array-free (built by from_stream / "
+                    "from_sparse_terms) and has no visibilities or transformer, so the tracer's "
+                    "ordinary (non-linear) light profiles cannot be Fourier transformed and "
+                    "subtracted. An array-free dataset supports pixelization-only and linear-light "
+                    "fits; non-linear light profiles arrive in a later phase. Use the in-memory "
+                    "constructor (`Interferometer(data=..., noise_map=..., uv_wavelengths=..., ...)`) "
+                    "to fit them."
+                )
+
+            return None
+
         if _has_light_profile_non_linear(galaxies=self.tracer.galaxies):
             return self.dataset.transformer.visibilities_from(
                 image=self.profile_image, xp=self._xp
@@ -146,12 +165,21 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
         )
 
     @cached_property
-    def profile_subtracted_visibilities(self) -> aa.Visibilities:
+    def profile_subtracted_visibilities(self) -> Optional[aa.Visibilities]:
         """
         Returns the interferometer dataset's visibilities with all transformed light profile images in the fit's
         tracer subtracted.
+
+        On an array-free dataset there are no visibilities, so this is `None`. `profile_visibilities` is
+        evaluated first, so a fit with ordinary light profiles on an array-free dataset raises rather than
+        silently fitting the unsubtracted sparse terms.
         """
-        return self.data - self.profile_visibilities
+        profile_visibilities = self.profile_visibilities
+
+        if self.data is None:
+            return None
+
+        return self.data - profile_visibilities
 
     @property
     def _uses_precomputed_data_term(self) -> bool:
@@ -250,10 +278,14 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
         from the visibilities in that case, so the data it fitted are `fit.data`: this returns a shallow copy of
         the inversion (solved first, so it shares the reconstruction and every other cached quantity) whose dataset interface carries
         `fit.data`. In every other case it returns `inversion` itself.
+
+        On an array-free dataset (built by `Interferometer.from_stream` / `from_sparse_terms`) `fit.data` is
+        `None`, so there are no visibilities to carry and `inversion` itself is returned; output quantities
+        that read the visibilities are unavailable on such a fit.
         """
         inversion = self.inversion
 
-        if inversion is None or inversion.dataset.data is not None:
+        if inversion is None or inversion.dataset.data is not None or self.data is None:
             return inversion
 
         # Solve first, so the copy shares the reconstruction (and everything it cached) rather than repeating it.
