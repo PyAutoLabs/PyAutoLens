@@ -82,7 +82,9 @@ class PointSolver(AbstractSolver):
             Whether to strip the ``inf`` sentinel rows from the output. When ``None`` (the default),
             defaults to ``True`` on the NumPy path and ``False`` on the JAX path. The JAX path
             keeps the padded static shape so the output crosses a ``jax.jit`` boundary cleanly;
-            strip the infinities outside the jit if needed.
+            strip the infinities outside the jit if needed. The default follows the effective
+            ``xp`` for this call, including an explicit override of the constructor backend.
+            An explicit ``True`` or ``False`` takes precedence over this default.
 
         Returns
         -------
@@ -119,7 +121,7 @@ class PointSolver(AbstractSolver):
             xp = self._xp
 
         if remove_infinities is None:
-            remove_infinities = not self.use_jax
+            remove_infinities = xp is np
 
         # NOTE: pytree registration is the user's responsibility (call
         # `autolens.jax.register_tracer_classes(tracer)` once before wrapping

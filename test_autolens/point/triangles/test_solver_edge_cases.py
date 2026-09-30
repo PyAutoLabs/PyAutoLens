@@ -29,7 +29,9 @@ def solver_grid():
 def lens_galaxy():
     return al.Galaxy(
         redshift=0.5,
-        mass=al.mp.Isothermal(centre=(0.0, 0.0), ell_comps=(0.1, 0.0), einstein_radius=1.0),
+        mass=al.mp.Isothermal(
+            centre=(0.0, 0.0), ell_comps=(0.1, 0.0), einstein_radius=1.0
+        ),
     )
 
 
@@ -166,3 +168,35 @@ def test__precision_fine_enough__still_solves(solver_grid, lens_galaxy):
     )
 
     assert len(result) == 4
+
+
+@pytest.mark.parametrize("use_jax", [False, True])
+@pytest.mark.parametrize("remove_infinities", [None, False, True])
+def test__numpy_override_controls_default_padding(
+    solver_grid, lens_galaxy, use_jax, remove_infinities
+):
+    """An explicit NumPy call strips rejected rows unless padding is requested.
+
+    use_jax=True only sets the constructor preference: this test executes NumPy
+    throughout. The opposite override and JIT are covered in the test workspace.
+    """
+    source = (0.05, 0.02)
+    solver = al.PointSolver.for_grid(
+        grid=solver_grid,
+        pixel_scale_precision=0.001,
+        magnification_threshold=1.0e100,
+        use_jax=use_jax,
+    )
+    result = np.asarray(
+        solver.solve(
+            tracer=_tracer(lens_galaxy, source),
+            source_plane_coordinate=source,
+            xp=np,
+            remove_infinities=remove_infinities,
+        ).array
+    )
+    if remove_infinities is False:
+        assert len(result) > 0
+        assert np.isinf(result).all()
+    else:
+        assert result.shape == (0, 2)
