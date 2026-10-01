@@ -27,7 +27,9 @@ import autogalaxy as ag
 from autogalaxy.abstract_fit import AbstractFitInversion
 from autogalaxy.interferometer.fit_interferometer import (
     _has_light_profile_non_linear,
+    _require_no_array_free_overrides,
     _require_transformer,
+    sparse_chi_squared_from,
     sparse_profile_terms_from,
     uses_precomputed_data_term_from,
 )
@@ -176,37 +178,14 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
         array, which `chi_squared` (and so `log_likelihood` and, without an inversion, `figure_of_merit`) returns
         on an array-free dataset (see `aa.FitInterferometer.sparse_chi_squared`).
 
-        - With an inversion it is the inversion's `fast_chi_squared`, whose data term is that of the
-          profile-subtracted visibilities, so it equals `sum(|d - F i_p - F s|^2 / sigma^2)` up to the
-          `s^T (eps I) s` the curvature matrix's `no_regularization_add_to_curvature_diag_value` adds for
-          unregularized linear objects (the chi-squared convention `log_evidence` already uses; ~1e-7 relative
-          on `log_likelihood` versus the dense residual-map chi-squared for e.g. an MGE).
-        - Without one the model visibilities are only `F i_p`, the transform of the tracer's lensed ordinary
-          light `profile_image`, and it is `data_term - 2 i_p^T d~ + i_p^T W~ i_p` (`sparse_profile_terms_from`);
-          with no ordinary light either the model is zero and it is the operator's cached `data_term`.
-
-        `None` when the dataset has no `sparse_operator`. Every branch is structural, so it is safe under
-        `jax.jit`.
+        It is `data_term - 2 m^T d~ + m^T W~ m` for the fit's total image-plane model image `m` (the tracer's
+        lensed ordinary light `profile_image` plus any inversion's `mapped_reconstructed_data`), so it equals the
+        dense `sum(|d - model_data|^2 / sigma^2)` exactly, with or without an inversion (see
+        `ag.interferometer.fit_interferometer.sparse_chi_squared_from`). `None` when the dataset has no
+        `sparse_operator`; raises a `DatasetException` if the fit overrides an array-free dataset's data or
+        noise-map. Every branch is structural, so it is safe under `jax.jit`.
         """
-        sparse_operator = self.dataset.sparse_operator
-
-        if sparse_operator is None:
-            return None
-
-        if self.perform_inversion:
-            return self.inversion.fast_chi_squared
-
-        _, data_term = sparse_profile_terms_from(
-            dataset=self.dataset,
-            galaxies=self.tracer.galaxies,
-            image=self.profile_image,
-            xp=self._xp,
-        )
-
-        if data_term is None:
-            return getattr(sparse_operator, "data_term", None)
-
-        return data_term
+        return sparse_chi_squared_from(fit=self, galaxies=self.tracer.galaxies)
 
     @property
     def _uses_precomputed_data_term(self) -> bool:
@@ -242,7 +221,12 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
         On an in-memory sparse dataset with ordinary light profiles the subtracted dirty image is still supplied
         (the data vector must use it) alongside the subtracted visibilities. Where the visibilities exist they
         remain available to outputs via `fit.data`.
+
+        On an array-free dataset the fit's data and noise-map cannot be overridden, as the subtracted dirty image
+        and data term are formed from the operator's precomputed ones (`_require_no_array_free_overrides`).
         """
+        _require_no_array_free_overrides(fit=self)
+
         sparse_dirty_image, data_term = sparse_profile_terms_from(
             dataset=self.dataset,
             galaxies=self.tracer.galaxies,

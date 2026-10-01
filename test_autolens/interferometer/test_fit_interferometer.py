@@ -813,19 +813,6 @@ def test__fit_figure_of_merit__array_free_dataset__pixelization_only__jax_jit_ma
     )
 
 
-def _log_likelihood_via_fast_chi_squared(fit):
-    """
-    The log likelihood of a dense `fit` with its chi-squared taken from `inversion.fast_chi_squared` when it has
-    an inversion, which is how an array-free fit (with no residual visibilities) computes it. It differs from
-    the map-based `fit.log_likelihood` only by the `s^T (eps I) s` the curvature matrix's
-    `no_regularization_add_to_curvature_diag_value` adds for unregularized linear objects (e.g. an MGE).
-    """
-    if fit.inversion is None:
-        return fit.log_likelihood
-
-    return -0.5 * (fit.inversion.fast_chi_squared + fit.noise_normalization)
-
-
 def _lens_light_tracer(intensity=0.1, source=None, coefficient=1.0):
     """
     A lens with an ordinary light profile and an isothermal mass, with a source that is either absent
@@ -889,14 +876,16 @@ def test__fit_figure_of_merit__array_free_dataset__lens_light_profile__matches_d
     assert fit_array_free.figure_of_merit == pytest.approx(
         fit.figure_of_merit, rel=1.0e-8
     )
+    # The array-free chi-squared applies the data-term identity to the total model image (lensed profile image
+    # plus the inversion's reconstruction), so it is the dense residual-map chi-squared exactly.
+    assert fit_array_free.chi_squared == pytest.approx(fit.chi_squared, rel=1.0e-8)
     assert fit_array_free.log_likelihood == pytest.approx(
-        _log_likelihood_via_fast_chi_squared(fit), rel=1.0e-8
+        fit.log_likelihood, rel=1.0e-8
     )
 
     if source in (None, "sersic"):
         assert fit_array_free.inversion is None
         assert fit_array_free.figure_of_merit == fit_array_free.log_likelihood
-        assert fit_array_free.chi_squared == pytest.approx(fit.chi_squared, rel=1.0e-8)
     else:
         assert isinstance(fit.inversion, aa.InversionInterferometerMapping)
         assert isinstance(fit_array_free.inversion, aa.InversionInterferometerSparse)
@@ -955,6 +944,76 @@ def test__fit_figure_of_merit__array_free_dataset__lens_light_profile__jax_jit_m
     assert float(figure_of_merit_jit(0.2)) == pytest.approx(
         figure_of_merit_from(intensity=0.2, dataset=interferometer_7, xp=np),
         rel=1.0e-8,
+    )
+
+    # The log likelihood (with an inversion: the identity on the total model image) also matches under jit.
+    def log_likelihood_from(intensity, dataset, xp):
+        return al.FitInterferometer(
+            dataset=dataset,
+            tracer=_lens_light_tracer(intensity=intensity, source=source),
+            xp=xp,
+        ).log_likelihood
+
+    log_likelihood_jit = jax.jit(
+        lambda intensity: log_likelihood_from(
+            intensity, dataset=dataset_array_free, xp=jnp
+        )
+    )
+
+    for intensity in (0.1, 0.2):
+        assert float(log_likelihood_jit(intensity)) == pytest.approx(
+            log_likelihood_from(intensity=intensity, dataset=interferometer_7, xp=np),
+            rel=1.0e-8,
+        )
+
+
+class _FitInterferometerNoiseMapOverride(al.FitInterferometer):
+    """
+    A fit whose `noise_map` is not the dataset's own, as a subclass scaling the noise-map would produce.
+    """
+
+    noise_map_override = None
+
+    @property
+    def noise_map(self):
+        return self.noise_map_override
+
+
+@pytest.mark.parametrize("source", [None, "pixelization"])
+def test__array_free_dataset__noise_map_override__raises(interferometer_7, source):
+    """
+    An array-free dataset's likelihood terms were all precomputed from its own noise-map, so a fit overriding
+    the noise-map must raise rather than return a silently wrong likelihood (an unchanged chi-squared with a
+    switched noise normalization, or the subtracted dirty image paired with the unsubtracted data term). The
+    same override on the in-memory dataset is unaffected.
+    """
+    dataset_array_free = _array_free_dataset_from(interferometer_7)
+
+    tracer = _lens_light_tracer(source=source)
+
+    for scale in (1.0, 2.0):
+        _FitInterferometerNoiseMapOverride.noise_map_override = aa.VisibilitiesNoiseMap(
+            interferometer_7.noise_map * scale
+        )
+
+        fit = _FitInterferometerNoiseMapOverride(
+            dataset=dataset_array_free, tracer=tracer
+        )
+
+        for name in ("figure_of_merit", "log_likelihood", "sparse_chi_squared"):
+            with pytest.raises(
+                aa.exc.DatasetException, match="array-free.*cannot be overridden"
+            ):
+                getattr(fit, name)
+
+        fit_in_memory = _FitInterferometerNoiseMapOverride(
+            dataset=interferometer_7, tracer=tracer
+        )
+
+        assert np.isfinite(fit_in_memory.figure_of_merit)
+
+    assert np.isfinite(
+        al.FitInterferometer(dataset=dataset_array_free, tracer=tracer).figure_of_merit
     )
 
 
