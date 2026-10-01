@@ -288,3 +288,26 @@ def test__save_attributes__array_free_dataset__aggregator_round_trip(
     ).log_evidence
 
     assert log_evidence_reloaded == pytest.approx(log_evidence, rel=1.0e-8)
+
+    # With lens light (fitted via the data-term identity) the reloaded dataset also reproduces the fit, with
+    # and without a pixelized source, and matches the in-memory dense fit.
+    lens_light = al.Galaxy(
+        redshift=0.5,
+        bulge=al.lp.Sersic(intensity=0.1, centre=(0.05, 0.05)),
+        mass=lens.mass,
+    )
+
+    for tracer in (
+        al.Tracer(galaxies=[lens_light, source]),
+        al.Tracer(galaxies=[lens_light, al.Galaxy(redshift=1.0)]),
+    ):
+        figure_of_merit = al.FitInterferometer(
+            dataset=dataset, tracer=tracer
+        ).figure_of_merit
+
+        assert al.FitInterferometer(
+            dataset=dataset_reloaded, tracer=tracer
+        ).figure_of_merit == pytest.approx(figure_of_merit, rel=1.0e-8)
+        assert al.FitInterferometer(
+            dataset=interferometer_7, tracer=tracer
+        ).figure_of_merit == pytest.approx(figure_of_merit, rel=1.0e-8)

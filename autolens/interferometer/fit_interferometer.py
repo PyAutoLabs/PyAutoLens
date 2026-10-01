@@ -27,7 +27,8 @@ import autogalaxy as ag
 from autogalaxy.abstract_fit import AbstractFitInversion
 from autogalaxy.interferometer.fit_interferometer import (
     _has_light_profile_non_linear,
-    sparse_dirty_image_from,
+    _require_transformer,
+    sparse_profile_terms_from,
     uses_precomputed_data_term_from,
 )
 
@@ -137,22 +138,11 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
         so it is safe under `jax.jit`.
 
         On an array-free dataset (built by `Interferometer.from_stream` / `from_sparse_terms`, which has no
-        `uv_wavelengths` and so no transformer) there are no visibilities to compute: this returns `None` when
-        the tracer has no ordinary light profile, and raises an `exc.DatasetException` when it does, because
-        subtracting a light profile's visibilities needs the visibility arrays.
+        `uv_wavelengths` and so no transformer) there are no visibilities to compute and this returns `None`.
+        The likelihood never needs them there: ordinary light profiles enter through their real-space (lensed)
+        `profile_image` and the data-term identity (`sparse_profile_terms_from`, `sparse_chi_squared`).
         """
         if self.dataset.transformer is None:
-            if _has_light_profile_non_linear(galaxies=self.tracer.galaxies):
-                raise aa.exc.DatasetException(
-                    "This FitInterferometer's dataset is array-free (built by from_stream / "
-                    "from_sparse_terms) and has no visibilities or transformer, so the tracer's "
-                    "ordinary (non-linear) light profiles cannot be Fourier transformed and "
-                    "subtracted. An array-free dataset supports pixelization-only and linear-light "
-                    "fits; non-linear light profiles arrive in a later phase. Use the in-memory "
-                    "constructor (`Interferometer(data=..., noise_map=..., uv_wavelengths=..., ...)`) "
-                    "to fit them."
-                )
-
             return None
 
         if _has_light_profile_non_linear(galaxies=self.tracer.galaxies):
@@ -170,16 +160,53 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
         Returns the interferometer dataset's visibilities with all transformed light profile images in the fit's
         tracer subtracted.
 
-        On an array-free dataset there are no visibilities, so this is `None`. `profile_visibilities` is
-        evaluated first, so a fit with ordinary light profiles on an array-free dataset raises rather than
-        silently fitting the unsubtracted sparse terms.
+        On an array-free dataset there are no visibilities, so this is `None` (and `profile_visibilities` is not
+        evaluated). The inversion of such a fit instead receives the profile-subtracted dirty image and data term
+        (see `tracer_to_inversion`).
         """
-        profile_visibilities = self.profile_visibilities
-
         if self.data is None:
             return None
 
-        return self.data - profile_visibilities
+        return self.data - self.profile_visibilities
+
+    @property
+    def sparse_chi_squared(self):
+        """
+        The chi-squared of this fit computed from the dataset's `sparse_operator` without any visibility-sized
+        array, which `chi_squared` (and so `log_likelihood` and, without an inversion, `figure_of_merit`) returns
+        on an array-free dataset (see `aa.FitInterferometer.sparse_chi_squared`).
+
+        - With an inversion it is the inversion's `fast_chi_squared`, whose data term is that of the
+          profile-subtracted visibilities, so it equals `sum(|d - F i_p - F s|^2 / sigma^2)` up to the
+          `s^T (eps I) s` the curvature matrix's `no_regularization_add_to_curvature_diag_value` adds for
+          unregularized linear objects (the chi-squared convention `log_evidence` already uses; ~1e-7 relative
+          on `log_likelihood` versus the dense residual-map chi-squared for e.g. an MGE).
+        - Without one the model visibilities are only `F i_p`, the transform of the tracer's lensed ordinary
+          light `profile_image`, and it is `data_term - 2 i_p^T d~ + i_p^T W~ i_p` (`sparse_profile_terms_from`);
+          with no ordinary light either the model is zero and it is the operator's cached `data_term`.
+
+        `None` when the dataset has no `sparse_operator`. Every branch is structural, so it is safe under
+        `jax.jit`.
+        """
+        sparse_operator = self.dataset.sparse_operator
+
+        if sparse_operator is None:
+            return None
+
+        if self.perform_inversion:
+            return self.inversion.fast_chi_squared
+
+        _, data_term = sparse_profile_terms_from(
+            dataset=self.dataset,
+            galaxies=self.tracer.galaxies,
+            image=self.profile_image,
+            xp=self._xp,
+        )
+
+        if data_term is None:
+            return getattr(sparse_operator, "data_term", None)
+
+        return data_term
 
     @property
     def _uses_precomputed_data_term(self) -> bool:
@@ -201,16 +228,33 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
         """
         Returns the object which builds this fit's inversion from its tracer's linear objects.
 
-        The inversion fits the `profile_subtracted_visibilities`, except on the sparse path when no galaxy has an
-        ordinary light profile (`_uses_precomputed_data_term`): nothing is then subtracted, and `data=None` is passed
-        so the sparse inversion takes its data vector from the operator's cached dirty image and the data term of
-        its `fast_chi_squared` from the operator's cached scalar, touching no visibility-sized array. The
-        visibilities remain available to outputs via `fit.data`.
+        The inversion fits the `profile_subtracted_visibilities`, except when `_uses_precomputed_data_term`, where
+        `data=None` is passed and the sparse inversion touches no visibility-sized array:
+
+        - With no ordinary light profile nothing is subtracted, so the inversion takes its data vector from the
+          operator's cached dirty image and the data term of its `fast_chi_squared` from the operator's cached
+          scalar.
+        - On an array-free dataset with ordinary light profiles (e.g. lens light), it is passed the dirty image
+          `d~ - W~ i_p` and data term `data_term - 2 i_p^T d~ + i_p^T W~ i_p` of the profile-subtracted
+          visibilities, both formed from one `W~ i_p` product (`sparse_profile_terms_from`), so the profile
+          visibilities `F i_p` are never formed.
+
+        On an in-memory sparse dataset with ordinary light profiles the subtracted dirty image is still supplied
+        (the data vector must use it) alongside the subtracted visibilities. Where the visibilities exist they
+        remain available to outputs via `fit.data`.
         """
+        sparse_dirty_image, data_term = sparse_profile_terms_from(
+            dataset=self.dataset,
+            galaxies=self.tracer.galaxies,
+            image=self.profile_image,
+            xp=self._xp,
+        )
+
         if self._uses_precomputed_data_term:
             data = None
         else:
             data = self.profile_subtracted_visibilities
+            data_term = None
 
         dataset = aa.DatasetInterface(
             data=data,
@@ -218,12 +262,8 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
             grids=self.grids,
             transformer=self.dataset.transformer,
             sparse_operator=self.dataset.sparse_operator,
-            sparse_dirty_image=sparse_dirty_image_from(
-                dataset=self.dataset,
-                galaxies=self.tracer.galaxies,
-                image=self.profile_image,
-                xp=self._xp,
-            ),
+            sparse_dirty_image=sparse_dirty_image,
+            data_term=data_term,
         )
 
         return TracerToInversion(
@@ -308,7 +348,12 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
         sum of all light profile images Fourier transformed to visibilities.
 
         If a inversion is included it is the sum of these visibilities and the inversion's reconstructed visibilities.
+
+        On an array-free dataset (built by `Interferometer.from_stream` / `from_sparse_terms`) there is no
+        transformer to form model visibilities with, so this raises an `aa.exc.DatasetException`; the real-space
+        `model_image_natural` and its natural dirty image `dirty_model_image_natural` describe the model there.
         """
+        _require_transformer(fit=self, quantity="model_data")
 
         if self.perform_inversion:
             return (
@@ -356,8 +401,7 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
 
         It needs neither visibilities nor a transformer, so it is available on an array-free dataset (built by
         `Interferometer.from_stream` / `from_sparse_terms`), where it is the image the natural-weighted dirty
-        model image `dirty_model_image_natural` is formed from. (There `profile_image` is all zeros, because a
-        fit with ordinary light on an array-free dataset raises before it gets here.)
+        model image `dirty_model_image_natural` is formed from.
         """
         image = np.asarray(
             getattr(self.profile_image, "array", self.profile_image), dtype=np.float64
@@ -437,7 +481,11 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
           space.
         - The visibilities of all linear objects (e.g. linear light profiles / pixelizations), where the visibilities
           are solved for first via the inversion.
+
+        On an array-free dataset there is no transformer and this raises an `aa.exc.DatasetException`.
         """
+        _require_transformer(fit=self, quantity="galaxy_model_visibilities_dict")
+
         galaxy_model_visibilities_dict = self.tracer.galaxy_visibilities_dict_from(
             grid=self.grids.lp, transformer=self.dataset.transformer, xp=self._xp
         )
@@ -461,7 +509,11 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
 
         This is used to visualize the different contibutions of light from the image-plane, source-plane and other
         planes in a fit.
+
+        On an array-free dataset there is no transformer and this raises an `aa.exc.DatasetException`.
         """
+        _require_transformer(fit=self, quantity="model_visibilities_of_planes_list")
+
         galaxy_model_visibilities_dict = self.galaxy_model_visibilities_dict
 
         model_visibilities_of_planes_list = [

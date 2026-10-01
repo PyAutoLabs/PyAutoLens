@@ -90,7 +90,7 @@ def _pixelized_source_model():
     )
 
 
-def _visualize(dataset, image_path):
+def _visualize(dataset, image_path, lens_light=False):
     """
     Run the interferometer visualizer's `visualize_before_fit` and `visualize` for a lens
     with a pixelized source (and positions) on `dataset`, as a non-linear search would.
@@ -100,6 +100,10 @@ def _visualize(dataset, image_path):
     from autolens.interferometer.model.visualizer import VisualizerInterferometer
 
     model = _pixelized_source_model()
+
+    if lens_light:
+        model.galaxies.lens.bulge = al.lp.Sersic(intensity=0.1, centre=(0.05, 0.05))
+
     instance = model.instance_from_prior_medians()
 
     analysis = al.AnalysisInterferometer(
@@ -175,6 +179,32 @@ def test__visualizer__array_free_dataset(interferometer_7, tmp_path, plot_patch)
             rtol=1.0e-6,
             atol=1.0e-12,
         )
+
+
+def test__visualizer__array_free_dataset__lens_light_profile(
+    interferometer_7, tmp_path, plot_patch
+):
+    """
+    A model with lens light (an ordinary light profile) visualizes on an array-free dataset: the visualizer
+    reads only `model_image_natural` / `dirty_model_image_natural`, never the model visibilities.
+    """
+    import numpy as np
+
+    dataset = _array_free_dataset_from(interferometer_7)
+
+    fit = _visualize(dataset=dataset, image_path=tmp_path, lens_light=True)
+
+    assert np.abs(fit.profile_image.array).max() > 0.0
+
+    for filename in _PNGS:
+        assert str(tmp_path / f"{filename}.png") in plot_patch.paths, filename
+
+    np.testing.assert_allclose(
+        al.ndarray_via_fits_from(file_path=tmp_path / "fit_dirty_images.fits", hdu=3),
+        fit.dirty_model_image_natural.native_for_fits,
+        rtol=1.0e-6,
+        atol=1.0e-12,
+    )
 
 
 def test__visualizer__in_memory_dataset__fit_dirty_images_unchanged(
