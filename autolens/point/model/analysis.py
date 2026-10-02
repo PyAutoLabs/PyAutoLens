@@ -14,7 +14,12 @@ non-linear search at each iteration.  It:
 It also manages result output (``ResultPoint``) and on-the-fly visualisation
 (``VisualizerPoint``).
 """
+
+import logging
+import os
+
 import numpy as np
+from autonerves.test_mode import is_test_mode
 
 import autofit as af
 import autogalaxy as ag
@@ -31,6 +36,8 @@ from autolens.point.dataset import PointDataset
 from autolens.point.model.result import ResultPoint
 from autolens.point.model.visualizer import VisualizerPoint
 from autolens.point.solver import PointSolver
+
+logger = logging.getLogger(__name__)
 
 
 class AnalysisPoint(AgAnalysis, AnalysisLens):
@@ -84,7 +91,9 @@ class AnalysisPoint(AgAnalysis, AnalysisLens):
             time-delays.
         solver
             Solves the lens equation in order to determine the image-plane positions of a point source by ray-tracing
-            triangles to and from the source-plane.
+            triangles to and from the source-plane. At construction, a warning is logged if observed positions lie
+            within two initial triangle scales plus three position sigmas of a grid edge, or outside it. This
+            diagnostic does not establish image completeness across the model prior and never changes the grid.
         fit_positions_cls
             The class used to fit the positions of the point source dataset, which could be an image-plane or
             source-plane chi-squared.
@@ -114,6 +123,74 @@ class AnalysisPoint(AgAnalysis, AnalysisLens):
         self.fit_flux_cls = fit_flux_cls
         self.fit_time_delays_cls = fit_time_delays_cls
         self.title_prefix = title_prefix
+        self._check_solver_extent()
+
+    def _check_solver_extent(self):
+        """Diagnose observed-position coverage once, outside likelihood tracing.
+
+        The margin is two initial triangle scales plus three position sigmas.
+        This is a data-based hint, not a completeness test over the model prior.
+        Custom solvers without rectangular bounds and absent/invalid diagnostic
+        inputs are left to their existing validation paths.
+        """
+        positions = getattr(self.dataset, "positions", None)
+        noise = getattr(self.dataset, "positions_noise_map", None)
+        if positions is None or noise is None or self.solver is None:
+            return
+        try:
+            bounds = np.asarray(
+                [
+                    self.solver.y_min,
+                    self.solver.y_max,
+                    self.solver.x_min,
+                    self.solver.x_max,
+                ],
+                dtype=float,
+            )
+            scale = float(self.solver.scale)
+            positions = np.asarray(getattr(positions, "array", positions), dtype=float)
+            noise = np.asarray(getattr(noise, "array", noise), dtype=float)
+            if positions.ndim != 2 or positions.shape[1] != 2 or not len(positions):
+                return
+            noise = np.broadcast_to(noise, (len(positions),))
+        except (AttributeError, TypeError, ValueError):
+            return
+        if (
+            not np.all(np.isfinite(bounds))
+            or not np.isfinite(scale)
+            or scale <= 0
+            or not np.all(np.isfinite(positions))
+            or not np.all(np.isfinite(noise))
+            or np.any(noise < 0)
+        ):
+            return
+        lower, upper = bounds[[0, 2]], bounds[[1, 3]]
+        if np.any(upper <= lower):
+            return
+        margin = (2 * scale + 3 * noise)[:, None]
+        if np.any(positions - lower <= margin) or np.any(upper - positions <= margin):
+            logger.warning(
+                "PointSolver extent %s is too close to, or excludes, observed "
+                "positions for dataset %r (margin: 2 * initial scale + 3 * "
+                "position sigma). Images near or beyond the grid edge may be "
+                "missed. Enlarge the solver grid and check the model prior: "
+                "covering observed positions does not guarantee image "
+                "completeness across the model prior.",
+                tuple(bounds.tolist()),
+                getattr(self.dataset, "name", None),
+            )
+        elif not is_test_mode() and os.environ.get("PYAUTO_SMALL_DATASETS") != "1":
+            midpoint = (lower + upper) / 2
+            required = np.max(np.abs(positions - midpoint) + margin, axis=0)
+            if np.all((upper - lower) / 2 > 3 * required):
+                logger.info(
+                    "PointSolver extent for dataset %r is more than 3 times "
+                    "the observed-position envelope on both axes, including "
+                    "the safety margin. At fixed initial scale, initial grid "
+                    "work grows with grid area. Consider a smaller grid only "
+                    "after checking image completeness across the model prior.",
+                    getattr(self.dataset, "name", None),
+                )
 
     def log_likelihood_function(self, instance):
         """
