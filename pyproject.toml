@@ -24,6 +24,8 @@ classifiers = [
 ]
 keywords = ["cli"]
 dependencies = [
+    # Prevent fallback to Nerves releases permitting the CPU LAPACK deadlock.
+    "autonerves>2026.10.4.1",
     # Floor, not a pin (#687 — a floorless backtrack once installed autofit
     # 2026.4.30.582 and failed on `af.Latent`). Bump to the first release with
     # JAX in the family's base dependencies once it exists (#702), so
