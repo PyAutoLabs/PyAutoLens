@@ -88,14 +88,27 @@ class PositionsLH:
             for a double source plane lens system is being used where the specific plane is required.
         """
 
+        # A position that is not finite cannot be traced: a single (inf, inf) row makes
+        # the maximum source-plane separation nan, `nan > threshold` is False, and the
+        # penalty is zero for every model -- silently, since `output_positions_info`
+        # uses a nan-safe maximum and reports the true separation. `Result.
+        # positions_likelihood_from` passes exactly that: the point solver's
+        # fixed-length output, padded with (inf, inf). Drop such rows.
+        values = np.asarray(positions.array if hasattr(positions, "array") else positions)
+        finite = np.isfinite(values).all(axis=1)
+
+        if not finite.all():
+            positions = aa.Grid2DIrregular(values[finite])
+
         self.positions = positions
         self.threshold = threshold
         self.plane_redshift = plane_redshift
 
-        if len(positions) == 1:
+        if len(positions) < 2:
             raise exc.PositionsException(
-                f"The positions input into the PositionsLikelihood object have length one "
-                f"(e.g. it is only one (y,x) coordinate and therefore cannot be compared with other images).\n\n"
+                f"The positions input into the PositionsLikelihood object have {len(positions)} finite "
+                f"(y,x) coordinate(s) ({int((~finite).sum())} non-finite dropped), so there is nothing "
+                f"to compare them with.\n\n"
                 "Please input more positions into the Positions."
             )
 
