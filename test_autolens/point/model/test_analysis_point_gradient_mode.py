@@ -5,7 +5,9 @@ The source-plane point-source likelihood carries an inner forward-mode lensing H
 mode runs reverse-over-forward through every mass profile; ``jax.jacfwd`` over the flat parameter
 vector was 2-4.5x faster and compiled up to 8x faster in autolens_profiling #327/#331. These tests
 pin that the declaration exists, that the forward gradient IS the reverse gradient on this
-likelihood, and that a real ``MultiStartGradient`` fit runs end-to-end in forward mode.
+likelihood -- and on the image-plane all-pairs likelihoods (``FitPositionsImagePairAll`` /
+``FitPositionsImagePairAllSolved``), whose forward gradient was NaN in every component until
+PyAutoLens#767 -- and that a real ``MultiStartGradient`` fit runs end-to-end in forward mode.
 
 The two JAX checks run in a subprocess, deliberately. Building a JAX ``Fitness`` registers the
 model's classes (``Galaxy`` included) through ``autofit.jax.register_model``, and JAX has no way to
@@ -14,7 +16,7 @@ unregister a pytree node. ``autolens.jax.registration.register_tracer_classes`` 
 ``autoarray.abstract_ndarray.register_instance_pytree``, which raises on a class another route
 already registered, so running these checks in-process would break every test after them. A fresh
 interpreter keeps them independent of test order. The same entry point (``python <this file>
-parity <output_dir>`` / ``python <this file> multi_start <output_dir> declared reverse``) is what a GPU run invokes.
+parity <output_dir> [<fit_positions_cls>]`` / ``python <this file> multi_start <output_dir> declared reverse``) is what a GPU run invokes.
 """
 
 import os
@@ -56,7 +58,7 @@ def _dataset():
     )
 
 
-def _model():
+def _model(point_cls=al.ps.PointSolved):
     mass = af.Model(al.mp.Isothermal)
     mass.centre.centre_0 = af.GaussianPrior(mean=0.0, sigma=0.005)
     mass.centre.centre_1 = af.GaussianPrior(mean=0.0, sigma=0.005)
@@ -64,15 +66,37 @@ def _model():
     mass.ell_comps.ell_comps_0 = af.GaussianPrior(mean=0.05263158, sigma=0.01)
     mass.ell_comps.ell_comps_1 = af.GaussianPrior(mean=0.0, sigma=0.01)
     lens = af.Model(al.Galaxy, redshift=0.5, mass=mass)
-    source = af.Model(al.Galaxy, redshift=1.0, point_0=af.Model(al.ps.PointSolved))
+    point = af.Model(point_cls)
+    if point_cls is al.ps.Point:
+        # The free source-plane centre of the non-solved fits, near the dataset's (0.07, 0.07).
+        point.centre.centre_0 = af.GaussianPrior(mean=0.07, sigma=0.005)
+        point.centre.centre_1 = af.GaussianPrior(mean=0.07, sigma=0.005)
+    source = af.Model(al.Galaxy, redshift=1.0, point_0=point)
     return af.Collection(galaxies=af.Collection(lens=lens, source=source))
 
 
-def _analysis():
+# fit_positions_cls name -> the point profile its model pairs with. The image-plane fits run the
+# `PointSolver`, whose padded (`inf`) image rows are what made their forward gradient NaN.
+PARITY_FITS = {
+    "FitPositionsSourceSolved": al.ps.PointSolved,
+    "FitPositionsImagePairAllSolved": al.ps.PointSolved,
+    "FitPositionsImagePairAll": al.ps.Point,
+}
+
+
+def _analysis(fit_positions_cls=al.FitPositionsSourceSolved):
+    solver = None
+    if fit_positions_cls is not al.FitPositionsSourceSolved:
+        solver = al.PointSolver.for_grid(
+            grid=al.Grid2D.uniform(shape_native=(100, 100), pixel_scales=0.2),
+            pixel_scale_precision=1e-3,
+            magnification_threshold=0.1,
+            neighbor_degree=1,
+        )
     return al.AnalysisPoint(
         dataset=_dataset(),
-        solver=None,
-        fit_positions_cls=al.FitPositionsSourceSolved,
+        solver=solver,
+        fit_positions_cls=fit_positions_cls,
         use_jax=True,
     )
 
@@ -88,14 +112,19 @@ def test__analysis_point_declares_forward_mode():
 # --------------------------------------------------------------------------
 
 
-def _check_parity():
-    """Forward == reverse ``(value, grad)`` of the ``FitPositionsSourceSolved`` likelihood through
-    ``Fitness`` on the flat vector: prior medians + one draw per ``PRNGKey(0..15)``."""
+def _check_parity(fit_positions_cls_name="FitPositionsSourceSolved"):
+    """Forward == reverse ``(value, grad)`` of the ``fit_positions_cls_name`` likelihood through
+    ``Fitness`` on the flat vector: prior medians + one draw per ``PRNGKey(0..15)``.
+
+    The image-plane fits differentiate through the ``PointSolver``'s implicit-function gradient,
+    where forward and reverse agree to ~1e-10 relative rather than to round-off, so they are held
+    to ``rtol=1e-6``."""
     from autofit.jax import register_model
     from autofit.jax.gradient import value_and_grad_from
     from autofit.non_linear.fitness import Fitness
 
-    model = _model()
+    fit_positions_cls = getattr(al, fit_positions_cls_name)
+    model = _model(PARITY_FITS[fit_positions_cls_name])
     # Load-bearing: without registration jax.grad of an AnalysisPoint likelihood is silently
     # all-zero (Fitness registers it too on a JAX analysis; explicit so the check does not
     # depend on that).
@@ -103,7 +132,7 @@ def _check_parity():
 
     fitness = Fitness(
         model=model,
-        analysis=_analysis(),
+        analysis=_analysis(fit_positions_cls),
         fom_is_log_likelihood=False,
         convert_to_chi_squared=True,
     )
@@ -123,6 +152,8 @@ def _check_parity():
         )
         vectors.append(np.asarray(model.vector_from_unit_vector(list(unit)), dtype=float))
 
+    rtol = 1e-8 if fit_positions_cls is al.FitPositionsSourceSolved else 1e-6
+
     worst = 0.0
     for vector in vectors:
         value_r, grad_r = reverse(vector)
@@ -132,16 +163,21 @@ def _check_parity():
         assert np.isfinite(value_r)
         assert np.all(np.isfinite(grad_r))
         assert np.any(grad_r != 0.0)
+        # Forward mode is the declared default: NaN here (PyAutoLens#767) stalls every gradient search.
+        assert np.all(np.isfinite(np.asarray(grad_f))), (fit_positions_cls_name, grad_f)
 
         np.testing.assert_allclose(value_f, value_r, rtol=1e-10)
         scale = np.max(np.abs(grad_r))
-        np.testing.assert_allclose(grad_f, grad_r, rtol=1e-8, atol=1e-12 * scale)
+        np.testing.assert_allclose(grad_f, grad_r, rtol=rtol, atol=1e-12 * scale)
         np.testing.assert_allclose(
-            fitness_grad(vector), grad_r, rtol=1e-8, atol=1e-12 * scale
+            fitness_grad(vector), grad_r, rtol=rtol, atol=1e-12 * scale
         )
         worst = max(worst, float(np.max(np.abs(np.asarray(grad_f) - grad_r)) / scale))
 
-    print(f"PARITY_OK n_vectors={len(vectors)} max_rel_grad_diff={worst:.3e}")
+    print(
+        f"PARITY_OK {fit_positions_cls_name} n_vectors={len(vectors)} "
+        f"max_rel_grad_diff={worst:.3e}"
+    )
 
 
 def _check_multi_start(gradient_mode=None):
@@ -186,10 +222,13 @@ def _run(*args, tmp_path):
     return parsed, result.stdout
 
 
-def test__forward_gradient_matches_reverse_through_fitness(tmp_path):
-    _, stdout = _run("parity", str(tmp_path), tmp_path=tmp_path)
+@pytest.mark.parametrize("fit_positions_cls_name", list(PARITY_FITS))
+def test__forward_gradient_matches_reverse_through_fitness(
+    fit_positions_cls_name, tmp_path
+):
+    _, stdout = _run("parity", str(tmp_path), fit_positions_cls_name, tmp_path=tmp_path)
 
-    assert "PARITY_OK n_vectors=17" in stdout
+    assert f"PARITY_OK {fit_positions_cls_name} n_vectors=17" in stdout
 
 
 def test__multi_start_gradient_point_source_fit_runs_in_forward_mode(tmp_path):
@@ -213,7 +252,7 @@ if __name__ == "__main__":
     conf.instance.push(new_path=TEST_DIR / "config", output_path=Path(sys.argv[2]))
 
     if command == "parity":
-        _check_parity()
+        _check_parity(*sys.argv[3:4])
     elif command == "multi_start":
         # Each further argument is a mode to fit with; "declared" = no override.
         for mode in sys.argv[3:] or ["declared"]:

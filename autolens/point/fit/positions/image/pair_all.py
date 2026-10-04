@@ -113,30 +113,64 @@ class FitPositionsImagePairAll(AbstractFitPositionsImagePair):
         exact region gradient searches must traverse to find the basin. The shifted form is mathematically
         identical wherever the literal form is finite, and stays finite (the max term contributes exactly 0
         after the shift) at arbitrarily large mismatch.
+
+        Padded model positions -- the solver's `inf` sentinel rows, kept because `model_data` solves with
+        `remove_infinities=False` -- contribute `log_p = -inf`, i.e. nothing to the sum. Their value is right,
+        but their forward-mode tangent is not: `square_distance` gives `(d - inf) ** 2` a tangent of
+        `2 * (d - inf) * 0 = NaN`, which `jax.jacfwd` -- the default `gradient_mode="forward"` of
+        `AnalysisPoint` -- carried through `exp` into every gradient component (PyAutoLens#767). Under JAX the
+        likelihoods are therefore wrapped in a `jax.custom_jvp`: the primal is the unchanged per-position
+        computation below (so jitted log likelihoods stay bit-identical), and the tangent is the JVP of
+        `_log_likelihoods_padding_safe`, which scores padded rows on a finite placeholder and masks them out.
         """
 
         model_data = self.model_data.array
 
-        def log_sum_exp(log_ps):
-            # `initial` covers the zero-model-positions case (an empty `log_ps`), where a bare `max`
-            # raises: the -inf sentinel is clamped to 0 below, giving `log(sum of nothing) = -inf`,
-            # exactly the literal form's result, which `chi_squared`'s `has_image` fallback replaces.
-            max_log_p = self._xp.max(log_ps, initial=-np.inf)
-            # With no finite model position every log_p is -inf, and shifting by a -inf max would
-            # produce NaN (`-inf - -inf`) inside `exp` — including under `jax.grad`, where a NaN in
-            # the branch `chi_squared`'s `xp.where` discards still poisons the gradient. Clamp the
-            # shift to 0 so this case reduces to the literal form's `log(0) = -inf`, which the
-            # `has_image` fallback in `chi_squared` then replaces.
-            max_log_p = self._xp.where(
-                self._xp.isfinite(max_log_p), max_log_p, 0.0
-            )
-            return max_log_p + self._xp.log(
-                self._xp.sum(self._xp.exp(log_ps - max_log_p))
-            )
+        if self._xp is np:
+            return self._log_likelihoods_from(model_data)
 
+        import jax
+
+        @jax.custom_jvp
+        def log_likelihoods(model_data):
+            return self._log_likelihoods_from(model_data)
+
+        @log_likelihoods.defjvp
+        def log_likelihoods_jvp(primals, tangents):
+            (model_data,), (model_data_dot,) = primals, tangents
+            _, log_likelihoods_dot = jax.jvp(
+                self._log_likelihoods_padding_safe, (model_data,), (model_data_dot,)
+            )
+            return self._log_likelihoods_from(model_data), log_likelihoods_dot
+
+        return log_likelihoods(model_data)
+
+    def _log_sum_exp(self, log_ps):
+        """
+        Max-shifted `log(sum(exp(log_ps)))` over the model positions (see `all_permutations_log_likelihoods`).
+        """
+        # `initial` covers the zero-model-positions case (an empty `log_ps`), where a bare `max`
+        # raises: the -inf sentinel is clamped to 0 below, giving `log(sum of nothing) = -inf`,
+        # exactly the literal form's result, which `chi_squared`'s `has_image` fallback replaces.
+        max_log_p = self._xp.max(log_ps, initial=-np.inf)
+        # With no finite model position every log_p is -inf, and shifting by a -inf max would
+        # produce NaN (`-inf - -inf`) inside `exp` — including under `jax.grad`, where a NaN in
+        # the branch `chi_squared`'s `xp.where` discards still poisons the gradient. Clamp the
+        # shift to 0 so this case reduces to the literal form's `log(0) = -inf`, which the
+        # `has_image` fallback in `chi_squared` then replaces.
+        max_log_p = self._xp.where(self._xp.isfinite(max_log_p), max_log_p, 0.0)
+        return max_log_p + self._xp.log(
+            self._xp.sum(self._xp.exp(log_ps - max_log_p))
+        )
+
+    def _log_likelihoods_from(self, model_data) -> np.ndarray:
+        """
+        The per-observed-position log likelihoods for the given model positions (`inf` padding rows included):
+        the primal of `all_permutations_log_likelihoods`.
+        """
         return self._xp.array(
             [
-                log_sum_exp(
+                self._log_sum_exp(
                     self._xp.array(
                         [
                             self.log_p(
@@ -146,6 +180,34 @@ class FitPositionsImagePairAll(AbstractFitPositionsImagePair):
                             )
                             for model_position in model_data
                         ]
+                    )
+                )
+                for data_position, sigma in zip(self.data, self.noise_map)
+            ]
+        )
+
+    def _log_likelihoods_padding_safe(self, model_data) -> np.ndarray:
+        """
+        `_log_likelihoods_from` with a forward-mode tangent that stays finite on padded model positions, used
+        only for the tangent of `all_permutations_log_likelihoods` under JAX.
+
+        Padded (`inf`) rows are scored on a finite placeholder and masked back to `log_p = -inf` (the
+        double-`where` pattern), so no `inf` reaches `square_distance`. Each observed position is scored
+        against all model positions in one vectorized `log_p` call: with one scalar `where` per model
+        position instead, XLA's CPU fusion of the jitted forward-mode graph still leaked a non-finite tangent
+        out of the discarded branch.
+        """
+        is_valid = self._xp.isfinite(model_data).all(axis=1)
+        # Transposed so `square_distance`'s `coord2[0]` / `coord2[1]` index all x / all y coordinates.
+        safe_model_data = self._xp.where(is_valid[:, None], model_data, 0.0).T
+
+        return self._xp.array(
+            [
+                self._log_sum_exp(
+                    self._xp.where(
+                        is_valid,
+                        self.log_p(data_position, safe_model_data, sigma),
+                        -np.inf,
                     )
                 )
                 for data_position, sigma in zip(self.data, self.noise_map)
