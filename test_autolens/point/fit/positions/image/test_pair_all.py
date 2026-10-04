@@ -296,3 +296,134 @@ def test__model_positions_present__chi_squared_unchanged(data, noise_map):
     )
 
     assert fit.chi_squared == -2.0 * -4.40375330990644
+
+
+# Real model positions of the forward-mode gradient tests below, followed by solver-style `inf`
+# padding rows (the `PointSolver` pads to a fixed size and is called with `remove_infinities=False`).
+_GRAD_BASE_POSITIONS = np.array(
+    [(-1.03, -1.09), (0.35, 1.63), (1.57, 0.43), (1.25, 1.22)]
+    + [(np.inf, np.inf)] * 6
+)
+_GRAD_DATA = al.Grid2DIrregular([(-1.0, -1.1), (0.4, 1.6), (1.6, 0.45), (1.2, 1.25)])
+_GRAD_NOISE_MAP = al.ArrayIrregular([0.05, 0.05, 0.05, 0.05])
+
+
+class _PaddedSolver:
+    """Model positions that move smoothly with `theta` (scale, shift_0, shift_1), with `inf` padding
+    rows whose tangent is exactly 0 -- the shape `PointSolver.solve` returns under JAX."""
+
+    def __init__(self, theta):
+        self.theta = theta
+
+    def solve(self, tracer, source_plane_coordinate, xp=np, plane_redshift=None, remove_infinities=True):
+        import jax.numpy as jnp
+
+        base = jnp.asarray(_GRAD_BASE_POSITIONS)
+        is_padding = ~jnp.isfinite(base).all(axis=1)
+        moved = jnp.where(is_padding[:, None], 0.0, base) * self.theta[0] + self.theta[1:3]
+        return type("Positions", (), {"array": jnp.where(is_padding[:, None], jnp.inf, moved)})()
+
+
+@pytest.mark.parametrize(
+    "fit_cls, point",
+    [
+        (al.FitPositionsImagePairAll, al.ps.Point(centre=(0.07, 0.07))),
+        (al.FitPositionsImagePairAllSolved, al.ps.PointSolved()),
+    ],
+)
+def test__forward_mode_gradient_with_padded_model_positions__finite_and_matches_reverse_and_fd(
+    fit_cls, point
+):
+    """
+    Regression (PyAutoLens#767): `AnalysisPoint` differentiates with `jax.jacfwd` by default, and the
+    forward gradient of the all-pairs likelihood was NaN in every component. The padded (`inf`) model
+    positions gave `square_distance` a tangent of `2 * (d - inf) * 0 = NaN`, which `exp` carried into
+    the log likelihood; reverse mode happened to discard it.
+
+    Jitted, as gradient searches run it (XLA's fusion of the jitted graph is where a per-position
+    guard still leaked NaN), over eight parameter draws: `jacfwd` must be finite, non-zero, equal to
+    `grad`, and equal to a central finite difference of the (smooth, mocked-solver) likelihood.
+    """
+    jax = pytest.importorskip("jax")
+    import jax.numpy as jnp
+
+    jax.config.update("jax_enable_x64", True)
+
+    lens = al.Galaxy(
+        redshift=0.5,
+        mass=al.mp.Isothermal(centre=(0.0, 0.0), einstein_radius=1.6, ell_comps=(0.05, 0.0)),
+    )
+    tracer = al.Tracer(galaxies=[lens, al.Galaxy(redshift=1.0, point_0=point)])
+
+    def log_likelihood(theta):
+        return fit_cls(
+            name="point_0",
+            data=_GRAD_DATA,
+            noise_map=_GRAD_NOISE_MAP,
+            tracer=tracer,
+            solver=_PaddedSolver(theta),
+            xp=jnp,
+        ).log_likelihood
+
+    value = jax.jit(log_likelihood)
+    forward = jax.jit(jax.jacfwd(log_likelihood))
+    reverse = jax.jit(jax.grad(log_likelihood))
+
+    for key in range(8):
+        theta = jnp.array([1.0, 0.0, 0.0]) + jax.random.uniform(
+            jax.random.PRNGKey(key), (3,), minval=-0.02, maxval=0.02
+        )
+
+        grad_forward = np.asarray(forward(theta))
+        grad_reverse = np.asarray(reverse(theta))
+
+        h = 1.0e-6
+        grad_fd = np.array(
+            [
+                (float(value(theta.at[i].add(h))) - float(value(theta.at[i].add(-h))))
+                / (2.0 * h)
+                for i in range(3)
+            ]
+        )
+
+        assert np.all(np.isfinite(grad_forward)), (key, grad_forward)
+        assert np.any(grad_forward != 0.0)
+
+        scale = np.max(np.abs(grad_reverse))
+        np.testing.assert_allclose(grad_forward, grad_reverse, rtol=1e-6, atol=1e-12 * scale)
+        np.testing.assert_allclose(grad_forward, grad_fd, rtol=1e-6, atol=1e-6 * scale)
+
+
+def test__padded_model_positions__log_likelihoods_identical_to_padding_removed():
+    """
+    The padding guard changes tangents only: under JAX (and NumPy) the per-position log likelihoods
+    with `inf` padding rows are exactly those of the real rows alone.
+    """
+    jax = pytest.importorskip("jax")
+    import jax.numpy as jnp
+
+    jax.config.update("jax_enable_x64", True)
+
+    real = al.Grid2DIrregular(_GRAD_BASE_POSITIONS[:4])
+
+    def fit_for(solver, xp):
+        return al.FitPositionsImagePairAll(
+            name="point_0",
+            data=_GRAD_DATA,
+            noise_map=_GRAD_NOISE_MAP,
+            tracer=tracer,
+            solver=solver,
+            xp=xp,
+        )
+
+    expected = fit_for(al.mock.MockPointSolver(real), np).all_permutations_log_likelihoods()
+
+    padded_np = fit_for(
+        al.mock.MockPointSolver(al.Grid2DIrregular(_GRAD_BASE_POSITIONS)), np
+    ).all_permutations_log_likelihoods()
+    padded_jax = jax.jit(
+        lambda theta: fit_for(_PaddedSolver(theta), jnp).all_permutations_log_likelihoods()
+    )(jnp.array([1.0, 0.0, 0.0]))
+
+    np.testing.assert_array_equal(padded_np, expected)
+    np.testing.assert_allclose(np.asarray(padded_jax), expected, rtol=1e-14)
