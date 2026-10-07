@@ -241,6 +241,7 @@ general/demagnified_solutions
 general/citations
 general/papers
 general/credits
+general/community
 ```
 
 ```{toctree}
