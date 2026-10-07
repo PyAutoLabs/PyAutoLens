@@ -42,14 +42,13 @@ The [**PyAutoLens AI Assistant**](https://github.com/PyAutoLabs/autolens_assista
 
 ## Community & Contributing
 
-Questions, help with your code or your analysis, and ideas: the
-[PyAutoLabs Discussions](https://github.com/orgs/PyAutoLabs/discussions).
-Bug reports with a reproducer (a snippet, the traceback, your versions):
-an issue on the library's tracker. The Slack is for collaborators, by
-invitation.
+**PyAutoLens** is built in the open by its users: everyone is welcome to ask questions,
+share what they have made with it, and contribute.
 
-Community-built tools, tutorials and how to contribute are on the [**PyAutoLens** community page](https://pyautolens.readthedocs.io/en/latest/general/community.html).
-Contribution guidelines: [CONTRIBUTING.md](https://github.com/PyAutoLabs/PyAutoLens/blob/main/CONTRIBUTING.md).
+Questions, ideas and bug reports: the [PyAutoLabs Discussions](https://github.com/orgs/PyAutoLabs/discussions).
+Chat with us on [Slack](https://join.slack.com/t/pyautolens/shared_invite/zt-2cufp4eyf-fXfgMxRGuvg~bMrI3uOAxg).
+
+Community-built tools and tutorials, and how to contribute: the [**PyAutoLens** community page](https://pyautolens.readthedocs.io/en/latest/general/community.html).
 
 ## HowToLens
 
