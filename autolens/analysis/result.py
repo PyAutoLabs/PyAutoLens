@@ -138,10 +138,29 @@ class Result(AgResultDataset):
         # `PointSolver.solve` raised before returning; now it returns an empty grid, and letting
         # it through would give `SourceMaxSeparation` an empty array to reduce over
         # (`max()` on an empty sequence).
+        #
+        # Images are counted as *finite rows*, not array rows: under JAX (`xp=jnp`) the solver
+        # returns a static-shape array padded with `(inf, inf)` rows, so a single-image (or
+        # zero-image) solve still has many rows and a shape test would never trigger the
+        # recovery. Only the finite rows are returned, so downstream consumers (`PositionsLH`,
+        # the cached `files/multiple_image_positions.json`) never see the padding.
+        multiple_images = self._finite_multiple_images_from(multiple_images)
+
         if multiple_images.shape[0] <= 1:
             return self.image_plane_multiple_image_positions_for_single_image_from()
 
         return aa.Grid2DIrregular(values=multiple_images)
+
+    @staticmethod
+    def _finite_multiple_images_from(multiple_images) -> np.ndarray:
+        """
+        Drop the non-finite rows of a point-solver output.
+
+        The JAX solver pads its static-shape output with `(inf, inf)` rows; the NumPy solver
+        removes them itself, in which case this is the identity.
+        """
+        multiple_images = np.asarray(multiple_images)
+        return multiple_images[np.isfinite(multiple_images).all(axis=1)]
 
     def image_plane_multiple_image_positions_for_single_image_from(
         self, plane_redshift: Optional[float] = None, increments: int = 20
@@ -199,6 +218,8 @@ class Result(AgResultDataset):
                 xp=self.analysis._xp,
                 plane_redshift=plane_redshift,
             )
+
+            multiple_images = self._finite_multiple_images_from(multiple_images)
 
             if multiple_images.shape[0] > 1:
                 return aa.Grid2DIrregular(values=multiple_images)
