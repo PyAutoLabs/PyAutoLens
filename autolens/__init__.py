@@ -58,6 +58,7 @@ from autogalaxy.analysis.adapt_images.adapt_images import (
 )
 from autogalaxy.gui.clicker import Clicker
 from autogalaxy.gui.scribbler import Scribbler
+from autogalaxy.gui.display_util import mask_2d_regridded_from
 from autogalaxy.galaxy.galaxy import Galaxy
 from autogalaxy.galaxy.galaxies import Galaxies
 from autogalaxy.galaxy.mass_field import MassField
