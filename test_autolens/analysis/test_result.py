@@ -194,6 +194,114 @@ def test__image_plane_multiple_image_positions(analysis_imaging_7x7):
     assert pytest.approx((0.968719, 0.366210), 1.0e-2) in multiple_images.in_list
 
 
+def _result_with_stubbed_solver(monkeypatch, analysis_imaging_7x7, solver_output):
+    """
+    A `Result` whose point solver returns `solver_output` verbatim, so the
+    handling of the solver's output can be tested independent of the lens model.
+    """
+    tracer = al.Tracer(
+        galaxies=[
+            al.Galaxy(
+                redshift=0.5,
+                mass=al.mp.Isothermal(centre=(0.0, 0.0), einstein_radius=1.0),
+            ),
+            al.Galaxy(redshift=1.0, bulge=al.lp.SersicSph(centre=(0.1, 0.1))),
+        ]
+    )
+
+    samples_summary = al.m.MockSamplesSummary(max_log_likelihood_instance=tracer)
+
+    result = res.Result(samples_summary=samples_summary, analysis=analysis_imaging_7x7)
+
+    monkeypatch.setattr(
+        res.PointSolver, "solve", lambda self, *args, **kwargs: solver_output
+    )
+
+    return result
+
+
+def test__image_plane_multiple_image_positions__inf_padded_single_image_triggers_recovery(
+    monkeypatch, analysis_imaging_7x7
+):
+    """
+    Under JAX the point solver returns a static-shape array padded with (inf, inf)
+    rows, so a single-image solve has more than one row. The single-image recovery
+    must count finite rows, not array rows.
+    """
+    padded = np.full((20, 2), np.inf)
+    padded[0] = (1.0, 0.5)
+
+    result = _result_with_stubbed_solver(monkeypatch, analysis_imaging_7x7, padded)
+
+    recovered = al.Grid2DIrregular(values=[(1.0, 0.5), (-0.9, -0.4)])
+    calls = []
+
+    def _recovery(*args, **kwargs):
+        calls.append(True)
+        return recovered
+
+    monkeypatch.setattr(
+        result, "image_plane_multiple_image_positions_for_single_image_from", _recovery
+    )
+
+    positions = result.image_plane_multiple_image_positions()
+
+    assert calls == [True]
+    assert positions.in_list == recovered.in_list
+
+
+def test__image_plane_multiple_image_positions__inf_padded_double_returns_finite_rows(
+    monkeypatch, analysis_imaging_7x7
+):
+    padded = np.full((20, 2), np.inf)
+    padded[0] = (1.0, 0.5)
+    padded[1] = (-0.9, -0.4)
+
+    result = _result_with_stubbed_solver(monkeypatch, analysis_imaging_7x7, padded)
+
+    positions = result.image_plane_multiple_image_positions()
+
+    assert positions.in_list == [(1.0, 0.5), (-0.9, -0.4)]
+    assert np.isfinite(positions.array).all()
+
+
+def test__image_plane_multiple_image_positions__unpadded_double_unchanged(
+    monkeypatch, analysis_imaging_7x7
+):
+    solved = np.array([[1.0, 0.5], [-0.9, -0.4]])
+
+    result = _result_with_stubbed_solver(monkeypatch, analysis_imaging_7x7, solved)
+
+    positions = result.image_plane_multiple_image_positions()
+
+    assert positions.in_list == [(1.0, 0.5), (-0.9, -0.4)]
+
+
+def test__image_plane_multiple_image_positions_for_single_image_from__counts_finite_rows(
+    monkeypatch, analysis_imaging_7x7
+):
+    """
+    The inward walk must also count finite rows: an inf-padded single image is not
+    a success, and a padded double returns only its finite rows.
+    """
+    single = np.full((20, 2), np.inf)
+    single[0] = (1.0, 0.5)
+    double = np.full((20, 2), np.inf)
+    double[0] = (0.3, 0.2)
+    double[1] = (-0.3, -0.2)
+
+    outputs = iter([single, single, double])
+
+    result = _result_with_stubbed_solver(monkeypatch, analysis_imaging_7x7, None)
+    monkeypatch.setattr(
+        res.PointSolver, "solve", lambda self, *args, **kwargs: next(outputs)
+    )
+
+    positions = result.image_plane_multiple_image_positions_for_single_image_from()
+
+    assert positions.in_list == [(0.3, 0.2), (-0.3, -0.2)]
+
+
 def test__positions_threshold_from(analysis_imaging_7x7):
     tracer = al.Tracer(
         galaxies=[
