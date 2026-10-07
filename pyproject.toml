@@ -41,6 +41,7 @@ Homepage = "https://github.com/PyAutoLabs/PyAutoLens"
 include-package-data = true
 
 [tool.setuptools.packages.find]
+include = ["autolens*"]
 exclude = ["docs", "test_autolens", "test_autolens*"]
 
 [tool.setuptools_scm]
