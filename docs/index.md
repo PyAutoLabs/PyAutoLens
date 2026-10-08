@@ -119,8 +119,8 @@ tracer_plotter.figures_2d(image=True)
 To perform lens modeling, **PyAutoLens** adopts the probabilistic programming
 language [PyAutoFit](https://github.com/PyAutoLabs/PyAutoFit). **PyAutoFit** allows users to compose a
 lens model from `LightProfile`, `MassProfile` and `Galaxy` objects, customize the model parameterization and
-fit it to data via a non-linear search (e.g. [dynesty](https://github.com/joshspeagle/dynesty),
-[emcee](https://github.com/dfm/emcee) or [PySwarms](https://pyswarms.readthedocs.io/en/latest/)). The example
+fit it to data via a non-linear search (e.g. [Nautilus](https://github.com/johannesulf/nautilus),
+[dynesty](https://github.com/joshspeagle/dynesty) or [emcee](https://github.com/dfm/emcee)). The example
 code below shows how to setup and fit a lens model to a dataset:
 
 ```python
