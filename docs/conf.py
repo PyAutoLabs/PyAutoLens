@@ -65,6 +65,9 @@ extlinks = {"pypi": ("https://pypi.org/project/%s/", "")}
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
+    # PyAutoFit owns the non-linear searches; api/modeling.rst links to its
+    # generated capability matrix (search_capability_matrix).
+    "autofit": ("https://pyautofit.readthedocs.io/en/latest", None),
     "sphinx": ("https://www.sphinx-doc.org/en/master", None),
 }
 
