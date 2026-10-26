@@ -19,7 +19,7 @@ dataset:                                   # Settings for plots of all datasets 
   subplot_dataset: true                    # Plot subplot containing all dataset quantities (e.g. the data, noise-map, etc.)?
 
 positions:                                 # Settings for plots with resampling image-positions on (e.g. the image).
-  image_with_positions: true
+  image_with_positions: true # If True, output the image with the positions overlaid.
 
 fit:                                       # Settings for plots of all fits (e.g. FitImaging, FitInterferometer).
   subplot_fit: true                        # Plot subplot of all fit quantities for any dataset (e.g. the model data, residual-map, etc.)?

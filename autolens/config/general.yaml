@@ -1,4 +1,4 @@
 output:
-  fit_dill: false
+  fit_dill: false # Legacy fit-serialization flag; no reader found in the current library source.
 test:
-  disable_positions_lh_inversion_check: false
+  disable_positions_lh_inversion_check: false # If True, allow pixelized-source fits without a positions likelihood.

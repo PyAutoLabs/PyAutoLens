@@ -1,57 +1,57 @@
 nest:
   DynestyDynamic:
     initialize:
-      method: prior
+      method: prior # Legacy Dynesty YAML entry (searches now use constructor defaults): initializer method; prior draws initial samples from the model priors.
     parallel:
-      force_x1_cpu: false
-      number_of_cores: 1
+      force_x1_cpu: false # Legacy Dynesty YAML entry (searches now use constructor defaults): if True, force the search to run on one CPU core.
+      number_of_cores: 1 # Legacy Dynesty YAML entry (searches now use constructor defaults): number of CPU cores used by the search.
     printing:
-      silence: false
+      silence: false # Legacy Dynesty YAML entry (searches now use constructor defaults): if True, suppress sampler progress output.
     run:
-      dlogz_init: 0.01
-      logl_max_init: .inf
-      maxcall: null
-      maxcall_init: null
-      maxiter: null
-      maxiter_init: null
-      n_effective: .inf
-      n_effective_init: .inf
-      nlive_init: 500
+      dlogz_init: 0.01 # Legacy Dynesty YAML entry (searches now use constructor defaults): evidence stopping tolerance for the initial nested-sampling run.
+      logl_max_init: .inf # Legacy Dynesty YAML entry (searches now use constructor defaults): maximum likelihood stopping bound for the initial run.
+      maxcall: null # Legacy Dynesty YAML entry (searches now use constructor defaults): maximum likelihood evaluations for the run; null uses the sampler default.
+      maxcall_init: null # Legacy Dynesty YAML entry (searches now use constructor defaults): maximum likelihood evaluations for the initial run; null uses the sampler default.
+      maxiter: null # Legacy Dynesty YAML entry (searches now use constructor defaults): maximum sampler iterations for the run; null uses the sampler default.
+      maxiter_init: null # Legacy Dynesty YAML entry (searches now use constructor defaults): maximum sampler iterations for the initial run; null uses the sampler default.
+      n_effective: .inf # Legacy Dynesty YAML entry (searches now use constructor defaults): target effective posterior sample size.
+      n_effective_init: .inf # Legacy Dynesty YAML entry (searches now use constructor defaults): target effective posterior sample size for the initial run.
+      nlive_init: 500 # Legacy Dynesty YAML entry (searches now use constructor defaults): number of live points in the initial run.
     search:
-      bootstrap: null
-      bound: multi
-      enlarge: null
-      facc: 0.2
-      first_update: null
-      fmove: 0.9
-      max_move: 100
-      sample: rwalk
-      slices: 5
-      update_interval: null
-      walks: 5
+      bootstrap: null # Legacy Dynesty YAML entry (searches now use constructor defaults): number of bootstrap realizations used to determine bound enlargement; null uses the sampler default.
+      bound: multi # Legacy Dynesty YAML entry (searches now use constructor defaults): bounding method for the live-point distribution.
+      enlarge: null # Legacy Dynesty YAML entry (searches now use constructor defaults): expansion factor for sampling bounds; null uses the sampler default.
+      facc: 0.2 # Legacy Dynesty YAML entry (searches now use constructor defaults): target acceptance fraction for random-walk sampling.
+      first_update: null # Legacy Dynesty YAML entry (searches now use constructor defaults): criteria for the first sampling-bound update; null uses the sampler default.
+      fmove: 0.9 # Legacy Dynesty fmove option; searches now use constructor arguments.
+      max_move: 100 # Legacy Dynesty max_move option; searches now use constructor arguments.
+      sample: rwalk # Legacy Dynesty YAML entry (searches now use constructor defaults): proposal method used to generate replacement live points.
+      slices: 5 # Legacy Dynesty YAML entry (searches now use constructor defaults): number of slice-sampling steps per proposal.
+      update_interval: null # Legacy Dynesty YAML entry (searches now use constructor defaults): interval between sampling-bound updates; null uses the sampler default.
+      walks: 5 # Legacy Dynesty YAML entry (searches now use constructor defaults): number of random-walk steps per proposal.
   DynestyStatic:
     initialize:
-      method: prior
+      method: prior # Legacy Dynesty YAML entry (searches now use constructor defaults): initializer method; prior draws initial samples from the model priors.
     parallel:
-      number_of_cores: 1
+      number_of_cores: 1 # Legacy Dynesty YAML entry (searches now use constructor defaults): number of CPU cores used by the search.
     printing:
-      silence: false
+      silence: false # Legacy Dynesty YAML entry (searches now use constructor defaults): if True, suppress sampler progress output.
     run:
-      dlogz: null
-      logl_max: .inf
-      maxcall: null
-      maxiter: null
-      n_effective: null
+      dlogz: null # Legacy Dynesty YAML entry (searches now use constructor defaults): evidence stopping tolerance for the nested-sampling run; null uses the sampler default.
+      logl_max: .inf # Legacy Dynesty YAML entry (searches now use constructor defaults): maximum likelihood stopping bound for the run.
+      maxcall: null # Legacy Dynesty YAML entry (searches now use constructor defaults): maximum likelihood evaluations for the run; null uses the sampler default.
+      maxiter: null # Legacy Dynesty YAML entry (searches now use constructor defaults): maximum sampler iterations for the run; null uses the sampler default.
+      n_effective: null # Legacy Dynesty YAML entry (searches now use constructor defaults): target effective posterior sample size.
     search:
-      bootstrap: null
-      bound: multi
-      enlarge: null
-      facc: 0.2
-      first_update: null
-      fmove: 0.9
-      max_move: 100
-      nlive: 50
-      sample: rwalk
-      slices: 5
-      update_interval: null
-      walks: 5
+      bootstrap: null # Legacy Dynesty YAML entry (searches now use constructor defaults): number of bootstrap realizations used to determine bound enlargement; null uses the sampler default.
+      bound: multi # Legacy Dynesty YAML entry (searches now use constructor defaults): bounding method for the live-point distribution.
+      enlarge: null # Legacy Dynesty YAML entry (searches now use constructor defaults): expansion factor for sampling bounds; null uses the sampler default.
+      facc: 0.2 # Legacy Dynesty YAML entry (searches now use constructor defaults): target acceptance fraction for random-walk sampling.
+      first_update: null # Legacy Dynesty YAML entry (searches now use constructor defaults): criteria for the first sampling-bound update; null uses the sampler default.
+      fmove: 0.9 # Legacy Dynesty fmove option; searches now use constructor arguments.
+      max_move: 100 # Legacy Dynesty max_move option; searches now use constructor arguments.
+      nlive: 50 # Legacy Dynesty YAML entry (searches now use constructor defaults): number of live points used by nested sampling.
+      sample: rwalk # Legacy Dynesty YAML entry (searches now use constructor defaults): proposal method used to generate replacement live points.
+      slices: 5 # Legacy Dynesty YAML entry (searches now use constructor defaults): number of slice-sampling steps per proposal.
+      update_interval: null # Legacy Dynesty YAML entry (searches now use constructor defaults): interval between sampling-bound updates; null uses the sampler default.
+      walks: 5 # Legacy Dynesty YAML entry (searches now use constructor defaults): number of random-walk steps per proposal.

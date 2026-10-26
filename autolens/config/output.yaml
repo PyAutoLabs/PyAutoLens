@@ -14,7 +14,7 @@ default: true # If true then files which are not explicitly listed here are outp
 # the `samples_summary.json` file. However, without a `samples.csv` file these types of tasks cannot be performed
 # after the fit is complete, for example via the database.
 
-samples: true
+samples: true # If True, retain the sampled parameter values, likelihoods and weights in samples.csv.
 
 # The `samples.csv` file contains every accepted sampled value of every free parameter with its log likelihood and
 # weight. For certain searches, the majority of samples have a very low weight and have no numerical impact on the
@@ -31,7 +31,7 @@ samples: true
 
 # Set value to empty (e.g. delete 1.0e-10 below) to disable this feature.
 
-samples_weight_threshold: 1.0e-10
+samples_weight_threshold: 1.0e-10 # Exclude samples with weights below this threshold from samples.csv; null disables filtering.
 
 ### Search Internal ###
 
@@ -53,7 +53,7 @@ samples_weight_threshold: 1.0e-10
 # every walker. This information is required to do certain analyes and make certain plots, therefore deleting the
 # folder means this information is list.
 
-search_internal: false
+search_internal: false # If False, delete the search internal checkpoint directory after the fit completes.
 
 ### Start Point ###
 
@@ -62,7 +62,7 @@ search_internal: false
 # the visualizer wrapped in the Analysis class, and therefore should show things like the quality of the fit
 # to the data and the residuals at the start point.
 
-start_point: true
+start_point: true # If True, output visualization of the initializer start-point fit.
 
 ### Latent Variables ###
 
