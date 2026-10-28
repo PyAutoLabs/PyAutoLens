@@ -19,6 +19,11 @@ Default noise is the observed noise map (Gaussian, ``numpy.random.default_rng(se
 Poisson noise is used only when the setup sets ``exposure_time`` and
 ``background_sky_level`` and ``noise="poisson"`` is requested.
 
+``transform.ReplaceTotalMassWithStellarPlusDark`` replaces a galaxy's total mass with
+stellar mass following its MGE light plus a dark halo, normalised inside the parent's
+Einstein radius (``einstein_radius_aperture_from``); ``compare`` and ``compare_to_data``
+report what a transformation changed, and ``aplt.subplot_twin_comparison`` plots it.
+
 NumPy only: nothing here supports JAX.
 """
 
@@ -27,6 +32,8 @@ from autolens.twins.setup import ObservationSetup
 from autolens.twins.reference import ReferenceModel
 from autolens.twins.twin import Twin
 from autolens.twins.simulate import SimulatedTwin
+from autolens.twins.aperture import einstein_radius_aperture_from
+from autolens.twins.compare import TwinComparison, compare, compare_to_data
 from autolens.twins import transform
 
 __all__ = [
@@ -35,5 +42,9 @@ __all__ = [
     "Twin",
     "SimulatedTwin",
     "TransformationRecord",
+    "TwinComparison",
+    "compare",
+    "compare_to_data",
+    "einstein_radius_aperture_from",
     "transform",
 ]

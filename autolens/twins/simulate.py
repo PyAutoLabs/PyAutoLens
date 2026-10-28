@@ -112,11 +112,20 @@ class SimulatedTwin(Frozen):
         the library versions now, the transformation records (dictable
         dictionaries), the setup fields that differ from the reference setup, and
         the seed, noise route and simulator settings.
+
+        ``"truth"`` lists, flat and in chain order, the ground-truth parameters each
+        transformation reports (``TransformationRecord.truth``), each with its
+        ``"transformation"`` name and ``"record_index"``; records with none are skipped.
         """
         return {
             "reference": self.twin.reference.provenance,
             "versions": _util.library_versions(),
             "records": [to_dict(record) for record in self.twin.records],
+            "truth": [
+                {"transformation": record.name, "record_index": index, **record.truth}
+                for index, record in enumerate(self.twin.records)
+                if record.truth
+            ],
             "setup_overrides": self.twin.setup_overrides(),
             "seed": self.seed,
             "noise": self.noise,
