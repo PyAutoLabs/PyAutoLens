@@ -109,3 +109,5 @@ from autolens.lens.plot.sensitivity_plots import (
     subplot_sensitivity,
     subplot_figures_of_merit_grid as subplot_sensitivity_figures_of_merit,
 )
+
+from autolens.twins.plot.twin_plots import subplot_twin_comparison

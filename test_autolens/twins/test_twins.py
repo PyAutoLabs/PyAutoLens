@@ -248,6 +248,14 @@ def test__simulate__seed_determinism_and_sensitivity(twin):
 
 
 def test__simulate__observed_route_leaves_global_random_state(twin):
+    # Warm the route first. The first `import jax` in a process draws 13 numbers from
+    # NumPy's global random state: jax 0.11 `jax/_src/clusters/k8s_cluster.py` evaluates
+    # `np.random.rand(5)` (a default argument of `retry`) and `np.random.rand(8)` (a
+    # `@retry(wait=...)` decorator) at import. The observed route triggers that import
+    # lazily, via autoarray `AbstractNDArray.__getitem__` (`import jax.numpy`). This is a
+    # one-time upstream import side effect, not a draw by `Twin.simulate`.
+    twin.simulate(seed=1)
+
     np.random.seed(5)
     expected = np.random.rand()
 

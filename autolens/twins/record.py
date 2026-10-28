@@ -52,6 +52,16 @@ class TransformationRecord(Frozen):
         self._freeze_set("side_effects", list(side_effects or []))
         self._freeze_set("preserved", list(preserved or []))
 
+    @property
+    def truth(self) -> Dict:
+        """
+        The flat ground-truth parameters the transformation set (``procedure["truth"]``,
+        e.g. the mass-to-light ratio, ``kappa_s``, scale radius, inner slope and dark
+        fraction), or an empty dictionary. ``SimulatedTwin.twin_json`` writes them under
+        ``"truth"`` so inference can be compared with them without re-deriving them.
+        """
+        return copy.deepcopy(dict(self.procedure.get("truth", {})))
+
     def __repr__(self):
         return (
             f"TransformationRecord(name={self.name!r}, changed={self.changed}, "

@@ -11,6 +11,7 @@ mutate the twin, its tracer or its setup.
 from typing import Protocol, Tuple, runtime_checkable
 
 from autolens.twins.transform.identity import Identity
+from autolens.twins.transform.stellar_dark import ReplaceTotalMassWithStellarPlusDark
 
 
 @runtime_checkable
