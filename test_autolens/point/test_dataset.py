@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 import autolens as al
@@ -6,7 +7,7 @@ import autolens as al
 def _assert_grid_close(actual, expected):
     actual_pairs = [(float(p[0]), float(p[1])) for p in actual]
     expected_pairs = [(float(p[0]), float(p[1])) for p in expected]
-    assert actual_pairs == pytest.approx(expected_pairs)
+    assert np.array(actual_pairs) == pytest.approx(np.array(expected_pairs))
 
 
 def _assert_array_close(actual, expected):

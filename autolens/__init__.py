@@ -143,6 +143,7 @@ from . import exc
 from . import mock as m
 from . import util
 from . import potential_correction as pc
+from . import twins
 
 from autonerves import conf
 from autonerves.fitsable import ndarray_via_hdu_from
