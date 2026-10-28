@@ -18,10 +18,25 @@ conventions of the observational literature:
   z=1 and z=2 source planes differ visibly, and plotting only the last plane's curve
   (the galaxy-scale default) under-reports the lensing structure.
 
-Numerical note: the critical-curve solvers walk a uniform grid with a contour finder
-and are numpy-path only (they are not ``jax.vmap``-safe). At arcminute scale a grid
-coarser than ~1" per pixel starts missing member-galaxy-scale features; the
-docstrings below give concrete grid guidance.
+Critical-curve engine: like every other PyAuto plot, the curve and caustic helpers
+honour ``general.critical_curves_method`` in the visualize config, read once per plot
+call through PyAutoGalaxy's ``autogalaxy.util.plot_utils._critical_curves_method()``
+(which also applies its unknown-value and missing-``jax_zero_contour`` fallbacks to
+``marching_squares``):
+
+- ``marching_squares`` (the default) evaluates the eigen values on the supplied uniform
+  grid and contours them. At arcminute scale a grid coarser than ~1" per pixel starts
+  missing member-galaxy-scale features; the docstrings below give concrete grid
+  guidance.
+- ``zero_contour`` traces the zero contour of each eigen value with
+  ``jax_zero_contour`` via ``LensCalc``'s ``*_via_zero_contour_from`` methods, called
+  with their defaults exactly as the other PyAuto plots call them. The grid is then
+  unused, and seed points come from ``LensCalc``'s automatic coarse-grid scan, which
+  covers only a galaxy-scale (+/-3") box about the origin, so curves outside it are not
+  found.
+
+Neither path is claimed to be ``jax.jit`` / ``jax.vmap`` safe here: these are plotting
+helpers that run on the numpy path.
 """
 
 from typing import List, Optional, Sequence, Tuple
@@ -169,6 +184,51 @@ def _lens_calc_for_plane(tracer, plane_index: int):
     from autogalaxy.operate.lens_calc import LensCalc
 
     return LensCalc.from_tracer(tracer, use_multi_plane=True, plane_j=plane_index)
+
+
+# LensCalc routine names per engine, keyed by (eigen value kind, curve type). The
+# marching-squares routines take the uniform ``grid``; the zero-contour routines take
+# no grid and are called with their defaults, mirroring
+# ``autogalaxy.util.plot_utils._critical_curves_from`` / ``_caustics_from``.
+_CURVE_ROUTINES = {
+    "marching_squares": {
+        ("tangential", "critical_curve"): "tangential_critical_curve_list_from",
+        ("radial", "critical_curve"): "radial_critical_curve_list_from",
+        ("tangential", "caustic"): "tangential_caustic_list_from",
+        ("radial", "caustic"): "radial_caustic_list_from",
+    },
+    "zero_contour": {
+        (
+            "tangential",
+            "critical_curve",
+        ): "tangential_critical_curve_list_via_zero_contour_from",
+        ("radial", "critical_curve"): "radial_critical_curve_list_via_zero_contour_from",
+        ("tangential", "caustic"): "tangential_caustic_list_via_zero_contour_from",
+        ("radial", "caustic"): "radial_caustic_list_via_zero_contour_from",
+    },
+}
+
+
+def _critical_curves_method() -> str:
+    """The configured critical-curve engine, via PyAutoGalaxy's shared selector.
+
+    Returns ``"marching_squares"`` or ``"zero_contour"``; unknown values and a
+    missing ``jax_zero_contour`` fall back to ``"marching_squares"`` with a warning,
+    exactly as for every other PyAuto plot.
+    """
+    from autogalaxy.util.plot_utils import _critical_curves_method
+
+    return _critical_curves_method()
+
+
+def _curve_list_from(lens_calc, grid, method: str, kind: str, curve_type: str):
+    """Compute one plane's ``kind`` (tangential / radial) critical curves or caustics
+    (``curve_type`` = ``"critical_curve"`` / ``"caustic"``) with the engine *method*.
+    """
+    routine = getattr(lens_calc, _CURVE_ROUTINES[method][(kind, curve_type)])
+    if method == "zero_contour":
+        return routine()
+    return routine(grid=grid)
 
 
 def plot_positions_overlay(
@@ -366,16 +426,25 @@ def plot_critical_curves(
     the positions helpers use for the corresponding source, and labelled with the
     plane redshift.
 
+    The curve engine is ``general.critical_curves_method`` from the visualize config,
+    read once per call (see the module docstring): ``marching_squares`` (default)
+    contours the eigen values on *grid*; ``zero_contour`` traces them with
+    ``jax_zero_contour`` through each plane's ``LensCalc``
+    ``*_critical_curve_list_via_zero_contour_from`` methods and ignores *grid*. A
+    configured ``zero_contour`` without ``jax_zero_contour`` installed falls back to
+    ``marching_squares`` with a warning.
+
     Parameters
     ----------
     tracer
         The (multi-plane) tracer whose critical curves are computed via the
         multi-plane ``LensCalc`` (``use_multi_plane=True, plane_j=j``), numpy path.
     grid
-        The uniform grid the marching solver walks. At arcminute scale, resolve to
-        ~0.5" per pixel or finer over the full field (e.g. ``Grid2D.uniform(
-        shape_native=(240, 240), pixel_scales=0.5)`` for a 2' field) — coarser grids
-        miss member-galaxy-scale wiggles in the curves.
+        The uniform grid the marching-squares solver walks (unused by
+        ``zero_contour``). At arcminute scale, resolve to ~0.5" per pixel or finer
+        over the full field (e.g. ``Grid2D.uniform(shape_native=(240, 240),
+        pixel_scales=0.5)`` for a 2' field) — coarser grids miss
+        member-galaxy-scale wiggles in the curves.
     image, pixel_scales
         Optional background image for the overlay.
     plane_indices
@@ -393,12 +462,16 @@ def plot_critical_curves(
     if image is not None:
         _draw_image(ax, image, pixel_scales)
 
+    method = _critical_curves_method()
+
     for j in _source_plane_indices(tracer, plane_indices):
         colour = WONG_PALETTE[(j - 1) % len(WONG_PALETTE)]
         redshift = float(tracer.planes[j].redshift)
         lens_calc = _lens_calc_for_plane(tracer, plane_index=j)
 
-        tangential_list = lens_calc.tangential_critical_curve_list_from(grid=grid)
+        tangential_list = _curve_list_from(
+            lens_calc, grid, method, "tangential", "critical_curve"
+        )
         for k, curve in enumerate(tangential_list):
             arr = _positions_array(curve)
             ax.plot(
@@ -411,7 +484,9 @@ def plot_critical_curves(
             )
 
         if include_radial:
-            radial_list = lens_calc.radial_critical_curve_list_from(grid=grid)
+            radial_list = _curve_list_from(
+                lens_calc, grid, method, "radial", "critical_curve"
+            )
             for k, curve in enumerate(radial_list):
                 arr = _positions_array(curve)
                 ax.plot(
@@ -458,10 +533,17 @@ def plot_caustics(
     where each source must sit relative to its own caustic network to produce the
     observed image multiplicities.
 
+    The engine follows ``general.critical_curves_method``, read once per call, exactly
+    as in ``plot_critical_curves``: ``marching_squares`` (default) uses each plane's
+    ``LensCalc`` ``*_caustic_list_from(grid=grid)``; ``zero_contour`` uses
+    ``*_caustic_list_via_zero_contour_from()``. Either way each caustic is that plane's
+    critical curve ray-traced by that plane's multi-plane deflections.
+
     Parameters
     ----------
     tracer, grid, plane_indices
-        As in ``plot_critical_curves`` (same grid-resolution guidance applies).
+        As in ``plot_critical_curves`` (same engine and grid-resolution guidance
+        applies).
     include_radial
         Also draw each plane's radial caustic (dashed); at cluster scale the radial
         caustic bounds the region producing central demagnified images, so it is on
@@ -472,12 +554,16 @@ def plot_caustics(
     if standalone:
         fig, ax = subplots(1, 1)
 
+    method = _critical_curves_method()
+
     for j in _source_plane_indices(tracer, plane_indices):
         colour = WONG_PALETTE[(j - 1) % len(WONG_PALETTE)]
         redshift = float(tracer.planes[j].redshift)
         lens_calc = _lens_calc_for_plane(tracer, plane_index=j)
 
-        tangential_list = lens_calc.tangential_caustic_list_from(grid=grid)
+        tangential_list = _curve_list_from(
+            lens_calc, grid, method, "tangential", "caustic"
+        )
         for k, curve in enumerate(tangential_list):
             arr = _positions_array(curve)
             ax.plot(
@@ -490,7 +576,7 @@ def plot_caustics(
             )
 
         if include_radial:
-            radial_list = lens_calc.radial_caustic_list_from(grid=grid)
+            radial_list = _curve_list_from(lens_calc, grid, method, "radial", "caustic")
             for k, curve in enumerate(radial_list):
                 arr = _positions_array(curve)
                 ax.plot(
