@@ -272,5 +272,6 @@ api/pixelization
 api/point
 api/plot
 api/potential_correction
+api/twins
 api/source
 ```
