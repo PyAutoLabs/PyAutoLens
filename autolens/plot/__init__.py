@@ -13,6 +13,7 @@ from autogalaxy.util.plot_utils import plot_array, plot_grid, fits_array
 
 from autoarray.dataset.plot.imaging_plots import (
     subplot_imaging_dataset,
+    subplot_imaging_dataset_intro,
     subplot_imaging_dataset_list,
     fits_imaging,
 )
