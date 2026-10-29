@@ -1,8 +1,10 @@
+import copy
 import json
 
 import numpy as np
 import pytest
 
+import autofit as af
 import autogalaxy as ag
 import autolens as al
 from autolens.twins._galaxies import galaxy_dict_from
@@ -390,3 +392,67 @@ def test__invalid_light_raises(witness_baseline):
                 galaxy="galaxy_0", light="mass", scale_radius_kpc=10.0
             )
         )
+
+
+def _with_field_shear(twin, extra=None):
+    galaxies = galaxy_dict_from(twin.tracer)
+    lens = copy.deepcopy(galaxies["lens"])
+    shear = lens.shear
+    delattr(lens, "shear")
+    field = al.MassField(redshift=lens.redshift, shear=shear, **(extra or {}))
+    tracer = al.Tracer(
+        galaxies=af.ModelInstance(
+            {"lens": lens, "source": copy.deepcopy(galaxies["source"])}
+        ),
+        fields=[field],
+    )
+    return al.twins.Twin(reference=twin.reference, tracer=tracer)
+
+
+def test__keep_shear_massfield_layout(witness_baseline):
+    twin = _with_field_shear(witness_baseline)
+
+    kept = twin.apply(
+        al.twins.transform.ReplaceTotalMassWithStellarPlusDark(
+            galaxy="lens",
+            light="bulge",
+            scale_radius_kpc=10.0,
+            aperture_settings=COARSE_APERTURE,
+        )
+    )
+    assert isinstance(kept.tracer.fields[0].shear, al.mp.ExternalShear)
+    assert any("fields.0.shear" in effect for effect in kept.records[-1].side_effects)
+
+    removed = twin.apply(
+        al.twins.transform.ReplaceTotalMassWithStellarPlusDark(
+            galaxy="lens",
+            light="bulge",
+            scale_radius_kpc=10.0,
+            keep_shear=False,
+            aperture_settings=COARSE_APERTURE,
+        )
+    )
+    record = removed.records[-1]
+    assert removed.tracer.fields == []
+    assert "fields.0.shear" in record.changed
+    assert record.procedure["removed"]["fields.0.shear"].endswith("ExternalShear")
+    assert isinstance(twin.tracer.fields[0].shear, al.mp.ExternalShear)
+
+
+def test__keep_shear_false_keeps_other_field_components(witness_baseline):
+    twin = _with_field_shear(
+        witness_baseline, extra={"sheet": al.mp.MassSheet(kappa=0.01)}
+    )
+
+    removed = twin.apply(
+        al.twins.transform.ReplaceTotalMassWithStellarPlusDark(
+            galaxy="lens",
+            light="bulge",
+            scale_radius_kpc=10.0,
+            keep_shear=False,
+            aperture_settings=COARSE_APERTURE,
+        )
+    )
+    field = removed.tracer.fields[0]
+    assert not hasattr(field, "shear")
+    assert isinstance(field.sheet, al.mp.MassSheet)
