@@ -24,6 +24,14 @@ stellar mass following its MGE light plus a dark halo, normalised inside the par
 Einstein radius (``einstein_radius_aperture_from``); ``compare`` and ``compare_to_data``
 report what a transformation changed, and ``aplt.subplot_twin_comparison`` plots it.
 
+``model.stellar_dark_model_from`` builds the model that fits a stellar-plus-dark twin
+with the parameterization it was made with (fixed MGE light, one shared mass-to-light
+ratio, a dark halo centred on the light, free external shear; broad fixed priors that
+never know the truth), and ``recovery.recovery_table_from`` compares a fit's posterior
+medians and ``sigma`` bounds with the twin's ``truth`` (a ``RecoveryTable`` with
+``all_inside`` and ``to_csv``). Both map ``truth`` keys onto model paths through
+``model.truth_paths_from``.
+
 NumPy only: nothing here supports JAX.
 """
 
@@ -34,7 +42,9 @@ from autolens.twins.twin import Twin
 from autolens.twins.simulate import SimulatedTwin
 from autolens.twins.aperture import einstein_radius_aperture_from
 from autolens.twins.compare import TwinComparison, compare, compare_to_data
-from autolens.twins import transform
+from autolens.twins.model import stellar_dark_model_from, truth_paths_from
+from autolens.twins.recovery import RecoveryRow, RecoveryTable, recovery_table_from
+from autolens.twins import model, recovery, transform
 
 __all__ = [
     "ObservationSetup",
@@ -46,5 +56,12 @@ __all__ = [
     "compare",
     "compare_to_data",
     "einstein_radius_aperture_from",
+    "stellar_dark_model_from",
+    "truth_paths_from",
+    "RecoveryRow",
+    "RecoveryTable",
+    "recovery_table_from",
+    "model",
+    "recovery",
     "transform",
 ]

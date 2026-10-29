@@ -297,11 +297,21 @@ class ReplaceTotalMassWithStellarPlusDark:
         shear_keys = [
             key for key, profile in profile_dict.items() if _is_external_shear(profile)
         ]
-        shear_field_indexes = [
-            index
-            for index, field in enumerate(getattr(tracer, "fields", []))
-            if _is_external_shear(field)
-        ]
+        # A tracer field is either a bare ExternalShear or a MassField holding named
+        # components (the DR1 pipeline layout, `fields.shear`).
+        shear_field_indexes = []
+        shear_field_keys = {}
+        for index, field in enumerate(getattr(tracer, "fields", [])):
+            if _is_external_shear(field):
+                shear_field_indexes.append(index)
+            elif isinstance(field, ag.MassField):
+                keys = [
+                    key
+                    for key, value in vars(field).items()
+                    if _is_external_shear(value)
+                ]
+                if keys:
+                    shear_field_keys[index] = keys
 
         mass_centre = tuple(
             float(value) for value in next(iter(replaced.values())).centre
@@ -366,17 +376,31 @@ class ReplaceTotalMassWithStellarPlusDark:
             added[f"{path}.{self.dark_name}"] = get_class_path(type(result.dark))
 
         side_effects = []
-        shear_paths = [f"{path}.{key}" for key in shear_keys] + [
-            f"fields.{index}" for index in shear_field_indexes
-        ]
+        shear_paths = (
+            [f"{path}.{key}" for key in shear_keys]
+            + [f"fields.{index}" for index in shear_field_indexes]
+            + [
+                f"fields.{index}.{key}"
+                for index, keys in shear_field_keys.items()
+                for key in keys
+            ]
+        )
         if not self.keep_shear:
             for key in shear_keys:
                 delattr(new_galaxy, key)
-            new_tracer.fields = [
-                field
-                for index, field in enumerate(new_tracer.fields)
-                if index not in shear_field_indexes
-            ]
+            fields = []
+            for index, field in enumerate(new_tracer.fields):
+                if index in shear_field_indexes:
+                    continue
+                for key in shear_field_keys.get(index, []):
+                    delattr(field, key)
+                # A MassField left with no mass component is dropped with its shear.
+                if isinstance(field, ag.MassField) and not field.cls_list_from(
+                    cls=MassProfile
+                ):
+                    continue
+                fields.append(field)
+            new_tracer.fields = fields
             changed.extend(shear_paths)
             for shear_path in shear_paths:
                 removed[shear_path] = get_class_path(ag.mp.ExternalShear)
