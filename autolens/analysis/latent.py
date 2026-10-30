@@ -387,12 +387,17 @@ def total_source_flux_mujy(fit, magzero, xp=np):
     )
 
 
-def magnification(fit, magzero, xp=np):
+def magnification(fit, magzero=None, xp=np):
     """
     Ratio of image-plane to source-plane source flux — the integrated
     magnification implied by the lens model and the source's light.
 
-    The denominator is :func:`total_source_flux_mujy`: light-profile flux
+    Computed from the raw-flux latents :func:`total_lensed_source_flux` and
+    :func:`total_source_flux`, so it needs no ``magzero`` (the ratio is
+    dimensionless; a µJy conversion would only multiply both fluxes by the
+    same factor).
+
+    The denominator is :func:`total_source_flux`: light-profile flux
     plus, for a pixelized source, the inversion's reconstruction integrated
     with its ``areas_for_magnification`` (barycentric dual areas for a
     Delaunay mesh — PyAutoArray#524 — transformed cell areas for a rectangular
@@ -402,12 +407,11 @@ def magnification(fit, magzero, xp=np):
     scale. A source whose only light model is a ``Pixelization`` therefore has
     a finite magnification rather than an infinite one (PyAutoLens#726).
 
-    ``magzero`` is accepted but unused (the µJy conversions cancel in the
-    ratio). It's still required in the signature so the dispatcher can
-    pass a uniform context dict to every latent function.
+    ``magzero`` is accepted but unused, so the dispatcher can pass a uniform
+    context dict to every latent function.
     """
-    lensed = total_lensed_source_flux_mujy(fit=fit, magzero=magzero, xp=xp)
-    intrinsic = total_source_flux_mujy(fit=fit, magzero=magzero, xp=xp)
+    lensed = total_lensed_source_flux(fit=fit, xp=xp)
+    intrinsic = total_source_flux(fit=fit, xp=xp)
     return lensed / intrinsic
 
 
