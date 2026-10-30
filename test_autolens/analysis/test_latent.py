@@ -242,7 +242,6 @@ def test_maybe_magzero_warn_logs_only_once_per_name(caplog):
 
 def test_magnification_is_lensed_over_intrinsic():
     # Image-plane lensed source flux = 10, source-plane intrinsic = 2.
-    # The µJy conversions cancel in the ratio, so the result is 5.0.
 
     class _FakeSourceGalaxy:
         # Plain class so instances are hashable (used as galaxy_image_dict key).
@@ -974,3 +973,33 @@ def test_latent_lens_variables_traces_under_jit_with_model_assertion(
     assert np.allclose(
         [float(v) for v in values], [float(v) for v in values_np], rtol=1e-6
     )
+
+
+def test_magnification_needs_no_magzero():
+    """The magnification latent is the raw-flux ratio, so it is finite without a
+    ``magzero`` and equal to the ratio of the raw-flux latents."""
+    from autolens.analysis.latent import (
+        total_lensed_source_flux,
+        total_source_flux,
+    )
+
+    class _FakeSourceGalaxy:
+        def image_2d_from(self, grid, xp=np):
+            return SimpleNamespace(array=np.array([2.0]))
+
+    source = _FakeSourceGalaxy()
+    galaxies_namespace = SimpleNamespace(galaxies=[object(), source])
+    fit = SimpleNamespace(
+        tracer=galaxies_namespace,
+        tracer_linear_light_profiles_to_light_profiles=galaxies_namespace,
+        galaxy_image_dict={source: SimpleNamespace(array=np.array([10.0]))},
+        dataset=SimpleNamespace(grids=SimpleNamespace(lp=object())),
+    )
+
+    value = magnification(fit=fit, magzero=None)
+
+    assert np.isfinite(value)
+    assert value == pytest.approx(
+        total_lensed_source_flux(fit=fit) / total_source_flux(fit=fit)
+    )
+    assert magnification(fit=fit, magzero=25.0) == pytest.approx(value)

@@ -51,12 +51,12 @@ total_lensed_source_flux_mujy: false
 total_source_flux_mujy: false
 
 # `magnification` — ratio of image-plane lensed source flux to source-plane
-# intrinsic source flux. Dimensionless; `magzero` is accepted but unused.
-# Default `false` because it routes through the `_mujy` latents internally
-# (the µJy conversions cancel in the ratio) — to flip on, also flip on
-# `total_lensed_source_flux_mujy` and `total_source_flux_mujy` and supply
-# a `magzero`. A follow-up could rewire `magnification` to the raw-flux
-# latents so it's universally enable-able.
+# intrinsic source flux, from the raw-flux latents above. Dimensionless and
+# needs no `magzero`. Works for light-profile and pixelized sources. Default
+# `false` (opt-in): set it `true` to get its posterior from the fit's samples.
+# Magnifications at individual image positions are not latents, because the
+# number of images differs between lenses; compute them from posterior draws
+# as the `source_science.py` examples do.
 magnification: false
 
 # `effective_einstein_radius` — effective Einstein radius in arcseconds,
