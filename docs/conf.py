@@ -75,6 +75,16 @@ intersphinx_mapping = {
 
 todo_include_todos = True
 
+# -- Options for copybutton --------------------------------------------------
+
+# The default selector is "div.highlight pre" (code blocks only). The second
+# entry adds the natural-language prompt blocks: any blockquote wrapped in a
+# `:::{container} nl-prompt` aside gets its own copy button, so a reader can
+# lift the prompt straight into an AI coding agent. The button is inserted as a
+# sibling of the blockquote, inside the container, and copies the blockquote's
+# innerText (the plain prompt, without the Markdown "> " markers).
+copybutton_selector = "div.highlight pre, .nl-prompt blockquote"
+
 # -- Options for Markdown files ----------------------------------------------
 
 myst_enable_extensions = ["colon_fence", "deflist"]
@@ -128,7 +138,7 @@ add_function_parentheses = False
 language = "en"
 
 html_static_path = ["_static"]
-html_css_files = ["pyauto.css"]
+html_css_files = ["pyauto.css", "pyautolens.css"]
 
 html_theme_options = {
     "light_css_variables": {

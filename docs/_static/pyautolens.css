@@ -1,0 +1,59 @@
+/* PyAutoLens-only docs layer. The shared brand file `pyauto.css` is byte-identical
+   across PyAutoFit / PyAutoGalaxy / PyAutoLens, so repo-specific rules live here
+   instead of diverging it. The natural-language prompt block below is copied
+   from PyAutoFit's `pyautofit.css` so prompts look the same in all three docs. */
+
+/* Natural-language prompt blocks. A prompt is written as a blockquote wrapped in
+   `:::{container} nl-prompt`, which gives it two things a plain blockquote has
+   not got: a label saying what the block is, and a copy button so the prompt can
+   be pasted straight into an AI coding agent. The label text lives here in
+   `content:` so every prompt on every overview page picks it up simply by being
+   wrapped in the same container — nothing is repeated in the Markdown.
+
+   The container is the positioning context for the copy button, which
+   sphinx-copybutton inserts as a sibling of the blockquote (see
+   `copybutton_selector` in conf.py). */
+.nl-prompt {
+  position: relative;
+  margin: 1.2rem 0;
+}
+
+.nl-prompt::before {
+  content: "Example Natural Language Prompt for Claude Code, Codex or other AI coding agent";
+  display: block;
+  /* Keeps the label clear of the copy button when it wraps on narrow screens. */
+  padding-right: 2.5rem;
+  margin-bottom: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.4;
+  color: var(--color-foreground-muted);
+}
+
+/* sphinx-copybutton's own stylesheet positions the button against `.highlight`
+   code blocks and hard-codes GitHub's light-mode colours; both are re-stated
+   here in Furo's theme variables so the button sits in the prompt container and
+   follows light/dark mode. Idle at low opacity (like a code block's button),
+   full opacity on hover or after a successful copy. */
+.nl-prompt button.copybtn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  opacity: 0.35;
+  border: 1px solid var(--color-background-border);
+  background-color: var(--color-background-secondary);
+  color: var(--color-foreground-muted);
+}
+
+.nl-prompt:hover button.copybtn,
+.nl-prompt button.copybtn:focus-visible,
+.nl-prompt button.copybtn.success {
+  opacity: 1;
+}
+
+.nl-prompt button.copybtn:hover {
+  background-color: var(--color-background-hover);
+  color: var(--color-brand-content);
+}
