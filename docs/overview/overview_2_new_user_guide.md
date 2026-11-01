@@ -2,8 +2,6 @@
 
 # New User Guide
 
-## Human-Readable Guide
-
 **PyAutoLens** can analyse strong lens systems across a range of physical scales (e.g. galaxy, multi-galaxy, group, and cluster) and for
 different types of data (e.g. imaging, interferometer, and point-source observations). Depending on the scientific questions you are interested in, the analysis you perform may differ significantly.
 
@@ -11,11 +9,10 @@ The autolens_workspace contains a suite of example Jupyter Notebooks, organised 
 
 This guide begins with two simple questions to help you find the most appropriate example notebook for your science case.
 
-## PyAutoLens AI Assistant
-
-The [**PyAutoLens AI Assistant**](https://github.com/PyAutoLabs/autolens_assistant) lets you do gravitational lensing science in natural language from inside an AI coding agent. You can get started simply by asking it a question about gravitational lensing or describing the task you would like to perform with **PyAutoLens**. See the [autolens_assistant GitHub page](https://github.com/PyAutoLabs/autolens_assistant) for its full scope and instructions.
-
-**The assistant runs inside an AI coding agent: Claude Code or Codex are recommended. Sustained scientific use normally needs paid access to one of them (a personal subscription, institutional access or API billing). OpenCode is an experimental alternative whose client is free but whose model access, cost and capability depend on the provider. Browser chat routes (ChatGPT or Claude with a GitHub connector) are no longer supported.**
+**In natural language:** if you are using the [PyAutoLens AI Assistant](https://github.com/PyAutoLabs/autolens_assistant), you can skip the
+questions below: describe the scale of your lens and your data type to the assistant and it will pick the matching
+example and work through it with you. The examples below are what the assistant uses, and they remain the best place
+to see the Python.
 
 ## What Scale Lens?
 
