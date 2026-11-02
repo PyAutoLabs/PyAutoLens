@@ -145,3 +145,23 @@ def test__plot_magnification_source_plane_grid__two_plane_tracer__output_file_cr
         output_format="png",
     )
     assert str(plot_path / "magnification_source_plane_grid.png") in plot_patch.paths
+
+
+def test__plot_magnification_uncertainty_2d__two_plane_tracer__output_file_created(
+    tracer_x2_plane_7x7, grid_2d_7x7, plot_path, plot_patch
+):
+    import autolens as al
+
+    best = al.LensCalc.from_tracer(tracer=tracer_x2_plane_7x7).magnification_2d_from(
+        grid=grid_2d_7x7
+    )
+
+    aplt.plot_magnification_uncertainty_2d(
+        magnification_list=[best * 0.9, best, best * 1.1],
+        magnification_best=best,
+        grid=grid_2d_7x7,
+        mass_obj=tracer_x2_plane_7x7,
+        output_path=plot_path,
+        output_format="png",
+    )
+    assert str(plot_path / "magnification_uncertainty_2d.png") in plot_patch.paths
