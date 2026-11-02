@@ -32,6 +32,7 @@ from autogalaxy.plot import (
     subplot_basis_image,
     subplot_galaxies,
     subplot_galaxy_images,
+    plot_magnification_2d,
     subplot_adapt_images,
     subplot_fit_imaging_of_galaxy,
     subplot_fit_dirty_images,
