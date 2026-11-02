@@ -35,6 +35,8 @@ from autogalaxy.plot import (
     plot_magnification_2d,
     plot_magnification_source_plane,
     plot_magnification_source_plane_grid,
+    plot_magnification_uncertainty_2d,
+    magnification_fractional_error_2d_from,
     subplot_adapt_images,
     subplot_fit_imaging_of_galaxy,
     subplot_fit_dirty_images,
