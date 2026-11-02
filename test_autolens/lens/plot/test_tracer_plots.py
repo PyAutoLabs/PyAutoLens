@@ -114,3 +114,34 @@ def test__plot_magnification_2d__three_plane_tracer__contours_drawn():
     assert any(hasattr(collection, "levels") for collection in ax.collections)
 
     plt.close("all")
+
+
+def test__plot_magnification_source_plane__mesh_of_a_fit__output_file_created(
+    fit_imaging_x2_plane_inversion_7x7, plot_path, plot_patch
+):
+    import autoarray as aa
+
+    fit = fit_imaging_x2_plane_inversion_7x7
+
+    aplt.plot_magnification_source_plane(
+        mapper=fit.inversion.cls_list_from(cls=aa.Mapper)[0],
+        mass_obj=fit.tracer,
+        grid=fit.dataset.grid,
+        output_path=plot_path,
+        output_format="png",
+    )
+    assert str(plot_path / "magnification_source_plane.png") in plot_patch.paths
+
+
+def test__plot_magnification_source_plane_grid__two_plane_tracer__output_file_created(
+    tracer_x2_plane_7x7, grid_2d_7x7, plot_path, plot_patch
+):
+    aplt.plot_magnification_source_plane_grid(
+        mass_obj=tracer_x2_plane_7x7,
+        grid=grid_2d_7x7,
+        source_shape_native=(10, 10),
+        sub_size=2,
+        output_path=plot_path,
+        output_format="png",
+    )
+    assert str(plot_path / "magnification_source_plane_grid.png") in plot_patch.paths
