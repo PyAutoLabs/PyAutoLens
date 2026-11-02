@@ -75,3 +75,42 @@ def test__fits_source_plane_images__two_plane_tracer__source_plane_fits_file_wri
         output_path=tmp_path,
     )
     assert (tmp_path / "source_plane_images.fits").exists()
+
+
+def test__plot_magnification_2d__two_plane_tracer__output_file_created(
+    tracer_x2_plane_7x7, grid_2d_7x7, plot_path, plot_patch
+):
+    aplt.plot_magnification_2d(
+        mass_obj=tracer_x2_plane_7x7,
+        grid=grid_2d_7x7,
+        output_path=plot_path,
+        output_format="png",
+    )
+    assert str(plot_path / "magnification_2d.png") in plot_patch.paths
+
+
+def test__plot_magnification_2d__three_plane_tracer__contours_drawn():
+    import matplotlib.pyplot as plt
+
+    import autolens as al
+
+    grid = al.Grid2D.uniform(shape_native=(40, 40), pixel_scales=0.1)
+    tracer = al.Tracer(
+        galaxies=[
+            al.Galaxy(redshift=0.5, mass=al.mp.Isothermal(einstein_radius=1.0)),
+            al.Galaxy(
+                redshift=1.0,
+                mass=al.mp.Isothermal(centre=(0.3, 0.0), einstein_radius=0.2),
+            ),
+            al.Galaxy(redshift=2.0, light=al.lp.SersicCore(intensity=1.0)),
+        ]
+    )
+
+    fig, ax = plt.subplots()
+    aplt.plot_magnification_2d(
+        mass_obj=tracer, grid=grid, include_critical_curves=False, ax=ax
+    )
+
+    assert any(hasattr(collection, "levels") for collection in ax.collections)
+
+    plt.close("all")
