@@ -6,14 +6,20 @@ The best way to learn **PyAutoLens** is by going through the **HowToLens** lectu
 repository at [PyAutoLabs/HowToLens](https://github.com/PyAutoLabs/HowToLens).
 
 The lectures are provided as Jupyter notebooks (and Python scripts), and they are linked to via this readthedocs. The
-lectures are composed of four chapters
+lectures are composed of four chapters:
 
 - **Introduction** - An introduction to strong gravitational lensing and **PyAutolens**.
 - **Lens Modeling** - How to model strong lenses, including a primer on Bayesian non-linear analysis and
   non-linear search chaining.
-- **Pixelizations** - How to perform pixelized reconstructions of the source-galaxy.
+- **Pixelizations** - Reconstruct complex source light, choose regularization using Bayesian evidence,
+  diagnose fit problems and adapt the mesh and smoothing to the light distribution.
 - **Scaling Up Lensing** - Extra galaxies, multi-galaxy lenses, scaling relations, group and cluster
   scales, and weak lensing.
+
+Optional tutorials cover alternative searches and runtime, with prior passing retained as historical background.
+
+The tutorial links open the current course on `main`. For the notebooks associated with a particular release,
+select that release tag in the [HowToLens repository](https://github.com/PyAutoLabs/HowToLens/tags).
 
 ## How to Tackle HowToLens
 
@@ -52,7 +58,7 @@ Notebooks are a different way to write, view and use Python code. Compared to th
 - Images and visualization from a code to be displayed directly underneath it.
 - Text script to appear between the blocks of code.
 
-This makes them an ideal way for us to present the HowToFit lecture series, therefore I recommend you get yourself
+This makes them an ideal way for us to present the HowToLens lecture series, therefore I recommend you get yourself
 a Jupyter notebook viewer (<https://jupyter.org/>) if you haven't done so already.
 
 If you *really* want to use Python scripts, all tutorials are also supplied as `.py` files in the `scripts` folder
