@@ -1,41 +1,23 @@
 # Chapter 3: Pixelizations
 
-In chapter 3, we use **Pixelizations** to reconstruct complex source galaxies on pixelized grids.
+In chapter 3, we reconstruct complex source light on pixelized grids. We use Bayesian evidence to choose the smoothing strength, investigate fits that remain inadequate, and adapt the mesh and regularization to the light distribution.
 
 The chapter contains the following tutorials:
 
-[Tutorial 1: Pixelizations](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.11.1.1/notebooks/chapter_3_pixelizations/tutorial_1_pixelizations.ipynb)
-\- Creating a pixel-grid in the source-plane.
+[Tutorial 1: Pixelizations, Mappers and Inversions](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/main/notebooks/chapter_3_pixelizations/tutorial_1_pixelizations.ipynb)
+\- Connect mesh points to image pixels and reconstruct complex source light with a linear inversion.
 
-[Tutorial 2: Mappers](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.11.1.1/notebooks/chapter_3_pixelizations/tutorial_2_mappers.ipynb)
-\- How a pixelization maps source-pixels to image-pixels.
+[Tutorial 2: Bayesian Regularization](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/main/notebooks/chapter_3_pixelizations/tutorial_2_bayesian_regularization.ipynb)
+\- Compare log evidences to choose the regularization strength and examine its dependence on mesh resolution.
 
-[Tutorial 3: Inversions](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.11.1.1/notebooks/chapter_3_pixelizations/tutorial_3_inversions.ipynb)
-\- Inverting the mappings to reconstruct the source's light.
+[Tutorial 3: Borders](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/main/notebooks/chapter_3_pixelizations/tutorial_3_borders.ipynb)
+\- Explore how masks and border relocation affect the extent and resolution of the source mesh.
 
-[Tutorial 4: Bayesian Regularization](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.11.1.1/notebooks/chapter_3_pixelizations/tutorial_4_bayesian_regularization.ipynb)
-\- Smoothing the source within a Bayesian framework.
+[Tutorial 4: Lens Modeling](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/main/notebooks/chapter_3_pixelizations/tutorial_4_lens_modeling.ipynb)
+\- Fit lens mass and foreground light alongside a pixelized source, using search chaining and the positions likelihood penalty introduced in chapter 2.
 
-[Tutorial 5: Bayesian Formalism](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.11.1.1/notebooks/chapter_3_pixelizations/tutorial_5_bayesian_formalism.ipynb)
-\- The linear algebra and Bayesian evidence equations behind pixelized source reconstruction.
+[Tutorial 5: Fit Problems](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/main/notebooks/chapter_3_pixelizations/tutorial_5_fit_problems.ipynb)
+\- See why compact source light challenges mesh resolution and constant regularization, even after choosing the coefficient using evidence.
 
-[Tutorial 6: Borders](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.11.1.1/notebooks/chapter_3_pixelizations/tutorial_6_borders.ipynb)
-\- Preventing highly demagnified image-pixels ruining the inversion.
-
-[Tutorial 7: Lens Modeling](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.11.1.1/notebooks/chapter_3_pixelizations/tutorial_7_lens_modeling.ipynb)
-\- How to use inversions to fit a lens model.
-
-[Tutorial 8: Adaptive Pixelization](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.11.1.1/notebooks/chapter_3_pixelizations/tutorial_8_adaptive_pixelization.ipynb)
-\- A Delaunay mesh which adapts to the mass model's magnification.
-
-[Tutorial 9: Model Fit](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.11.1.1/notebooks/chapter_3_pixelizations/tutorial_9_model_fit.ipynb)
-\- An example lens modeling pipeline which uses an inversion.
-
-[Tutorial 10: Fit Problems](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.11.1.1/notebooks/chapter_3_pixelizations/tutorial_10_fit_problems.ipynb)
-\- The shortcomings of our lens models and inversions.
-
-[Tutorial 11: Brightness Adaption](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.11.1.1/notebooks/chapter_3_pixelizations/tutorial_11_brightness_adaption.ipynb)
-\- Adapting the pixelization to the source's morphology.
-
-[Tutorial 12: Adaptive Regularization](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/2026.11.1.1/notebooks/chapter_3_pixelizations/tutorial_12_adaptive_regularization.ipynb)
-\- Adapting the regularization to the source's morphology.
+[Tutorial 6: Adaptive Reconstruction](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/main/notebooks/chapter_3_pixelizations/tutorial_6_adaptive_reconstruction.ipynb)
+\- Combine Delaunay meshes, Hilbert brightness adaptation and adaptive Split regularization in a chained lens-model fit.
