@@ -25,12 +25,20 @@ This is called strong gravitational lensing and **PyAutoLens** makes it **simple
 
 ## Getting Started
 
-### Natural Language or Python
+### Explore It Yourself
 
-You can use **PyAutoLens** by describing what you want in natural language, through the
-[**PyAutoLens AI Assistant**](https://github.com/PyAutoLabs/autolens_assistant), or by writing Python yourself. Both
-routes use the same software. To start in natural language, paste this prompt into Claude Code, Codex or another AI
-coding agent:
+- **[Start Here](https://pyautolens.readthedocs.io/en/latest/overview/overview_1_start_here.html)** — discover PyAutoLens and work through your first example.
+- **[Try it in your browser](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.9.1/start_here.ipynb)** — run the introductory notebook without installing anything.
+- **[Install PyAutoLens](https://pyautolens.readthedocs.io/en/latest/installation/overview.html)** — get set up on your computer.
+
+Explore more examples in the [workspace](https://github.com/PyAutoLabs/autolens_workspace), or learn lensing from the ground up with [HowToLens](https://github.com/PyAutoLabs/HowToLens).
+
+### Explore with AI
+
+The [**PyAutoLens AI Assistant**](https://github.com/PyAutoLabs/autolens_assistant) lets you explore
+gravitational lensing through conversation. Ask a question, explore an idea, or describe the analysis
+you want to run. Both routes use the same software. To get started, paste this prompt into Claude Code, Codex
+or another AI coding agent:
 
 <sub><b>Starting prompt for Claude Code, Codex or other AI coding agent</b></sub>
 
@@ -42,21 +50,9 @@ cd into it and follow its AGENTS.md.
 Begin the "start here" guide for a new user.
 ```
 
-The assistant takes you through the [Start Here](https://pyautolens.readthedocs.io/en/latest/overview/overview_1_start_here.html) page as a conversation (grids, light and mass profiles, ray-tracing, then simulating and fitting a strong lens), one step at a time, then
-helps you get started on your own lenses. Claude Code and Codex are recommended, and sustained scientific use
-normally needs paid access to one of them. Free options are listed on the
-[AI Options](https://github.com/PyAutoLabs/PyAutoScientist/blob/main/AI_OPTIONS.md) page.
-[Start Here](https://pyautolens.readthedocs.io/en/latest/overview/overview_1_start_here.html#natural-language-or-python) explains why **PyAutoLens** is designed to be used in natural
-language, and why its Python API is not going anywhere.
-
-### Documentation and Examples
-
-All of the documentation and examples are written for people to read:
-
-- [The PyAutoLens readthedocs](https://pyautolens.readthedocs.io/en/latest): which includes [an overview of PyAutoLens's core features](https://pyautolens.readthedocs.io/en/latest/overview/overview_1_start_here.html), [a new user starting guide](https://pyautolens.readthedocs.io/en/latest/overview/overview_2_new_user_guide.html) and [an installation guide](https://pyautolens.readthedocs.io/en/latest/installation/overview.html).
-- [The introduction Jupyter Notebook on Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.9.1/start_here.ipynb): try **PyAutoLens** in a web browser (without installation).
-- [The autolens_workspace GitHub repository](https://github.com/PyAutoLabs/autolens_workspace): example scripts covering every **PyAutoLens** use case.
-- [The HowToLens GitHub repository](https://github.com/PyAutoLabs/HowToLens): a Jupyter notebook lecture series teaching strong lensing and lens modeling from the ground up.
+The assistant guides you through [Start Here](https://pyautolens.readthedocs.io/en/latest/overview/overview_1_start_here.html)
+as a conversation, then helps you analyse your own lenses. See [AI Options](https://github.com/PyAutoLabs/PyAutoScientist/blob/main/AI_OPTIONS.md)
+for recommended tools, costs and free alternatives.
 
 ## Community & Contributing
 
