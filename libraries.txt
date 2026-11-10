@@ -1,8 +1,0 @@
-Profiling Code:
-https://docs.python.org/2/library/profile.html
-
-Compiling to machine code:
-https://numba.pydata.org/
-
-Multiprocessing:
-https://github.com/soravux/scoop
