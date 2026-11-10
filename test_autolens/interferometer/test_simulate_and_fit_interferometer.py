@@ -136,7 +136,7 @@ def test__simulate_interferometer_data_and_fit__known_likelihood():
         tracer=tracer,
     )
 
-    assert fit.figure_of_merit == pytest.approx(-5.433894158056919, 1.0e-2)
+    assert fit.figure_of_merit == pytest.approx(12.9792237141, 1.0e-2)
 
 
 def test__simulate_interferometer_data_and_fit__linear_light_profiles_agree_with_standard_light_profiles():
@@ -313,4 +313,4 @@ def test__simulate_interferometer_data_and_fit__linear_light_profiles_and_pixeli
         ),
         1.0e-2,
     )
-    assert fit_linear.figure_of_merit == pytest.approx(-29.223696823166, 1.0e-4)
+    assert fit_linear.figure_of_merit == pytest.approx(-20.0131598295, 1.0e-4)

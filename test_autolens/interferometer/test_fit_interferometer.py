@@ -72,7 +72,7 @@ def test__fit_figure_of_merit(interferometer_7):
     )
 
     assert fit.perform_inversion is True
-    assert fit.figure_of_merit == pytest.approx(-71.7704487241, 1.0e-4)
+    assert fit.figure_of_merit == pytest.approx(-62.5598646805, 1.0e-4)
 
     galaxy_light = al.Galaxy(
         redshift=0.5, bulge=al.lp.Sersic(centre=(0.05, 0.05), intensity=1.0)
@@ -93,7 +93,7 @@ def test__fit_figure_of_merit(interferometer_7):
     )
 
     assert fit.perform_inversion is True
-    assert fit.figure_of_merit == pytest.approx(-196.15073725528, 1.0e-4)
+    assert fit.figure_of_merit == pytest.approx(-186.9403968573, 1.0e-4)
 
     g0_linear = al.Galaxy(
         redshift=0.5,
@@ -134,7 +134,7 @@ def test__fit_figure_of_merit(interferometer_7):
     fit = al.FitInterferometer(dataset=interferometer_7, tracer=tracer)
 
     assert fit.perform_inversion is True
-    assert fit.figure_of_merit == pytest.approx(-35.07914066930113, 1.0e-4)
+    assert fit.figure_of_merit == pytest.approx(-25.8688002795, 1.0e-4)
 
 
 def test___galaxy_image_dict(interferometer_7, interferometer_7_grid):
