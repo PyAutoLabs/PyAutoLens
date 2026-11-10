@@ -8,21 +8,16 @@
 
 # Academic citations (paywall / DOI / journal)
 https://academic.oup.com/mnras/article-abstract/478/4/4738/5001434?redirectedFrom=fulltext  # CITATIONS.md:11
-https://academic.oup.com/mnras/article-abstract/489/2/2049/5550746  # docs/index.md:35
-https://academic.oup.com/mnras/article/442/3/2017/1048278  # docs/index.md:36
 https://academic.oup.com/mnras/article/452/3/2940/1749640  # CITATIONS.md:11
-https://academic.oup.com/mnras/article/468/3/2590/3055701  # docs/index.md:37
 https://academic.oup.com/mnras/article/488/1/1387/5526256  # CITATIONS.md:22
 
 # Code of Conduct boilerplate
-http://geekfeminism.wikia.com/wiki/Conference_anti-harassment/Policy  # CODE_OF_CONDUCT.md:305
 
 # External dead / paywalled / departmental pages
 http://www.ita.uni-heidelberg.de/~massimo/sub/Lectures/gl_all.pdf  # docs/howtolens/howtolens.md:36
 https://bitbucket.org/bdiemer/colossus/src/main/  # files/citations.md:12
 
 # GitHub refs (workspaces / removed tutorials)
-https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/advanced/chaining/start_here.ipynb  # docs/general/model_cookbook.md:384
 https://github.com/PyAutoLabs/autolens_workspace/blob/main/scripts/imaging/preprocess/gui/positions.py  # docs/general/demagnified_solutions.md:73
 
 # Internal PyAuto docs — pages renamed, need editorial fix

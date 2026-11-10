@@ -75,7 +75,7 @@ parity scripts in `autolens_workspace_test` (`jax.jit` round-trip +
 `fitness._vmap` batch eval) — never by `test_autolens/`.
 
 Full detail lives in PyAutoArray:
-**[`PyAutoArray/docs/agents/jax_and_decorators.md`](../PyAutoArray/docs/agents/jax_and_decorators.md)**.
+**[`PyAutoArray/docs/agents/jax_and_decorators.md`](https://github.com/PyAutoLabs/PyAutoArray/blob/main/docs/agents/jax_and_decorators.md)**.
 
 ## Public API
 
@@ -108,7 +108,7 @@ Profiles re-export from autogalaxy (`al.mp.*`, `al.lp.*`) alongside `al.Galaxy`,
 
 ## Deep dives
 
-- [`PyAutoArray/docs/agents/jax_and_decorators.md`](../PyAutoArray/docs/agents/jax_and_decorators.md)
+- [`PyAutoArray/docs/agents/jax_and_decorators.md`](https://github.com/PyAutoLabs/PyAutoArray/blob/main/docs/agents/jax_and_decorators.md)
   — decorator system, `xp` backend pattern, and the `jax.jit` boundary.
 
 <!-- repos_sync:history:begin -->
