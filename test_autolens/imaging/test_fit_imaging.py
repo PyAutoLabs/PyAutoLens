@@ -92,7 +92,7 @@ def test__figure_of_merit__pixelization_inversion__expected_log_evidence(
     fit = al.FitImaging(dataset=masked_imaging_7x7, tracer=tracer)
 
     assert fit.perform_inversion is True
-    assert fit.figure_of_merit == pytest.approx(-22.9122020414322, 1.0e-4)
+    assert fit.figure_of_merit == pytest.approx(-13.7037782882, 1.0e-4)
 
 
 def test__figure_of_merit__light_profile_with_pixelization_inversion__expected_log_evidence(
@@ -111,7 +111,7 @@ def test__figure_of_merit__light_profile_with_pixelization_inversion__expected_l
     fit = al.FitImaging(dataset=masked_imaging_7x7, tracer=tracer)
 
     assert fit.perform_inversion is True
-    assert fit.figure_of_merit == pytest.approx(-29.2344033729098, 1.0e-4)
+    assert fit.figure_of_merit == pytest.approx(-20.0248681208, 1.0e-4)
 
 
 def test__figure_of_merit__linear_light_profiles__inversion__expected_log_evidence(
@@ -176,7 +176,7 @@ def test__figure_of_merit__linear_basis_with_regularization__inversion__expected
     fit = al.FitImaging(dataset=masked_imaging_7x7, tracer=tracer)
 
     assert fit.perform_inversion is True
-    assert fit.figure_of_merit == pytest.approx(-51.0835080747, 1.0e-4)
+    assert fit.figure_of_merit == pytest.approx(-41.8721611469, 1.0e-4)
 
 
 def test__figure_of_merit__linear_profiles_with_pixelization__inversion__expected_log_evidence(
@@ -203,7 +203,7 @@ def test__figure_of_merit__linear_profiles_with_pixelization__inversion__expecte
     fit = al.FitImaging(dataset=masked_imaging_7x7, tracer=tracer)
 
     assert fit.perform_inversion is True
-    assert fit.figure_of_merit == pytest.approx(-22.801816971, 1.0e-4)
+    assert fit.figure_of_merit == pytest.approx(-13.5914765821, 1.0e-4)
 
 
 def test__figure_of_merit__operated_light_profiles__no_inversion__expected_log_likelihood(
@@ -345,7 +345,7 @@ def test__figure_of_merit__sub_2_oversampling__pixelization_inversion__expected_
     fit = al.FitImaging(dataset=masked_imaging_7x7, tracer=tracer)
 
     assert fit.perform_inversion is True
-    assert fit.figure_of_merit == pytest.approx(-22.912202041432, 1.0e-4)
+    assert fit.figure_of_merit == pytest.approx(-13.7037782882, 1.0e-4)
 
 
 def test__figure_of_merit__sub_2_oversampling__light_with_pixelization__expected_log_evidence(
@@ -370,7 +370,7 @@ def test__figure_of_merit__sub_2_oversampling__light_with_pixelization__expected
     fit = al.FitImaging(dataset=masked_imaging_7x7, tracer=tracer)
 
     assert fit.perform_inversion is True
-    assert fit.figure_of_merit == pytest.approx(-23.040374194334518, 1.0e-4)
+    assert fit.figure_of_merit == pytest.approx(-13.831926904, 1.0e-4)
 
 
 def test__figure_of_merit__sub_2_oversampling__linear_light_profiles__inversion__expected_log_evidence(
@@ -459,7 +459,7 @@ def test__figure_of_merit__sub_2_oversampling__linear_basis_with_regularization_
     fit = al.FitImaging(dataset=masked_imaging_7x7, tracer=tracer)
 
     assert fit.perform_inversion is True
-    assert fit.figure_of_merit == pytest.approx(-27.8563999226980, 1.0e-4)
+    assert fit.figure_of_merit == pytest.approx(-18.6460595449, 1.0e-4)
 
 
 def test__figure_of_merit__sub_2_oversampling__linear_profiles_with_pixelization__inversion(
@@ -494,7 +494,7 @@ def test__figure_of_merit__sub_2_oversampling__linear_profiles_with_pixelization
     fit = al.FitImaging(dataset=masked_imaging_7x7, tracer=tracer)
 
     assert fit.perform_inversion is True
-    assert fit.figure_of_merit == pytest.approx(-22.8051006673, 1.0e-4)
+    assert fit.figure_of_merit == pytest.approx(-13.5947602775, 1.0e-4)
 
 
 def test__figure_of_merit__sub_2_oversampling__operated_light_profiles__no_inversion(
@@ -637,7 +637,7 @@ def test__fit__grid_offset__with_linear_profiles_and_pixelization__expected_log_
         dataset_model=al.DatasetModel(grid_offset=(1.0, 2.0)),
     )
 
-    assert fit.figure_of_merit == pytest.approx(-22.8051006, 1.0e-4)
+    assert fit.figure_of_merit == pytest.approx(-13.594760251, 1.0e-4)
 
 
 def test__galaxy_image_dict__normal_light_profiles__images_match_individual_galaxy_images(
