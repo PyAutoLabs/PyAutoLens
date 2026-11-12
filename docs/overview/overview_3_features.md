@@ -15,6 +15,8 @@ links to the relevant workspace examples.
 
 **Data Cubes**: Modeling spectral-line data cubes (e.g. ALMA CO cubes), fitting every channel simultaneously with a shared lens model.
 
+**Linear Light Profiles**: Solve component brightnesses at each likelihood evaluation instead of sampling them.
+
 **Multi Gaussian Expansion (MGE)**: Flexible models for foreground lens light and the background source.
 
 **Groups**: Modeling group-scale strong lenses with multiple lens galaxies and multiple source galaxies.
@@ -25,7 +27,9 @@ links to the relevant workspace examples.
 
 **Shapelets**: Decomposing a galaxy into a set of shapelet orthogonal basis functions, capturing more complex structures than simple light profiles.
 
-**Operated Light Profiles**: Assuming a light profile has already been convolved with the PSF, for when the PSF is a significant effect.
+**Scaling Relations**: Include companion populations through a shared luminosity–mass prescription.
+
+**Operated Light Profiles**: Describe compact emission that already includes the PSF, alongside extended galaxy light.
 
 **Sky Background**: Including the background sky in the model to ensure robust fits to the outskirts of galaxies.
 
@@ -149,6 +153,23 @@ rather than rebuilt per channel, which is what makes fitting a many-channel cube
 Checkout the `autolens_workspace/*/interferometer/features/datacube` package to get started, which includes a
 `data_preparation` example covering the conversion from a CASA-style 4D FITS cube to the inputs the fit expects.
 
+## Linear Light Profiles
+
+Linear light profiles remove component intensities from the parameters sampled by the non-linear search.
+Instead, their best-fitting values are solved together at every likelihood evaluation, conditional on the
+current light-profile shapes and lens model. Solved does not mean fixed: brightnesses change as the model changes.
+
+Use them for foreground lens light, parametric source light and models with many components, such as a
+multi-Gaussian expansion. The smaller non-linear search can improve fitting efficiency, although physical
+degeneracies remain and the extra linear calculation means there is no universal speed-up.
+
+![Brightness sampled versus brightness solved](images/overview_3/linear_light_profiles.png)
+
+Conceptual illustration, not measured likelihood surfaces or a timing benchmark.
+
+The [feature introduction](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/linear_light_profiles/start_here.ipynb) explains the non-negative intensity solve, conditional best-fit intensities,
+computational trade-offs and how to inspect the fitted components.
+
 ## Multi Gaussian Expansion (MGE)
 
 An MGE models a galaxy's light as a sum of Gaussians. In strong lensing, use it to model foreground lens light
@@ -208,6 +229,23 @@ Start with the [Extra Galaxies introduction](https://github.com/PyAutoLabs/autol
 for noise scaling, overlapping components, centre constraints and the staged SLaM workflow. This folder
 focuses on a main galaxy-scale lens with a few neighbours; the multi-galaxy, group and cluster workflows
 address larger systems and different mass configurations.
+
+## Scaling Relations
+
+Account for the collective gravitational contribution of companion galaxies when the data cannot constrain
+every companion mass independently. Scaling relations tie their mass normalizations to measured luminosities,
+reducing the search space through a shared population assumption.
+
+The galaxy-scale example gives influential companions individual mass freedom and ties a fainter population
+to the main lens's Einstein radius through a fixed luminosity relation. That tied tier adds no independent
+mass parameters in this recipe; its masses are predictions of the assumed relation, not individual detections.
+
+![Galaxy luminosities inform a shared population mass model](images/overview_3/scaling_relation.png)
+
+Conceptual illustration: the mass symbols are neither visible dark matter nor measured halo boundaries.
+
+The [feature introduction](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/scaling_relation/start_here.ipynb) explains the two companion tiers, the main-lens anchor, luminosity inputs,
+scatter assumptions and the different normalization used in the group and cluster example.
 
 ## Multi-Galaxy Lenses, Groups and Clusters
 
@@ -302,13 +340,20 @@ examples show fixed-model fits, non-linear fitting, and alternative source and l
 
 ## Operated Light Profiles
 
-An operated light profile is one where it is assumed to already be convolved with the PSF of the data, with the
-`Moffat` and `Gaussian` profiles common choices:
+Separate compact nuclear emission from extended lens-galaxy light using a profile that already describes
+the observed, PSF-blurred component. Ordinary extended lens and source profiles still undergo PSF convolution;
+the operated component is not convolved a second time.
 
-They are used for certain scientific applications where the PSF convolution is known to be a significant effect and
-the knowledge of the PSF allows for detailed modeling abd deblending of the galaxy's light.
+The example uses an operated Gaussian at the foreground lens centre. Its suitability depends on how well
+that shape describes the observed compact light: it does not automatically reproduce the telescope PSF or
+recover intrinsic structure below the resolution limit.
 
-Checkout `autogalaxy_workspace/notebooks/features/operated_light_profiles.ipynb` to learn how to use operated profiles.
+![Telescope PSF and a component that already includes it](images/overview_3/operated_light_profile.png)
+
+Conceptual illustration of including the PSF once, not improving angular resolution.
+
+The [feature introduction](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/advanced/operated_light_profile/start_here.ipynb) explains nucleus–host decomposition, PSF mismatch, sampling and the
+distinction between operated profiles and solving their intensities linearly.
 
 ## Sky Background
 
