@@ -1,127 +1,49 @@
 (conda)=
 
-# Installation with conda
+<span id="installation-with-conda"></span>
 
-## JAX & GPU
+# Install with conda
 
-**PyAutoLens** runs significantly faster on GPUs — often **50x or more** compared to CPUs.
+Use this route if you have [conda](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html), or want it to manage your Python version. Open a terminal with conda available; on Windows, use Anaconda Prompt.
 
-This acceleration is achieved through \[**JAX**\](<https://docs.jax.dev/en/latest/notebooks/thinking_in_jax.html>), which provides GPU and TPU support.
+<span id="install"></span>
 
-**JAX is installed by default** — a plain `pip install autolens` includes it (the older
-`pip install autolens[jax]` command still works and installs the same thing).
-
-The default install includes **CPU-only** JAX. To ensure GPU acceleration, it is recommended that you install JAX with
-GPU support **before** installing **PyAutoLens**, by following the official \[JAX installation guide\](<https://jax.readthedocs.io/en/latest/installation.html>).
-
-If you install **PyAutoLens** without a proper GPU setup, a warning will be displayed.
-
-:::{note}
-**Intel Macs**: JAX no longer publishes wheels for Intel (x86_64) macOS, so on these machines
-`pip install autolens` automatically installs without JAX and runs on the slower NumPy path — a
-warning is printed at import to make this clear. Every other supported platform (Windows, Linux,
-Apple-silicon Macs) gets JAX by default.
-:::
-
-## Install
-
-Installation via a conda environment circumvents compatibility issues when installing certain libraries. This guide
-assumes you have a working installation of [conda](https://conda.io/miniconda.html).
-
-First, update conda:
+## Create an environment and install
 
 ```bash
-conda update -n base -c defaults conda
-```
-
-Next, create a conda environment (we name this `autolens` to signify it is for the **PyAutoLens** install):
-
-The command below creates this environment with Python 3.12:
-
-```bash
-conda create -n autolens python=3.12
-```
-
-Activate the conda environment (you will have to do this every time you want to run **PyAutoLens**):
-
-```bash
+conda create -n autolens python=3.12 pip
 conda activate autolens
+python -m pip install --upgrade pip
+python -m pip install autolens
 ```
 
-We upgrade pip to ensure certain libraries install:
+Run `conda activate autolens` each time you open a new terminal to use this environment.
+
+For GPU support, follow [GPU setup](acceleration.md) in the same environment.
+
+## Check the installation
 
 ```bash
-pip install --upgrade pip
+python -m pip check
+python -c "import autolens; print(autolens.__version__)"
 ```
 
-The latest version of **PyAutoLens** is installed via pip as follows (the command `--no-cache-dir` prevents
-caching issues impacting the installation):
+`pip check` should report no broken requirements, and the second command should print the installed version. Resolve errors using [Troubleshooting](troubleshooting.md) before continuing.
 
-```bash
-pip install autolens --no-cache-dir
-```
-
-This includes JAX by default, enabling the acceleration described above. If you need an install without
-JAX on a platform where JAX wheels exist (e.g. a restricted environment), install normally and then run
-`pip uninstall jax jaxlib` — **PyAutoLens** detects the absence at import and falls back to the fully
-supported (but much slower) NumPy path.
-
-If pip prints warnings about dependency version conflicts, these can usually be ignored — the instructions below
-will identify clearly if the installation is a success.
-
-If there are no errors **PyAutoLens** is installed!
-
-If there is an error check out the [troubleshooting section](https://pyautolens.readthedocs.io/en/latest/installation/troubleshooting.html).
+Next, [download the workspace and run an example](workspace.md).
 
 ## Workspace
 
-Next, clone the `autolens workspace` (the line `--depth 1` clones only the most recent branch on
-the `autolens_workspace`, reducing the download size):
-
-```bash
-cd /path/on/your/computer/you/want/to/put/the/autolens_workspace
-git clone https://github.com/PyAutoLabs/autolens_workspace --depth 1
-cd autolens_workspace
-```
-
-Run the `welcome.py` script to get started!
-
-```bash
-python3 welcome.py
-```
-
-It should be clear that **PyAutoLens** runs without issue.
-
-If there is an error check out the [troubleshooting section](https://pyautolens.readthedocs.io/en/latest/installation/troubleshooting.html).
+[Download the workspace and run your first example](workspace.md).
 
 ## Numba
 
-Numba (<https://numba.pydata.org>) is an optional library which makes **PyAutoLens** run a lot faster, which we
-strongly recommend users have installed.
-
-You can install numba via the following command:
-
-```bash
-pip install numba --no-cache-dir
-```
-
-Some users have experienced difficulties installing numba, which is why it is an optional library. If your
-installation is not successful, you can use **PyAutoLens** without it installed for now, to familiarize yourself
-with the software and determine if it is the right software for you.
-
-If you decide that **PyAutoLens** is the right software, then I recommend you commit the time to getting a
-successful numba install working, with more information provided [at this readthedocs page](https://pyautolens.readthedocs.io/en/latest/installation/numba.html)
+See [Numba and optional CPU acceleration](acceleration.md#numba).
 
 ## Optional
 
-For interferometer analysis there is one optional dependency that must be installed via the command:
+See [interferometer packages](acceleration.md#interferometer-calculations).
 
-```bash
-pip install nufftax
-```
+## JAX & GPU
 
-**PyAutoLens** will run without these libraries and it is recommended that you only install them if you intend to
-do interferometer analysis.
-
-If you run interferometer code a message explaining that you need to install these libraries will be printed, therefore
-it is safe not to install them initially.
+See [JAX and GPU setup](acceleration.md#jax-and-gpus).

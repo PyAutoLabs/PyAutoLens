@@ -1,43 +1,38 @@
 (overview)=
 
-# Overview
+<span id="id1"></span>
 
-**PyAutoLens** requires Python 3.12 or later and supports the Linux, MacOS and Windows operating systems.
+# Install PyAutoLens
 
-**PyAutoLens** can be installed via the Python distribution [Anaconda](https://www.anaconda.com/) or using
-[Pypi](https://pypi.org/) to `pip install autolens` into your Python distribution.
+Use Python 3.12 or later in a separate environment. The guides below use Python 3.12.
 
-We recommend Anaconda as it manages the installation of many major libraries (e.g. numpy, scipy,
-matplotlib, etc.) making installation more straight forward. Windows users must use Anaconda.
+| Your setup | Start here |
+| --- | --- |
+| You use conda, or need it to manage Python | [Install with conda](conda.md) |
+| You already have Python installed | [Install with pip](pip.md) |
+| You want to edit the library code | [Install from source](source.md) |
 
-The installation guide for both approaches can be found at:
+Both the conda and pip routes install `autolens` from PyPI. A GPU is optional; start with the standard installation, or see [GPU setup](acceleration.md) if you plan to use one.
 
-- [Anaconda installation guide](https://pyautolens.readthedocs.io/en/latest/installation/conda.html)
-- [PyPI installation guide](https://pyautolens.readthedocs.io/en/latest/installation/pip.html)
+Prefer to try the software without installing it? Open an example in [Google Colab](https://pyautolens.readthedocs.io/en/latest/overview/overview_2_new_user_guide.html).
 
-Users who wish to build **PyAutoLens** from source (e.g. via a `git clone`) should follow
-our [building from source installation guide](https://pyautolens.readthedocs.io/en/latest/installation/source.html).
+<details>
+<summary>Install with help from an AI agent</summary>
 
-## JAX & GPU
+Paste this into Claude Code, Codex or another AI coding agent:
 
-**PyAutoLens** runs significantly faster on GPUs — often **50x or more** compared to CPUs.
+> Help me install PyAutoLens and set up autolens_workspace. Use the current installation guide at https://pyautolens.readthedocs.io/en/latest/installation/overview.html. Check my operating system and Python version, create an isolated environment, verify the installation and help me run the first example. Ask before changing an existing environment or installing system software.
 
-This acceleration is achieved through \[**JAX**\](<https://docs.jax.dev/en/latest/notebooks/thinking_in_jax.html>), which provides GPU and TPU support.
+The [PyAutoLens AI Assistant](https://github.com/PyAutoLabs/autolens_assistant) can help with the examples once you are set up.
 
-When you install **PyAutoLens** (see instructions below), JAX will also be installed. However, the default installation may not include GPU support.
+</details>
 
-To ensure GPU acceleration, it is recommended that you install JAX with GPU support **before** installing **PyAutoLens**, by following the official \[JAX installation guide\](<https://jax.readthedocs.io/en/latest/installation.html>).
-
-If you install **PyAutoLens** without a proper GPU setup, a warning will be displayed.
+After installing, [run your first example](workspace.md).
 
 ## Dependencies
 
-**PyAutoLens** uses the following parent packages:
+The installer resolves the required packages automatically. See [optional packages](acceleration.md) for additions needed by particular workflows.
 
-**PyAutoNerves** <https://github.com/PyAutoLabs/PyAutoNerves>
+## JAX & GPU
 
-**PyAutoFit** <https://github.com/PyAutoLabs/PyAutoFit>
-
-**PyAutoArray** <https://github.com/PyAutoLabs/PyAutoArray>
-
-**PyAutoGalaxy** <https://github.com/PyAutoLabs/PyAutoGalaxy>
+See [JAX and GPU setup](acceleration.md#jax-and-gpus).

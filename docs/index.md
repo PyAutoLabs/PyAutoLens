@@ -77,6 +77,8 @@ overview/overview_3_features
 installation/overview
 installation/conda
 installation/pip
+installation/workspace
+installation/acceleration
 installation/source
 installation/troubleshooting
 ```
