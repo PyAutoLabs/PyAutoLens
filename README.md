@@ -41,6 +41,10 @@ Ask questions, suggest improvements and share your work in [PyAutoLabs Discussio
 
 To contribute or explore community projects, visit the [PyAutoLens community page](https://pyautolens.readthedocs.io/en/latest/general/community.html).
 
+## Project Resources
+
+Find the [PyPI package](https://pypi.org/project/autolens/), check [test runs](https://github.com/PyAutoLabs/PyAutoLens/actions) and [release builds](https://github.com/PyAutoLabs/PyAutoHands/actions), or access the [archived software release](https://doi.org/10.5281/zenodo.4548697).
+
 ## Citations
 
 If you use PyAutoLens in your research, see the [citation guide](https://github.com/PyAutoLabs/PyAutoLens/blob/main/CITATIONS.md).
@@ -48,3 +52,6 @@ If you use PyAutoLens in your research, see the [citation guide](https://github.
 ## License
 
 See the [license](https://github.com/PyAutoLabs/PyAutoLens/blob/main/LICENSE).
+
+<!-- Preserve this deliberately chosen song footer during README rewrites. -->
+<sub><i><a href="https://open.spotify.com/track/6Ao5d7TMQ92h87jQqSHGyw">i found you beautiful, exploding, i found you</a></i></sub>

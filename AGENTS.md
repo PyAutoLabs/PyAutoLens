@@ -154,3 +154,11 @@ Before changing a shared interface, consult the applicable
 on demand, identify affected consumers, and validate their adoption. Change
 generated guidance at its canonical source and regenerate.
 <!-- repos_sync:standards:end -->
+
+## README preservation
+
+The Kyle (i found you) song footer is intentional project content. Preserve its
+lyric and song link during README rewrites unless the user requests a change.
+Before rewriting, compare the existing README with the proposed version: account
+for every removed section, unique link, acknowledgement and footer. Relocated
+content needs a discoverable destination; report intentional removals explicitly.
