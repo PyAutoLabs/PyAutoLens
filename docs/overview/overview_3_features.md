@@ -287,10 +287,8 @@ background in your model.
 The examples above model the lens's mass with an isothermal profile, but **PyAutoLens** supports a wide
 range of mass models:
 
-Total mass profiles (e.g. the isothermal and power-law) represent the combined stellar and dark matter mass of the
-lens galaxy with a single profile. Decomposed mass models fit the stellar and dark matter separately, tying the
-stellar mass to the light (e.g. via an MGE) and adding an NFW dark matter halo, directly measuring the balance of
-stellar and dark matter in the galaxy.
+Total mass profiles (e.g. the isothermal and power-law) represent the combined mass of the lens galaxy
+with a single profile. Stellar + dark matter models, introduced below, separate these contributions.
 
 Multipole perturbations (m=1, m=3 and m=4) extend any mass model with departures from elliptical symmetry, capturing
 lopsidedness, boxiness / disciness and bar-like structures in the mass distribution. Accounting for this angular
@@ -302,9 +300,30 @@ strong lens imaging: <https://arxiv.org/abs/2410.12987>
 
 The role of the m=1 multipole (lopsidedness) is detailed in: <https://arxiv.org/abs/2407.12983>
 
-Checkout `autolens_workspace/*/guides/profiles` for the full range of mass profiles
-and `autolens_workspace/*/imaging/features/advanced/mass_stellar_dark` for decomposed stellar + dark matter
-modeling.
+Checkout `autolens_workspace/scripts/guides/profiles` for the full range of mass profiles.
+
+## Stellar + Dark Matter
+
+How much of a lens galaxy's mass is in stars, and how much is dark matter? Decomposed mass models combine
+the galaxy's observed light with strong lensing to infer stellar mass-to-light ratios, estimate stellar and
+dark matter masses within a chosen aperture, and investigate their relative distributions.
+
+The stellar mass follows a light model with a mass-to-light ratio; a separate halo, often described by an
+NFW profile, supplies the dark matter component. Lensing responds to their combined gravity. The inferred
+split therefore depends on the adopted light model, mass-to-light prescription, halo model and priors.
+
+[Nightingale et al. (2019)](https://arxiv.org/abs/1901.07801) used PyAutoLens to investigate stellar structures
+and inner dark matter halos in massive elliptical galaxies with this approach.
+
+![Observed lens light and inferred stellar plus dark matter components](images/overview_3/stellar_dark_illustration.png)
+
+The image is a conceptual illustration, not a measured decomposition. The observed arcs belong to the
+background source; the mass components describe the foreground lens galaxy.
+
+Start with the [feature introduction](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/advanced/mass_stellar_dark/start_here.ipynb)
+for the science and modelling assumptions. The basic modeling example uses priors near the simulated truth;
+chaining.py and slam.py demonstrate staged fits that initialize the stellar mass model from lens-light fits.
+
 
 ## Automated Pipelines / SLaM
 
