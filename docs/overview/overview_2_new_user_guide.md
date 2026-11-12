@@ -66,9 +66,9 @@ The illustrations below are conceptual, not observations; telescope and sky scal
 
 For galaxy-scale lenses, choose the example for your observations. For multi-galaxy, group or cluster systems, begin with the scale-specific guide above.
 
-![Four conceptual dataset representations: a pixelated lensed image, samples in the interferometer u–v plane, stacked spectral-channel images, and four compact quasar images around a lens galaxy.](images/overview_2/dataset_types.png)
+![Five conceptual dataset representations: a pixelated lensed image, samples in the interferometer u–v plane, the same lens in three wavebands, stacked spectral-channel images, and four compact quasar images around a lens galaxy.](images/overview_2/dataset_types.png)
 
-*AI-generated schematic, not measured data. The interferometer panel shows where visibilities are sampled, not their amplitudes or phases; cube slices represent different spectral channels.*
+*AI-generated schematic, not measured data. The interferometer panel shows sampling locations; multi-band images show separate wavebands, while cube slices represent spectral channels.*
 
 ::::{grid} 1 2 2 2
 :gutter: 3
@@ -86,6 +86,12 @@ Images from telescopes such as Hubble or JWST. Fit the lens light, mass and exte
 Radio or submillimetre observations, such as ALMA data. Fit the measured visibilities directly.
 
 [Notebook ](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/interferometer/start_here.ipynb)·[Google Colab ](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/interferometer/start_here.ipynb)
+:::
+
+:::{grid-item-card} Multi-band imaging
+The same lens observed in several wavebands. Fit the images together with a shared lens model using `multi_dataset/`.
+
+[Notebook ](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/multi_dataset/start_here.ipynb)·[Google Colab ](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/multi_dataset/start_here.ipynb)
 :::
 
 :::{grid-item-card} Data cubes
@@ -109,6 +115,18 @@ Multiple images of a compact source, such as a quasar or supernova. Start with t
 (google-colab)=
 
 Read each notebook on GitHub, open it locally, or use its Google Colab link to run it in your browser. In Colab, run the setup cell first to install the software and prepare the example.
+
+(weak-lensing)=
+
+## Weak lensing
+
+To model the subtle distortions of many background galaxies, start with [weak/](https://github.com/PyAutoLabs/autolens_workspace/tree/main/scripts/weak). You can also combine weak and strong lensing to study a cluster across both scales.
+
+![Strong-lensing arcs near a cluster centre and weakly distorted background galaxies across a wider field.](images/overview_3/strong_weak_lensing.png)
+
+*AI-generated conceptual illustration. The panels cover different angular scales; dashed contours represent a mass model, not a direct measurement from individual galaxy shapes.*
+
+[Notebook ](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/weak/start_here.ipynb)·[Google Colab ](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/weak/start_here.ipynb)
 
 ## Still unsure?
 
