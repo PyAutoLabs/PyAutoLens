@@ -325,6 +325,31 @@ for the science and modelling assumptions. The basic modeling example uses prior
 chaining.py and slam.py demonstrate staged fits that initialize the stellar mass model from lens-light fits.
 
 
+## Double Source-Plane Lenses
+
+A double source-plane lens contains two background galaxies at different redshifts behind a foreground lens.
+Their different lensing geometries let us investigate cosmological distance ratios, probe the lens mass
+with two sets of arcs, and reconstruct both background galaxies for source science.
+
+The nearer source also acts as an additional deflector for the farther source. A multi-plane model therefore
+tracks both its light and its mass, using the galaxies' redshifts and the adopted cosmology to calculate the
+appropriate deflections for each source.
+
+[Collett & Auger (2014)](https://arxiv.org/abs/1403.5278) demonstrate the cosmological application using the
+Jackpot lens, SDSS J0946+1006. Cosmological inference remains coupled to mass-model assumptions; the basic
+modeling.py tutorial here fixes the cosmology and does not itself measure cosmological parameters.
+
+![Two sets of lensed arcs and the three redshift planes that produce them](images/overview_3/double_source_plane_illustration.png)
+
+*Conceptual illustration, not a ray-traced prediction. Colours distinguish the two sources. Double
+source-plane lenses can form incomplete arcs or multiple images, rather than two complete rings.*
+
+Start with the [feature introduction](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/advanced/double_source_plane_lens/start_here.ipynb)
+for geometry, scientific uses and inference limitations. The basic modeling example initializes priors near
+the simulated truth; chaining.py and slam.py demonstrate staged fits, including the nearer source's role as
+an additional lens.
+
+
 ## Automated Pipelines / SLaM
 
 Fitting complex lens models (e.g. a decomposed mass model with a pixelized source) in one non-linear search is
