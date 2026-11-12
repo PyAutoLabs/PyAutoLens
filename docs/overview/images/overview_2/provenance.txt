@@ -1,0 +1,1 @@
+AI-generated conceptual illustrations, generated and edited with built-in image_gen for PyAutoLens New User Guide on 2026-11-12. Not observations or numerical models. Lens version 3 approved by James Nightingale. Radii are indicative angular scales, not measured from the artwork; see page references. The prompts are preserved in this directory.
