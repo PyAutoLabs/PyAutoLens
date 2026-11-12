@@ -377,6 +377,37 @@ analysis needs more than this small demonstration.
 For the scientific connection between detection limits and substructure population constraints, see
 [Vegetti & Koopmans (2009)](https://arxiv.org/abs/0903.4752).
 
+## Potential Correction
+
+**What mass structure is your smooth lens model missing?**
+
+Potential correction, also called gravitational imaging, reconstructs small changes to the lensing potential on a
+pixelized mesh while reconstructing the background source. Use it to investigate coherent arc residuals, locate
+candidate mass perturbations for subsequent physical modeling, and explore departures from a simple smooth lens
+model without first choosing a particular halo density profile.
+
+![Lensed arcs and an inferred correction relative to a smooth lens model](images/overview_3/potential_correction_illustration.png)
+
+*Conceptual illustration, not a measured mass map. Positive and negative corrections mean more or less projected
+mass relative to the smooth baseline; a negative correction does not mean negative total mass.*
+
+A reconstructed feature is not by itself a confirmed dark-matter detection. Its interpretation depends on the
+main lens model, source reconstruction, mask, mesh and regularization, as well as observational systematics.
+Potential correction reconstructs structure for the dataset being fitted; sensitivity mapping instead measures
+recovery across injected perturbations.
+
+For a scientific application, [Powell et al. (2025)](https://www.nature.com/articles/s41550-025-02651-2) uses
+very-high-resolution radio observations of JVAS B1938+666. This illustrates the method's reach, not a mass-detection
+limit promised by the introductory imaging example. The PyAutoLens implementation credits the
+[Cao et al. potential-correction software](https://github.com/caoxiaoyue/lensing_potential_correction);
+retain its [citation and reproduction materials](https://github.com/caoxiaoyue/potential_correction_paper) when using it.
+
+Start with the [potential correction introduction](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/advanced/potential_correction/start_here.ipynb)
+for simulated imaging with a known smooth starting model, joint reconstruction, convergence corrections,
+iterative refinement and evidence sampling. Continue to the
+[likelihood walkthrough](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/advanced/potential_correction/likelihood_function.ipynb)
+or the [interferometer example](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/interferometer/features/advanced/potential_correction/start_here.ipynb).
+
 ## Graphical Models
 
 The examples above fit each strong lens dataset one-by-one. However, many lens properties are shared across a
