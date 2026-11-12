@@ -75,6 +75,8 @@ For galaxy-scale lenses, choose the example for your observations. For multi-gal
 
 
 :::{grid-item-card} Imaging
+![Conceptual telescope image of a foreground galaxy and extended lensed arcs](images/overview_2/imaging.png)
+
 Images from telescopes such as Hubble or JWST. Fit the lens light, mass and extended source.
 
 [Notebook ](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/start_here.ipynb)·[Google Colab ](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/imaging/start_here.ipynb)
@@ -89,6 +91,8 @@ Radio or submillimetre observations, such as ALMA data. Fit the measured visibil
 :::
 
 :::{grid-item-card} Multi-band imaging
+![Conceptual illustration of the same lens observed in three wavebands](images/overview_2/multi_wavelength.png)
+
 The same lens observed in several wavebands. Fit the images together with a shared lens model using `multi_dataset/`.
 
 [Notebook ](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/multi_dataset/start_here.ipynb)·[Google Colab ](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/multi_dataset/start_here.ipynb)

@@ -1,3 +1,5 @@
 AI-generated conceptual illustrations, generated and edited with built-in image_gen for PyAutoLens New User Guide on 2026-11-12. Not observations or numerical models. Lens version 3 approved by James Nightingale. Radii are indicative angular scales, not measured from the artwork; see page references. The prompts are preserved in this directory.
 
 Dataset illustration extended with a multi-band imaging panel using built-in image_gen on 2026-11-12, following the user's request to distinguish multi_dataset examples from spectral data cubes. Separate image stamps represent the same lens in different wavebands. Edit prompt: multiband_image_edit_prompt.txt. The updated image is shared by the new user guide and workspace README; awaiting visual review.
+
+Standalone imaging.png generated with built-in image_gen on 2026-11-12 for the workspace dataset gallery and RTD Imaging card. Conceptual pixelated telescope image, not measured data or a numerical lens model. Reference: the Imaging scene in dataset_types.png. Prompt: imaging_image_prompt.txt. Approved by the user on 2026-11-12.
