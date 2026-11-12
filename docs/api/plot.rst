@@ -1,25 +1,34 @@
-========
 Plotting
 ========
 
-**PyAutoLens** custom visualization library.
+Use ``autolens.plot`` to inspect datasets, models and fits. Functions produce individual figures or diagnostic subplots; pass plotting options directly to the function you call.
 
-Step-by-step Juypter notebook guides illustrating all objects listed on this page are 
-provided on the `autolens_workspace: plot tutorials <https://github.com/PyAutoLabs/autolens_workspace/tree/main/notebooks/guides/plot>`_ and
-it is strongly recommended you use those to learn plot customization.
+For a runnable introduction and customization examples, open the `plotting guide <https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/guides/plot/start_here.ipynb>`_.
 
-**Examples / Tutorials:**
+Plot an image
+-------------
 
-- `autolens_workspace: plot tutorials <https://github.com/PyAutoLabs/autolens_workspace/tree/main/notebooks/guides/plot>`_
+Given an existing ``Array2D`` called ``image``:
 
-Plotters [aplt]
----------------
+.. code-block:: python
 
-Create figures and subplots showing quantities of standard **PyAutoLens** objects.
+    import autolens.plot as aplt
+
+    aplt.plot_array(array=image, title="Image", colormap="gray")
+
+.. _plotters-aplt:
+
+Choose a plot
+-------------
+
+Choose the group that matches the object or result you want to inspect. The linked references give each function’s arguments.
 
 .. currentmodule:: autolens.plot
 
-**Basic Plot Functions:**
+Basic plots
+~~~~~~~~~~~
+
+Display an array or a grid of coordinates.
 
 .. autosummary::
    :toctree: _autosummary
@@ -27,7 +36,10 @@ Create figures and subplots showing quantities of standard **PyAutoLens** object
     plot_array
     plot_grid
 
-**Tracer and Galaxies Subplots:**
+Tracer and Galaxies subplots
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Inspect the lens model, its lensed images and the contributions from its galaxies.
 
 .. autosummary::
    :toctree: _autosummary
@@ -36,7 +48,10 @@ Create figures and subplots showing quantities of standard **PyAutoLens** object
     subplot_lensed_images
     subplot_galaxies_images
 
-**Imaging Fit Subplots:**
+Imaging Fit subplots
+~~~~~~~~~~~~~~~~~~~~
+
+Compare the image data and fitted model, and inspect residuals and other fit diagnostics.
 
 .. autosummary::
    :toctree: _autosummary
@@ -50,7 +65,10 @@ Create figures and subplots showing quantities of standard **PyAutoLens** object
     subplot_fit_combined
     subplot_fit_combined_log10
 
-**Interferometer Subplots:**
+Interferometer subplots
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Inspect visibilities, fits and reconstructed images. Dirty images are useful diagnostics; the interferometer fit is evaluated in visibility space.
 
 .. autosummary::
    :toctree: _autosummary
@@ -61,7 +79,10 @@ Create figures and subplots showing quantities of standard **PyAutoLens** object
     subplot_fit_interferometer_dirty_images
     subplot_fit_interferometer_combined
 
-**Point Source Subplots:**
+Point Source subplots
+~~~~~~~~~~~~~~~~~~~~~
+
+Inspect the observed point-source positions, fitted predictions and solver output.
 
 .. autosummary::
    :toctree: _autosummary
@@ -70,7 +91,10 @@ Create figures and subplots showing quantities of standard **PyAutoLens** object
     subplot_point_dataset
     plot_point_solver
 
-**Subhalo Detection Subplots:**
+Subhalo Detection subplots
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Compare subhalo-search results and their associated fits.
 
 .. autosummary::
    :toctree: _autosummary
@@ -78,7 +102,10 @@ Create figures and subplots showing quantities of standard **PyAutoLens** object
     subplot_detection_imaging
     subplot_detection_fits
 
-**Sensitivity Mapping Subplots:**
+Sensitivity Mapping subplots
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Inspect sensitivity results and their figures of merit across the lens.
 
 .. autosummary::
    :toctree: _autosummary
@@ -87,10 +114,12 @@ Create figures and subplots showing quantities of standard **PyAutoLens** object
     subplot_sensitivity
     subplot_sensitivity_figures_of_merit
 
-Non-linear Search Plot Functions [aplt]
----------------------------------------
+.. _non-linear-search-plot-functions-aplt:
 
-Module-level functions for visualizing non-linear search results.
+Search results
+--------------
+
+These functions visualize samples and search progress. They are implemented by **PyAutoFit** and re-exported through ``aplt``.
 
 .. currentmodule:: autofit.plot
 
@@ -102,47 +131,39 @@ Module-level functions for visualizing non-linear search results.
    subplot_parameters
    log_likelihood_vs_iteration
 
-Plot Customization [aplt]
--------------------------
+.. _plot-customization-aplt:
 
-The plotting API is **functional**: customization is done by passing keyword
-arguments directly to any ``aplt`` plotting function. There is no ``MatPlot2D``
-object anymore (nor the old ``Cmap`` / ``Visuals`` / ``Units`` / matplotlib-wrapper
-classes) — these were removed in favour of the keyword-argument interface below.
+Customize a plot
+----------------
 
-Every figure and subplot function accepts:
+Options depend on the function. For ``plot_array``, you can set:
 
-- ``title`` — the figure title.
-- ``colormap`` — the matplotlib colormap name (e.g. ``"jet"``, ``"hot"``, ``"gray"``).
-- ``use_log10`` — if ``True``, plot the colormap on a ``log10`` scale.
-- ``output_path`` — directory to save the figure to (omit to display it interactively).
-- ``output_filename`` — the saved file's name.
-- ``output_format`` — the saved file's format, e.g. ``"png"`` or ``"pdf"``.
+- ``title``: the figure title.
+- ``colormap``: a Matplotlib colormap, such as ``"gray"`` or ``"viridis"``.
+- ``use_log10``: request logarithmic colour scaling. Use a linear or suitable signed scale when inspecting quantities that can be negative, such as residuals.
+- ``output_path``, ``output_filename`` and ``output_format``: the output directory, filename and format.
 
-For example:
+Subplot functions may use different options. For example, ``subplot_tracer`` accepts ``title_prefix`` rather than ``title`` and does not expose ``output_filename``. Check the linked signature before transferring options between functions.
+
+Defaults such as figure size, fonts and colours are configured through the workspace’s ``config/visualize`` YAML files. See `Configuration <https://pyautolens.readthedocs.io/en/latest/general/configs.html>`_ for the configuration workflow.
+
+.. _figure-output-aplt:
+
+Save figures
+------------
+
+For ``plot_array``, save the existing image to ``output/image.png`` with:
 
 .. code-block:: python
 
-    import autolens.plot as aplt
-
-    # Customize the appearance:
-    aplt.plot_array(array=image, title="Image", colormap="jet", use_log10=True)
-
-    # Save to disk instead of displaying:
     aplt.plot_array(
-        array=image, output_path="output", output_filename="image", output_format="png"
+        array=image,
+        output_path="output",
+        output_filename="image",
+        output_format="png",
     )
 
-Default plotting values (figure size, fonts, colormaps, ticks, labels, ...) are set
-via the workspace ``config/visualize`` YAML files rather than in code, so most figures
-need no customization at all.
-
-Figure Output [aplt]
---------------------
-
-The ``Output`` object gives lower-level control of how and where figures are written
-to disk, and is accepted by the plotting functions in place of the individual
-``output_*`` keyword arguments.
+The functions above use the output keywords documented in their signatures. ``Output`` is a lower-level **PyAutoArray** helper; it is not a replacement argument for these public plotting functions. Its reference remains available for code that uses it directly.
 
 .. currentmodule:: autoarray.plot
 
