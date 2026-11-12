@@ -321,20 +321,30 @@ Checkout `autolens_workspace/*/guides/modeling/slam_start_here.py` to get starte
 
 ## Dark Matter Subhalos
 
-The dark matter model predicts that galaxies are surrounded by many low-mass dark matter subhalos, which host no
-stars and are therefore invisible to ordinary observations. Strong lensing is one of the only probes which can
-detect them, via the small perturbations they imprint on a lensed source's light, testing the nature of
-dark matter (e.g. cold, warm or self-interacting).
+Small dark matter halos can perturb the shapes of lensed arcs even when they contain too little starlight to
+be seen directly. **PyAutoLens** searches for these otherwise invisible structures by fitting lens models with
+and without an additional halo, comparing their Bayesian evidence and inferring the candidate's position and mass
+under the adopted halo model.
 
-**PyAutoLens** provides a complete dark matter subhalo analysis: lens models with and without a subhalo are fitted
-and compared via their Bayesian evidence, quantifying whether the data favors the subhalo's presence. Sensitivity
-mapping then simulates subhalos of different masses at different locations in the data, quantifying which
-subhalos a given dataset could actually detect.
+Use this feature to search for candidate subhalos, investigate arc anomalies, and build detection results for
+population studies of dark matter. Pair it with **sensitivity mapping**: simulated halos of different masses and
+positions establish what a dataset could detect, making non-detections scientifically informative too.
 
-The following paper performs this analysis on a sample of HST strong lenses: <https://arxiv.org/abs/2209.10566>
+![An invisible subhalo perturbs a lensed arc](images/overview_3/subhalo_detection_illustration.png)
 
-Checkout `autolens_workspace/*/imaging/features/advanced/subhalo/detect` for subhalo detection
-and `autolens_workspace/*/imaging/features/advanced/subhalo/sensitivity` for sensitivity mapping.
+*Conceptual illustration, not observational data. The distortion is exaggerated for clarity; the dashed marker
+represents an inferred halo position, not light emitted by dark matter.*
+
+An evidence increase is conditional on the lens and source models being compared. Candidates require checks of
+the main lens mass distribution, source reconstruction and observational systematics. A halo along the line of
+sight can also perturb an arc; this example models the perturber at the lens redshift.
+
+For a scientific application and the importance of testing lens-model flexibility, see
+[Nightingale et al., Scanning For Dark Matter Subhalos in Hubble Space Telescope Imaging of 54 Strong Lenses](https://arxiv.org/abs/2209.10566).
+
+Start with the [subhalo detection introduction](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/advanced/subhalo/detect/start_here.ipynb)
+for the SLaM workflow, grid search and evidence interpretation, then explore
+[sensitivity mapping](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/advanced/subhalo/sensitivity/start_here.ipynb).
 
 ## Graphical Models
 
