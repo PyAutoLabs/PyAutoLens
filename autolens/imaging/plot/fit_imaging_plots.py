@@ -704,7 +704,7 @@ def subplot_tracer_from_fit(
     colormap : str, optional
         Matplotlib colormap name applied to all image panels.
     """
-    from autogalaxy.operate.lens_calc import LensCalc
+    from autogalaxy.galaxy.plot.galaxies_plots import plot_magnification_2d
 
     final_plane_index = len(fit.tracer.planes) - 1
     tracer = fit.tracer_linear_light_profiles_to_light_profiles
@@ -726,8 +726,6 @@ def subplot_tracer_from_fit(
     deflections = tracer.deflections_yx_2d_from(grid=grid)
     deflections_y = aa.Array2D(values=deflections.slim[:, 0], mask=grid.mask)
     deflections_x = aa.Array2D(values=deflections.slim[:, 1], mask=grid.mask)
-
-    magnification = LensCalc.from_mass_obj(tracer).magnification_2d_from(grid=grid)
 
     _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     fig, axes = subplots(3, 3, figsize=conf_subplot_figsize(3, 3))
@@ -786,8 +784,8 @@ def subplot_tracer_from_fit(
                colormap=colormap)
 
     # Panel 8: Magnification
-    plot_array(array=magnification, ax=axes_flat[8], title=_pf("Magnification"),
-               colormap=colormap)
+    plot_magnification_2d(mass_obj=tracer, grid=grid, ax=axes_flat[8], title=_pf("Magnification"),
+                          include_critical_curves=False, colormap=colormap)
 
     tight_layout()
     save_figure(fig, path=output_path, filename="tracer", format=output_format)

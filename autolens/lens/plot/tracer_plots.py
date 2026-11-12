@@ -157,7 +157,7 @@ def subplot_tracer(
       7: deflections x (with critical curves)
       8: magnification (with critical curves)
     """
-    from autogalaxy.operate.lens_calc import LensCalc
+    from autogalaxy.galaxy.plot.galaxies_plots import plot_magnification_2d
 
     final_plane_index = len(tracer.planes) - 1
     traced_grids = tracer.traced_grid_2d_list_from(grid=grid)
@@ -189,8 +189,6 @@ def subplot_tracer(
     deflections_y = aa.Array2D(values=deflections.slim[:, 0], mask=grid.mask)
     deflections_x = aa.Array2D(values=deflections.slim[:, 1], mask=grid.mask)
 
-    magnification = LensCalc.from_mass_obj(tracer).magnification_2d_from(grid=grid)
-
     _pf = (lambda t: f"{title_prefix.rstrip()} {t}") if title_prefix else (lambda t: t)
     fig, axes = subplots(3, 3, figsize=conf_subplot_figsize(3, 3))
     axes_flat = list(axes.flatten())
@@ -214,8 +212,8 @@ def subplot_tracer(
                lines=image_plane_lines, line_colors=image_plane_line_colors, colormap=colormap)
     plot_array(array=deflections_x, ax=axes_flat[7], title=_pf("Deflections X"),
                lines=image_plane_lines, line_colors=image_plane_line_colors, colormap=colormap)
-    plot_array(array=magnification, ax=axes_flat[8], title=_pf("Magnification"),
-               lines=image_plane_lines, line_colors=image_plane_line_colors, colormap=colormap)
+    plot_magnification_2d(mass_obj=tracer, grid=grid, ax=axes_flat[8], title=_pf("Magnification"),
+                          lines=image_plane_lines, line_colors=image_plane_line_colors, colormap=colormap)
 
     hide_unused_axes(axes_flat)
     tight_layout()
