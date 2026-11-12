@@ -105,11 +105,6 @@ general/community
 :maxdepth: 1
 
 howtolens/howtolens
-howtolens/chapter_1_introduction
-howtolens/chapter_2_lens_modeling
-howtolens/chapter_3_pixelizations
-howtolens/chapter_4_scaling_up_lensing
-howtolens/chapter_optional
 ```
 
 ```{toctree}
