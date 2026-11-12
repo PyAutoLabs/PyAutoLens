@@ -1,12 +1,13 @@
 (model-cookbook)=
 
-# Model Cookbook
+# Model cookbook
 
-The model cookbook provides a concise reference to lens model composition tools, specifically the `Model`
-and `Collection` objects.
+Build a model with `af.Model` and `af.Collection`, inspect its parameters, and adapt it to your observations. The examples below show which parameters are sampled, fixed, shared or solved during a fit.
 
-Examples using different **PyAutoLens** API’s for model composition are provided, which produce more concise and
-readable code for different use-cases.
+```python
+import autofit as af
+import autolens as al
+```
 
 ## Simple Lens Model
 
@@ -112,7 +113,7 @@ parameter.
 af.ModelPlotter(model).figure()
 ```
 
-```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/general/images/model_cookbook/simple_lens.png
+```{image} images/model_cookbook/simple_lens.png
 :alt: The simple lens model, drawn as nested component cards with one pill per parameter.
 :width: 600
 ```
@@ -155,7 +156,7 @@ model = af.Collection(galaxies=af.Collection(lens=lens, source=source))
 af.ModelPlotter(model).figure()
 ```
 
-```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/general/images/model_cookbook/complex_lens.png
+```{image} images/model_cookbook/complex_lens.png
 :alt: A lens model whose lens and source galaxies each have a bulge and a disk, with an external shear.
 :width: 600
 ```
@@ -212,7 +213,7 @@ model = af.Collection(
 af.ModelPlotter(model).figure()
 ```
 
-```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/general/images/model_cookbook/four_galaxies.png
+```{image} images/model_cookbook/four_galaxies.png
 :alt: A lens model with two lens galaxies and two source galaxies.
 :width: 600
 ```
@@ -256,12 +257,12 @@ model = af.Collection(galaxies=af.Collection(lens=lens, source=source))
 af.ModelPlotter(model).figure()
 ```
 
-```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/general/images/model_cookbook/concise.png
-:alt: The same lens and source model composed with the concise API.
+```{image} images/model_cookbook/concise.png
+:alt: A concise model with two Sersic lens light components and an extended source.
 :width: 600
 ```
 
-The concise API is a shorthand for writing a model, not a different model. Note that this stage gives the lens
+Passing profile classes is shorthand for wrapping them in `af.Model`. This example also changes the disk profile from the preceding example: it gives the lens
 galaxy a `Sersic` bulge *and* a `Sersic` disk, and each of the two has its own priors rather than sharing one.
 
 ## Prior Customization
@@ -273,8 +274,7 @@ of priors:
 the effective radius of elliptical Sersic profiles typically assumes a uniform prior between 0.0" and 30.0".
 
 `LogUniformPrior`: Like a `UniformPrior` this randomly draws values between a `lower_limit` and `upper_limit`, but the
-values are drawn from a distribution with base 10. This is used for the `intensity` of a light profile, as the
-luminosity of galaxies follows a log10 distribution.
+values are drawn from a distribution uniformly in logarithm, so equal multiplicative intervals have equal probability. It can be useful for a positive scale parameter spanning several orders of magnitude. The linear-profile intensities used here are solved during the fit, not sampled from such a prior.
 
 `GaussianPrior`: The values of a parameter are randomly drawn from a Gaussian distribution with a `mean` and width
 `sigma`. For example, the $y$ and $x$ centre values in a light profile typically assume a mean of 0.0" and a
@@ -309,7 +309,7 @@ lens = af.Model(
 bulge = af.Model(al.lp_linear.SersicCore)
 
 source = af.Model(al.Galaxy, redshift=1.0, bulge=bulge)
-source.effective_radius = af.TruncatedGaussianPrior(
+source.bulge.effective_radius = af.TruncatedGaussianPrior(
     mean=0.1, sigma=0.05, lower_limit=0.0, upper_limit=1.0
 )
 
@@ -320,7 +320,7 @@ model = af.Collection(galaxies=af.Collection(lens=lens, source=source))
 af.ModelPlotter(model).figure()
 ```
 
-```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/general/images/model_cookbook/prior_custom.png
+```{image} images/model_cookbook/prior_custom.png
 :alt: A lens model whose sersic index, mass centre and einstein radius priors have been customized.
 :width: 600
 ```
@@ -328,10 +328,7 @@ af.ModelPlotter(model).figure()
 Customizing a prior does not change a parameter's state — a parameter with a customized prior is still sampled.
 Print `model.info`, or call `af.ModelPlotter(model).figure(detail="priors")`, to read the prior on each parameter.
 
-One thing in the code above is easy to misread: the last line sets `effective_radius` on the **source galaxy**, not on
-the source galaxy's `bulge`. A `Galaxy` accepts any attribute, so this adds a *new* free `effective_radius` parameter
-to the source galaxy itself rather than overriding the bulge's own prior. Writing
-`source.bulge.effective_radius = ...` is what customizes the bulge.
+Set profile priors on the profile itself: `source.bulge.effective_radius`, not `source.effective_radius`. The latter adds an unrelated galaxy attribute.
 
 ## Model Customization
 
@@ -394,7 +391,7 @@ model.add_assertion(model.galaxies.lens.mass.einstein_radius < 3.0)
 af.ModelPlotter(model).figure()
 ```
 
-```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/general/images/model_cookbook/model_custom.png
+```{image} images/model_cookbook/model_custom.png
 :alt: A customized lens model showing a paired centre, a fixed sersic index, offset relations and two assertions.
 :width: 600
 ```
@@ -427,7 +424,7 @@ model = af.Collection(galaxies=af.Collection(lens=lens, source=source))
 af.ModelPlotter(model).figure()
 ```
 
-```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/general/images/model_cookbook/redshift_free.png
+```{image} images/model_cookbook/redshift_free.png
 :alt: A lens model whose lens galaxy redshift is a free parameter, drawn as an ordinary pill on the galaxy card.
 :width: 600
 ```
@@ -438,13 +435,9 @@ at all, and the source galaxy above shows this.
 The model-fit will automatically enable multi-plane ray tracing and alter the ordering of the planes depending on the
 redshifts of the galaxies.
 
-NOTE: For strong lenses with just two planes (an image-plane and source-plane) the redshifts of the galaxies do not
-impact the model-fit. You should therefore never make the redshifts free if you are only modeling a two-plane lens
-system. This is because lensing calculations can be defined in arc-second coordinates, which do not change as a
-function of redshift.
+For a single lens plane and source plane, an angularly parameterized model can leave the redshifts unconstrained by imaging alone. Do not add free redshifts unless the likelihood contains information that can constrain them. Physical-mass models, mass–concentration relations and time-delay calculations can depend on distances and cosmology even for a two-plane system.
 
-Redshifts should be made free when modeling three or more planes, as the multi-plane ray-tracing calculations have an
-obvious dependence on the redshifts of the galaxies which could be inferred by the model-fit.
+Multi-plane ray tracing introduces distance-ratio dependence between planes. Use measured redshifts where available and ensure the priors preserve the intended foreground/background ordering. The broad prior in this composition example is for illustrating the API, not a science-ready redshift constraint.
 
 ## Solved and Unconfigured Parameters
 
@@ -482,7 +475,7 @@ model = af.Collection(
 af.ModelPlotter(model).figure()
 ```
 
-```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/general/images/model_cookbook/solved_parameters.png
+```{image} images/model_cookbook/solved_parameters.png
 :alt: A lens model showing the three solved parameters and one missing configuration value.
 :width: 600
 ```
@@ -492,8 +485,7 @@ Three parameters of this model are solved for during the fit:
 - the `intensity` of every linear light profile (`al.lp_linear.*`, and every member of an `al.lp_basis.Basis` built
   from them), which the inversion solves for by linear algebra rather than the search sampling it. A `Basis` has no
   solved amplitude of its own: the solved intensities belong to its member profiles, one per member.
-- the `reconstruction` of an `al.Pixelization`, which is the solved surface brightness of every source pixel. The only
-  sampled parameters of a pixelization are its regularization coefficients.
+- the `reconstruction` of an `al.Pixelization`, which is the solved surface brightness of every source pixel. Mesh settings and regularization coefficients may be sampled or fixed according to the model; the reconstructed pixel brightnesses are solved rather than sampled.
 - the `centre` of an `al.ps.PointSolved`, which is solved for analytically by the `*Solved` point-source fit classes.
   `al.ps.Point`, by contrast, samples its centre as an ordinary free parameter.
 
@@ -507,7 +499,7 @@ PyAutoLens' own default configuration ships no prior for `areas_factor`. The `au
 `config/priors/mesh/delaunay.yaml`, as a constant `0.5`, so the same code run from the workspace has an ordinary fixed
 parameter instead: unset configuration is what you see when your own configuration has a gap.
 
-## Available Model Components
+## Available model components
 
 The light profiles, mass profiles and other components that can be used for lens modeling are given at the following
 API documentation pages:
@@ -516,12 +508,15 @@ API documentation pages:
 > - <https://pyautolens.readthedocs.io/en/latest/api/mass.html>
 > - <https://pyautolens.readthedocs.io/en/latest/api/pixelization.html>
 
-## JSon Outputs
+<span id="json-outputs"></span>
+
+## Save and load a model
 
 After a model is composed, it can easily be output to a .json file on hard-disk in a readable structure:
 
 ```python
 import os
+from os import path
 import json
 
 model_path = path.join("path", "to", "model", "json")
@@ -547,12 +542,10 @@ This is used for composing complex models of group scale lenses.
 
 ## Multi Galaxy, Group and Cluster Models
 
-Above galaxy scale, models are composed for three regimes (see the New User Guide's "What Scale
-System?" ladder — all groups and clusters are multi-galaxy systems, but not vice versa):
+Above galaxy scale, models are composed for three regimes (see the New User Guide's "What scale lens?" ladder — all groups and clusters are multi-galaxy systems, but not vice versa):
 
 **Multi-galaxy lenses** (2+ co-dominant deflectors, no host halo): one free light + mass model per
-deflector, composed in a loop with **untruncated** isothermals (no host halo means no tidal
-truncation):
+deflector, composed in a loop with **untruncated** isothermals (an example modelling choice, rather than a physical rule for every system):
 
 ```python
 lens_dict = {}
@@ -589,7 +582,7 @@ extra galaxy per detected group member, each with a `SersicSph` light profile an
 `centre` is fixed to its measured position — is the script
 `autolens_workspace/scripts/group/modeling.py`. Drawn as a figure, with eight extra galaxies, it looks like this:
 
-```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/general/images/model_cookbook/acceptance_group_scale.png
+```{image} images/model_cookbook/acceptance_group_scale.png
 :alt: A group-scale lens model, whose eight extra galaxies collapse into a single plate of eight components.
 :width: 600
 ```
@@ -613,7 +606,7 @@ profiles.
 
 An MGE lens light model of 2 x 30 linear Gaussians, fitted alongside a pixelized source, draws like this:
 
-```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/general/images/model_cookbook/acceptance_mge_pixelized.png
+```{image} images/model_cookbook/acceptance_mge_pixelized.png
 :alt: An MGE lens light model of two bases of thirty linear Gaussians, with a pixelized Delaunay source.
 :width: 600
 ```
@@ -680,6 +673,8 @@ The **PyAutoFit** model composition cookbooks detail this API in more detail:
 <https://pyautofit.readthedocs.io/en/latest/cookbooks/model.html>
 <https://pyautofit.readthedocs.io/en/latest/cookbooks/multi_level_model.html>
 
-## Wrap Up
+<span id="wrap-up"></span>
 
-This cookbook shows how to compose simple lens models using the `af.Model()` and `af.Collection()` objects.
+## Next steps
+
+Use a workspace modelling example to fit your model, then inspect both the posterior and the fit residuals. The [likelihood guide](likelihood_function.md) explains the calculations behind the fit.

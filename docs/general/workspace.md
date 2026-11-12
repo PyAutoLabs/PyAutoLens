@@ -1,59 +1,50 @@
 (workspace)=
+# Workspace tour
 
-# Workspace Tour
+The [autolens workspace](https://github.com/PyAutoLabs/autolens_workspace) contains examples and datasets for modelling strong lenses. Use this page to find where things live; the [workspace README](https://github.com/PyAutoLabs/autolens_workspace#readme) has the full directory guide.
 
-You should have downloaded and configured the [autolens workspace](https://github.com/PyAutoLabs/autolens_workspace)
-when you installed **PyAutoLens**. If you didn't, checkout the
-[installation instructions](https://pyautolens.readthedocs.io/en/latest/general/installation.html#installation-with-pip)
-for how to downloaded and configure the workspace.
+<span id="scripts--notebooks"></span>
+<span id="scripts-notebooks"></span>
 
-The `README.md` files distributed throughout the workspace describe every folder and file, and specify if
-examples are for beginner or advanced users.
 
-New users should begin by checking out the following parts of the workspace.
+## Find an example
 
-## Scripts / Notebooks
+Start with the [New User Guide](https://pyautolens.readthedocs.io/en/latest/overview/overview_2_new_user_guide.html) to choose an example for your observations. Open its notebook to read and run it, or use the matching Python script where provided.
 
-There are numerous example describing how to perform lensing calculations, lens modeling, and many other
-**PyAutoLens** features. All examples are provided as Python scripts and Jupyter notebooks.
+<span id="config"></span>
 
-Descriptions of every configuration file and their input parameters are provided in the `README.md` in
-the [config directory of the workspace](https://github.com/PyAutoLabs/autolens_workspace/tree/main/config)
+<span id="dataset"></span>
 
-## Config
+<span id="output"></span>
 
-Here, you'll find the configuration files which customize:
+## Where files live
 
-> - The default settings used by every non-linear search.
-> - Visualization, including the backend used by *matplotlib*.
-> - The priors and notation configs associated with the light and mass profiles used for lens modeling.
-> - The behaviour of different (y,x) Cartesian grids used to perform lens calculations.
-> - The general.yaml config which customizes other aspects of **PyAutoLens**.
+| Folder | What you use it for |
+|---|---|
+| [`notebooks/`](https://github.com/PyAutoLabs/autolens_workspace/tree/main/notebooks) | Worked examples with explanations, code and figures. |
+| [`scripts/`](https://github.com/PyAutoLabs/autolens_workspace/tree/main/scripts) | Python versions to run and adapt for your analysis. |
+| [`dataset/`](https://github.com/PyAutoLabs/autolens_workspace/tree/main/dataset) | Example observations and inputs used by the scripts. |
+| [`config/`](https://github.com/PyAutoLabs/autolens_workspace/tree/main/config) | Overrides for priors, plots, output and other defaults. See [Configuration](configs.md). |
+| `output/` | Results written when you run a fit. The search's name and path settings organize each analysis. |
 
-Checkout the [configuration](https://pyautolens.readthedocs.io/en/latest/general/installation.html#installation-with-pip)
-section of the readthedocs for a complete description of every configuration file.
+Run local examples from the workspace root so their relative dataset and configuration paths resolve. If you need to set up the workspace, follow the existing [installation guide](https://pyautolens.readthedocs.io/en/latest/installation/overview.html).
 
-## Dataset
+<span id="slam"></span>
 
-Contains the dataset's used to perform lens modeling. Example datasets using simulators included with the workspace
-are included here by default.
+## SLaM pipelines
 
-## Output
+For analyses that fit the source, lens light and mass in stages, see the [SLaM examples](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/pixelization/slam.ipynb). Start with a basic imaging fit before adapting a pipeline.
 
-The folder where modeling results are stored.
+<span id="howtolens"></span>
 
-## SLaM
+<span id="howtogalaxy"></span>
 
-Advanced lens modeling pipelines that use the Source, Light and Mass (SLaM) approach to lens modeling.
+## Next steps
 
-See [here](https://pyautolens.readthedocs.io/en/latest/advanced/slam.html) for an overview.
+- Change plotting or output defaults in [Configuration](configs.md).
+- Build and inspect your model with the [Model cookbook](model_cookbook.md).
+- Work through [HowToLens](https://github.com/PyAutoLabs/HowToLens) for the science behind the examples.
 
-## HowToLens
+If you use the [AI Assistant](https://github.com/PyAutoLabs/autolens_assistant), you can ask:
 
-The **HowToLens** lecture series is a collection of Jupyter notebooks describing how to build a **PyAutoLens** model
-fitting project and giving illustrations of different statistical methods and techniques. It ships as a standalone
-repository at [PyAutoLabs/HowToLens](https://github.com/PyAutoLabs/HowToLens) (separate from the workspace).
-
-Checkout the
-[tutorials section](https://pyautolens.readthedocs.io/en/latest/howtolens/howtolens.html) for a
-full description of the lectures and online examples of every notebook.
+> I have [describe your observations] and want to model [describe the objects]. Find a matching workspace example, explain its inputs, and show me which parts I need to adapt.
