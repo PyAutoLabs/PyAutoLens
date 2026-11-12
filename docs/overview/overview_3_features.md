@@ -15,6 +15,8 @@ links to the relevant workspace examples.
 
 **Data Cubes**: Modeling spectral-line data cubes (e.g. ALMA CO cubes), fitting every channel simultaneously with a shared lens model.
 
+**No Lens Light**: Fit lens mass and source emission when foreground light is negligible or already subtracted.
+
 **Linear Light Profiles**: Solve component brightnesses at each likelihood evaluation instead of sampling them.
 
 **Multi Gaussian Expansion (MGE)**: Flexible models for foreground lens light and the background source.
@@ -31,7 +33,7 @@ links to the relevant workspace examples.
 
 **Operated Light Profiles**: Describe compact emission that already includes the PSF, alongside extended galaxy light.
 
-**Sky Background**: Including the background sky in the model to ensure robust fits to the outskirts of galaxies.
+**Sky Background**: Fit uncertain sky levels alongside faint galaxy outskirts and lensed source light.
 
 ## Pixelizations
 
@@ -152,6 +154,23 @@ rather than rebuilt per channel, which is what makes fitting a many-channel cube
 
 Checkout the `autolens_workspace/*/interferometer/features/datacube` package to get started, which includes a
 `data_preparation` example covering the conversion from a CASA-style 4D FITS cube to the inputs the fit expects.
+
+## No Lens Light
+
+Model the lens mass and reconstruct the background source when foreground emission is negligible in the
+observed band or has already been subtracted. The foreground light profile is omitted, while the mass and its
+gravitational deflection remain part of the model.
+
+Use this feature for foreground-faint observations, prepared lens-light-subtracted imaging and source science.
+Separate subtraction can remove source flux or leave foreground residuals; supplying the subtracted image alone
+does not propagate uncertainty in that subtraction. Check how the preparation affects the inferred lens and source.
+
+![Lens-light-free imaging with the deflecting mass retained](images/overview_3/no_lens_light.png)
+
+Conceptual illustration: the dashed contours represent an assumed mass model, not visible emission or a measured mass map.
+
+The [feature introduction](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/no_lens_light/start_here.ipynb) explains absent versus subtracted light, the remaining mass/source model,
+computational trade-offs and the modeling, simulator and SLaM routes.
 
 ## Linear Light Profiles
 
@@ -357,13 +376,19 @@ distinction between operated profiles and solving their intensities linearly.
 
 ## Sky Background
 
-When an image of a galaxy is observed, the background sky contributes light to the image and adds noise:
+Fit the sky background alongside the lens and source light so that an uncertain background level is not
+mistaken for faint galaxy emission. This is especially useful for measuring extended galaxy outskirts,
+accounting for residual sky subtraction offsets, or fitting images with a retained background level.
 
-For detailed studies of the outskirts of galaxies (e.g. stellar halos, faint extended disks), the sky background must be
-accounted for in the model to ensure robust and accurate fits.
+The example fits one spatially constant sky level. A flexible galaxy model and the sky can absorb each other's
+light, so the mask, field of view and prior matter. Fitting the mean sky level does not remove sky photon noise.
 
-Checkout `autogalaxy_workspace/notebooks/features/sky_background.ipynb` to learn how to use include the sky
-background in your model.
+![Galaxy light and a separately fitted sky level](images/overview_3/sky_background.png)
+
+Conceptual illustration: the separated layers describe additive model components, not physical planes along the line of sight.
+
+The [feature introduction](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/advanced/sky_background/start_here.ipynb) explains sky–galaxy degeneracy, the simulator's retained background, prior
+choice and the distinction between uncertainty in the mean level and pixel noise.
 
 ## Mass Models
 
@@ -469,7 +494,9 @@ sight can also perturb an arc; this example models the perturber at the lens red
 For a scientific application and the importance of testing lens-model flexibility, see
 [Nightingale et al., Scanning For Dark Matter Subhalos in Hubble Space Telescope Imaging of 54 Strong Lenses](https://arxiv.org/abs/2209.10566).
 
-Start with the [subhalo detection introduction](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/advanced/subhalo/detect/start_here.ipynb)
+Start with the [subhalo overview](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/advanced/subhalo/start_here.ipynb)
+to choose between searching the observed data and calibrating recoverability with simulations. Continue to the
+[subhalo detection introduction](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/advanced/subhalo/detect/start_here.ipynb)
 for the SLaM workflow, grid search and evidence interpretation, then explore
 [sensitivity mapping](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/advanced/subhalo/sensitivity/start_here.ipynb).
 
