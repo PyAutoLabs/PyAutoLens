@@ -403,6 +403,32 @@ Start with the [subhalo detection introduction](https://github.com/PyAutoLabs/au
 for the SLaM workflow, grid search and evidence interpretation, then explore
 [sensitivity mapping](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/advanced/subhalo/sensitivity/start_here.ipynb).
 
+## Line-of-Sight Halos
+
+Line-of-sight halos contribute to strong lensing as a population: the small deflections from many halos at
+different distances combine to perturb the resolved arcs. The `los_halos` feature simulates this population
+through multi-plane ray tracing, including halos both in front of and behind the main lens.
+
+Use these mock images to investigate how the halo population affects lensing, test dark matter inference
+methods, and assess the consequences of attributing all perturbations to subhalos at the main lens redshift.
+[He et al. (2022)](https://doi.org/10.1093/mnras/stac191) demonstrate how forward modelling resolved arcs
+can constrain a cutoff in the halo mass function and, within an assumed dark matter model, the particle mass.
+
+![A population of line-of-sight halos and its combined lensing imprint](images/overview_3/los_halos.png)
+
+*Conceptual illustration, not a computed prediction. The halo symbols represent unseen mass; the arc
+distortions illustrate the combined population effect rather than a detection of an individual halo.*
+
+The examples sample a halo population within a light cone, place truncated NFW halos on redshift planes,
+and include compensating convergence sheets to account for the population's mean matter density. PSF
+convolution and noise turn the lensed source image into mock imaging data. Compare multiple realizations
+to distinguish population-level effects from the particular halos drawn in one simulation.
+
+Start with the [line-of-sight halo introduction](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/advanced/los_halos/start_here.ipynb)
+for population assumptions, multi-plane geometry and mean-density compensation. It links the standard
+simulator and a JAX route for batched mock-image generation. This folder supplies simulations, not a
+complete halo-detection or population-inference workflow.
+
 ## Sensitivity Mapping
 
 **What could this lens have revealed, even when no subhalo was found?**
