@@ -1,77 +1,37 @@
 (howtolens)=
 
-# HowToLens Lectures
+# HowToLens
 
-The best way to learn **PyAutoLens** is by going through the **HowToLens** lecture series, which lives in its own
-repository at [PyAutoLabs/HowToLens](https://github.com/PyAutoLabs/HowToLens).
+Learn gravitational lensing and Bayesian modelling through worked Python notebooks with **PyAutoLens**. The course starts with simple models and builds towards fitting observations and analysing more complex systems.
 
-The lectures are provided as Jupyter notebooks (and Python scripts), and they are linked to via this readthedocs. The
-lectures are composed of four chapters:
+Basic Python familiarity is useful. You do not need previous experience with lensing or Bayesian statistics.
 
-- **Introduction** - An introduction to strong gravitational lensing and **PyAutolens**.
-- **Lens Modeling** - How to model strong lenses, including a primer on Bayesian non-linear analysis and
-  non-linear search chaining.
-- **Pixelizations** - Reconstruct complex source light, choose regularization using Bayesian evidence,
-  diagnose fit problems and adapt the mesh and smoothing to the light distribution.
-- **Scaling Up Lensing** - Extra galaxies, multi-galaxy lenses, scaling relations, group and cluster
-  scales, and weak lensing.
+## Start here
 
-Optional tutorials cover alternative searches and runtime, with prior passing retained as historical background.
+**Tutorial 0: Visualization** — [GitHub](https://github.com/PyAutoLabs/HowToLens/blob/main/notebooks/chapter_1_introduction/tutorial_0_visualization.ipynb) / [Colab](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/main/notebooks/chapter_1_introduction/tutorial_0_visualization.ipynb)
 
-The tutorial links open the current course on `main`. For the notebooks associated with a particular release,
-select that release tag in the [HowToLens repository](https://github.com/PyAutoLabs/HowToLens/tags).
+Check your setup and learn how to display figures. In Colab, run the setup cell first, then work through the notebook in order.
 
-## How to Tackle HowToLens
+You can also run the notebooks locally or use the [Python scripts](https://github.com/PyAutoLabs/HowToLens/tree/main/scripts).
 
-The HowToLens lecture series currently sits at 4 chapters, and each will take around 3-6 hours to go through thoroughly.
-You probably want to be modeling lenses faster than that! Furthermore, the concepts in the
-later chapters are pretty challenging, and familiarity and lens modeling is desirable before you
-tackle them.
+## Choose a chapter
 
-Therefore, we recommend that you complete chapters 1 & 2 and then apply what you've learnt to the modeling of simulated
-and real strong lenses imaging, using the scripts found in the
-[autolens_workspace](https://github.com/PyAutoLabs/autolens_workspace) `modeling` packages. Once you're
-confident with your use of **PyAutoLens**, you can then begin to cover the advanced functionality covered in chapters
-3 & 4.
+GitHub opens the chapter’s notebook folder. Colab opens its first tutorial; the optional section opens Alternative Searches.
 
-## Lensing Theory
+| Chapter | What you’ll learn | Before you start | Open |
+| --- | --- | --- | --- |
+| <span id="chapter_1_introduction"></span>1. Strong Lensing | Build galaxies, trace light, simulate observations and compare model images with data. | Basic Python; lensing concepts are introduced as you go. | [GitHub](https://github.com/PyAutoLabs/HowToLens/tree/main/notebooks/chapter_1_introduction) / [Colab](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/main/notebooks/chapter_1_introduction/tutorial_0_visualization.ipynb) |
+| <span id="chapter_2_lens_modeling"></span>2. Lens Modeling | Fit lens models with Bayesian searches, inspect results and fit components in stages. | Chapter 1: ray tracing, data, residuals and likelihoods. | [GitHub](https://github.com/PyAutoLabs/HowToLens/tree/main/notebooks/chapter_2_lens_modeling) / [Colab](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/main/notebooks/chapter_2_lens_modeling/tutorial_1_non_linear_search.ipynb) |
+| <span id="chapter_3_pixelizations"></span>3. Pixelizations | Reconstruct background-source light on a mesh; choose smoothing using Bayesian evidence and improve the reconstruction. | Chapter 2, including search chaining and positions constraints. | [GitHub](https://github.com/PyAutoLabs/HowToLens/tree/main/notebooks/chapter_3_pixelizations) / [Colab](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/main/notebooks/chapter_3_pixelizations/tutorial_1_pixelizations.ipynb) |
+| <span id="chapter_4_scaling_up_lensing"></span>4. Scaling Up Lensing | Model multiple deflectors, groups and clusters; progress from extended images to image positions and weak-lensing shear. | Chapter 2 and the pixelized-source methods introduced in Chapter 3. | [GitHub](https://github.com/PyAutoLabs/HowToLens/tree/main/notebooks/chapter_4_scaling_up_lensing) / [Colab](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/main/notebooks/chapter_4_scaling_up_lensing/tutorial_1_extra_galaxies.ipynb) |
+| <span id="chapter_optional"></span>Optional tutorials | Explore alternative searches and runtime. Prior passing is historical background. | Chapter 2. | [GitHub](https://github.com/PyAutoLabs/HowToLens/tree/main/notebooks/chapter_optional) / [Colab](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/main/notebooks/chapter_optional/tutorial_searches.ipynb) |
 
-**HowToLens** assumes minimal previous knowledge of gravitational lensing and astronomy. However, it is beneficial to
-give yourself a basic theoretical grounding as you go through the lectures. I heartily recommend you have open the
-lecture course on gravitational lensing by Massimo Meneghetti below as you go through the tutorials, and refer to it
-for anything that isn't clear in **HowToLens**.
+Work through Chapters 1 and 2, then practise with the [workspace examples](https://github.com/PyAutoLabs/autolens_workspace#find-your-examples). Return to Chapters 3 and 4 when you need their methods.
 
-<http://www.ita.uni-heidelberg.de/~massimo/sub/Lectures/gl_all.pdf>
+These links follow the current course on `main`. For a particular release, choose its tag in the [course repository](https://github.com/PyAutoLabs/HowToLens/tags).
 
-## Visualization
+## Help as you learn
 
-Before beginning the **HowToLens** lecture series, in chapter 1 you should do 'tutorial_0_visualization'. This will
-take you through how **PyAutoLens** interfaces with matplotlib to perform visualization and will get you setup such
-that images and figures display correctly in your Jupyter notebooks.
+If you want AI-guided help, the [PyAutoLens AI Assistant](https://github.com/PyAutoLabs/autolens_assistant) can discuss the concepts, code and figures as you work through the notebooks.
 
-## Jupyter Notebooks
-
-The tutorials are supplied as Jupyter Notebooks, which come with a '.ipynb' suffix. For those new to Python, Jupyter
-Notebooks are a different way to write, view and use Python code. Compared to the traditional Python scripts, they allow:
-
-- Small blocks of code to be viewed and run at a time
-- Images and visualization from a code to be displayed directly underneath it.
-- Text script to appear between the blocks of code.
-
-This makes them an ideal way for us to present the HowToLens lecture series, therefore I recommend you get yourself
-a Jupyter notebook viewer (<https://jupyter.org/>) if you haven't done so already.
-
-If you *really* want to use Python scripts, all tutorials are also supplied as `.py` files in the `scripts` folder
-of the [HowToLens repository](https://github.com/PyAutoLabs/HowToLens).
-
-## Code Style and Formatting
-
-You may notice the style and formatting of our Python code looks different to what you are used to. For example, it
-is common for brackets to be placed on their own line at the end of function calls, the inputs of a function or
-class may be listed over many separate lines and the code in general takes up a lot more space then you are used to.
-
-This is intentional, because we believe it makes the cleanest, most readable code possible. In fact, lots of people do,
-which is why we use an auto-formatter to produce the code in a standardized format. If you're interested in the style
-and would like to adapt it to your own code, check out the Python auto-code formatter 'black'.
-
-<https://github.com/python/black>
+For additional theory, refer to [Massimo Meneghetti’s gravitational-lensing lectures](http://www.ita.uni-heidelberg.de/~massimo/sub/Lectures/gl_all.pdf).

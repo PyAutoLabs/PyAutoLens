@@ -1,31 +1,10 @@
+---
+orphan: true
+---
+
 # Chapter 1: Strong Lensing
 
-In chapter 1, we introduce you to strong gravitational lensing and the core **PyAutoLens** API.
-
-**Colab** links to every tutorial are included.
-
-The chapter contains the following tutorials:
-
-[Tutorial 0: Visualization](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/main/notebooks/chapter_1_introduction/tutorial_0_visualization.ipynb)
-\- Setting up **PyAutoLens**'s visualization library.
-
-[Tutorial 1: Grids And Galaxies](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/main/notebooks/chapter_1_introduction/tutorial_1_grids_and_galaxies.ipynb)
-\- Using grids of (y,x) coordinates with galaxies made up of light profiles.
-
-[Tutorial 2: Ray Tracing](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/main/notebooks/chapter_1_introduction/tutorial_2_ray_tracing.ipynb)
-\- Using grids, galaxies and mass profiles to perform strong lens ray-tracing.
-
-[Tutorial 3: More Ray Tracing](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/main/notebooks/chapter_1_introduction/tutorial_3_more_ray_tracing.ipynb)
-\- Advanced strong lens ray-tracing.
-
-[Tutorial 4: Point Sources](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/main/notebooks/chapter_1_introduction/tutorial_4_point_sources.ipynb)
-\- How lensing calculations change when the source galaxy is a point source (e.g. a quasar).
-
-[Tutorial 5: Data](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/main/notebooks/chapter_1_introduction/tutorial_5_data.ipynb)
-\- Loading and inspecting telescope imaging data of a strong lens.
-
-[Tutorial 6: Fitting](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/main/notebooks/chapter_1_introduction/tutorial_6_fitting.ipynb)
-\- Fitting data with a strong lens model.
-
-[Tutorial 7: Summary](https://colab.research.google.com/github/PyAutoLabs/HowToLens/blob/main/notebooks/chapter_1_introduction/tutorial_7_summary.ipynb)
-\- A summary of the chapter.
+```{raw} html
+<meta http-equiv="refresh" content="0; url=howtolens.html#chapter_1_introduction">
+<p>This chapter is now on the <a href="howtolens.html#chapter_1_introduction">HowToLens tutorials page</a>.</p>
+```
