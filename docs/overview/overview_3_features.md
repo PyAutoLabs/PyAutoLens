@@ -346,6 +346,37 @@ Start with the [subhalo detection introduction](https://github.com/PyAutoLabs/au
 for the SLaM workflow, grid search and evidence interpretation, then explore
 [sensitivity mapping](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/advanced/subhalo/sensitivity/start_here.ipynb).
 
+## Sensitivity Mapping
+
+**What could this lens have revealed, even when no subhalo was found?**
+
+Sensitivity mapping measures which dark matter halos a dataset and modeling procedure could detect. It injects
+halos into simulated observations, fits each simulation with and without a halo, and compares the Bayesian evidence.
+This calibrates both detections and non-detections, enabling population studies of the abundance and masses of
+small halos when combined with a halo-population model.
+
+Use it to interpret a non-detection or compare the reach of different observations. Additional simulations with
+changed noise levels or angular resolution can help assess observing strategies; the introductory example does
+not perform that comparison.
+
+![Illustrative halo recoverability around a lensed arc](images/overview_3/sensitivity_mapping_illustration.png)
+
+*Conceptual illustration, not a computed sensitivity map. The overlay depicts recoverability at one illustrative
+injected mass, not detected halos or the four-cell result of the introductory script.*
+
+Start with [sensitivity mapping](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/advanced/subhalo/sensitivity/start_here.ipynb):
+a demonstration with an MGE source, four injected positions and one fixed injected halo mass. Each simulated dataset
+is fitted twice. The recovery fits allow mass to vary and use narrow position priors around each injected location.
+For calibration using reconstructed source morphology, see
+[slam_source_pixelized.py](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/advanced/subhalo/sensitivity/slam_source_pixelized.ipynb).
+
+Sensitivity depends on the simulation, priors, model family and detection threshold. Calibrate it consistently with
+the detection analysis; a positive evidence difference alone is not sufficient to claim recovery. A population
+analysis needs more than this small demonstration.
+
+For the scientific connection between detection limits and substructure population constraints, see
+[Vegetti & Koopmans (2009)](https://arxiv.org/abs/0903.4752).
+
 ## Graphical Models
 
 The examples above fit each strong lens dataset one-by-one. However, many lens properties are shared across a
