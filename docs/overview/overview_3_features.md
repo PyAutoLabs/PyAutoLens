@@ -249,18 +249,31 @@ Checkout `autolens_workspace/notebooks/features/ellipse_fitting.ipynb` to learn 
 
 ## Shapelets
 
-Shapelets are a set of orthogonal basis functions that can be combined the represent galaxy structures:
+Shapelets provide a flexible model of galaxy light beyond a single smooth profile. A key application is
+source science: reconstructing the resolved morphology of a background galaxy from its lensed images.
+They can also model foreground light and help test how the chosen light representation affects a lens fit.
 
-```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/shapelets.png
-:alt: Alternative text
-:width: 600
-```
+[Birrer, Amara & Refregier (2015)](https://arxiv.org/abs/1504.07629) demonstrate lens modelling with basis
+sets on RX J1131-1231. This illustrates the method rather than a PyAutoLens application.
 
-Scientific Applications include capturing symmetric structures in a galaxy which are more complex than a Sersic profile,
-irregular and asymmetric structures in a galaxy like spiral arms and providing a flexible model to deblend the emission
-of point sources (e.g. quasars) from the emission of their host galaxy.
+![Shapelet basis building blocks and an illustrative source model](images/overview_3/shapelets_illustration.png)
 
-Checkout `autolens_workspace/notebooks/features/shapelets.ipynb` to learn how to use shapelets.
+*Conceptual illustration, not a fitted reconstruction or the exact sum of the displayed modes.*
+
+Shapelets combine localized mathematical basis functions with linearly solved coefficients. The basis
+order, scale and shared geometry control the structures a finite expansion can describe. Signed coefficients
+are valid mathematical weights; negative brightness in the combined galaxy model is the physical concern.
+Inspect the reconstructed light and residuals together, and test whether added flexibility follows signal
+rather than noise.
+
+The existing grid below shows individual polar basis functions. These patterns are mathematical building
+blocks, not separate physical components of a galaxy:
+
+![Individual polar shapelet basis functions](images/overview_3/shapelets.png)
+
+Start with the [feature introduction](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/advanced/shapelets/start_here.ipynb)
+for scientific uses, basis construction, signed coefficients and limitations. The fit.py and modeling.py
+examples show fixed-model fits, non-linear fitting, and alternative source and lens-light constructions.
 
 ## Operated Light Profiles
 
