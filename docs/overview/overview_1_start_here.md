@@ -2,59 +2,33 @@
 
 # Start Here
 
-**PyAutoLens** is software for analysing strong gravitational lenses, an astrophysical phenomenon where a galaxy
-appears multiple times because its light is bent by the gravitational field of an intervening foreground lens galaxy.
+**PyAutoLens** models strong gravitational lenses to measure the distribution of matter and reconstruct distant galaxies. A strong lens forms when a foreground galaxy bends light from a more distant galaxy into arcs, multiple images or a ring.
 
-It uses **JAX** to **accelerate lensing calculations**, with the example code below all running **significantly faster on GPU**.
-
-Here is a schematic of a strong gravitational lens:
-
-```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_1/schematic.jpg
-:alt: Alternative text
-:width: 600
+```{image} images/overview_1/strong_lens_schematic.png
+:alt: Schematic showing light from a source galaxy bending around foreground galaxies towards JWST
+:width: 900
 ```
 
-**Credit: F. Courbin, S. G. Djorgovski, G. Meylan, et al., Caltech / EPFL / WMKO**
-<https://www.astro.caltech.edu/~george/qsolens/>
+Light from the background source galaxy is deflected by the foreground galaxies on its way to the observer.
 
-This page gives an overview of **PyAutoLens**'s features and API.
+(natural-language-or-python)=
 
-## Natural Language or Python
+## Using This Guide
 
-You can use **PyAutoLens** by describing what you want in **natural language**, or by writing **Python** yourself.
-Both routes use the same software and everything on this page can be done either way.
+This page gives an overview of the **PyAutoLens Python API**, including how to import `autolens`, create light and mass profiles, and perform lensing calculations. You can read through the examples here or run them in your web browser using [Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/start_here.ipynb).
 
-To use natural language, open Claude Code, Codex or another AI coding agent and paste in the prompt below. The
-[PyAutoLens AI Assistant](https://github.com/PyAutoLabs/autolens_assistant) then takes you through this page as a
-conversation (grids, light and mass profiles, ray-tracing, then simulating and fitting a strong lens), with you typing
-each request in plain English. Afterwards it helps you get started on your own lenses:
+If you use AI, the [PyAutoLens AI Assistant](https://github.com/PyAutoLabs/autolens_assistant) can give you an interactive walkthrough. Paste this prompt into Claude Code, Codex or another AI coding agent:
 
 :::{container} nl-prompt
-> I want to do strong lensing science with PyAutoLens (https://github.com/PyAutoLabs/PyAutoLens) and the
-> autolens_assistant (https://github.com/PyAutoLabs/autolens_assistant). First clone that repository,
-> cd into it and follow its AGENTS.md.
+> I want to do strong lensing science with PyAutoLens
+> (https://github.com/PyAutoLabs/PyAutoLens) and the
+> autolens_assistant (https://github.com/PyAutoLabs/autolens_assistant).
 >
+> First clone the assistant repository, cd into it and follow its AGENTS.md.
 > Begin the "start here" guide for a new user.
 :::
 
-The assistant runs inside an AI coding agent. Claude Code and Codex are recommended, and sustained scientific use
-normally needs paid access to one of them. Free options are listed on the
-[AI Options](https://github.com/PyAutoLabs/PyAutoScientist/blob/main/AI_OPTIONS.md) page.
-
-**Why natural language?** Turning a scientific idea into an analysis has always meant expressing it through the syntax
-of a programming language. That syntax was never the science: it is the interface between your ideas and the
-computer. **PyAutoLens** is designed so you can describe a lensing analysis in the language you use to think and write
-about it, while you supply the understanding, direction and judgement. The
-[PyAuto AI Policy](https://github.com/PyAutoLabs/PyAutoScientist/blob/main/AI_POLICY.md) explains this approach in
-more detail.
-
-**Python is not going anywhere.** Every **PyAutoLens** feature remains available through its Python API, and the
-assistant writes ordinary **PyAutoLens** code that you can read, run and change. All the documentation is written for
-people to read. The rest of this page is the Python overview, the
-[autolens_workspace](https://github.com/PyAutoLabs/autolens_workspace) holds runnable examples for every use case, and
-the [HowToLens](https://github.com/PyAutoLabs/HowToLens) lectures teach strong lensing and lens modeling from first
-principles. That understanding is what lets you direct an analysis with expertise, whether you do it in natural
-language or in Python.
+See [AI Options](https://github.com/PyAutoLabs/PyAutoScientist/blob/main/AI_OPTIONS.md) for tools and setup guidance.
 
 ## Imports
 
@@ -428,3 +402,5 @@ group-scale or cluster-scale lenses) and using different data types (e.g. CCD im
 
 The autolens_workspace repository contains a wide range of examples and tutorials covering these use cases. The
 next documentation page helps new users identify the most appropriate starting point based on their scientific goals.
+
+For a guided introduction to the science, see [HowToLens](https://github.com/PyAutoLabs/HowToLens).
