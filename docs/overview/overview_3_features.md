@@ -31,32 +31,42 @@ links to the relevant workspace examples.
 
 ## Pixelizations
 
-Pixelizations reconstruct the source galaxy's light on a pixel-grid. Unlike `LightProfile`'s, they are able to
-reconstruct the light of non-symmetric, irregular and clumpy sources.
+Recover the background galaxy behind the arcs. A pixelization reconstructs source light on a mesh, providing
+flexibility to describe spiral arms, star-forming clumps and irregular structure without imposing a simple
+analytic light profile.
 
-The image below shows a pixelized source reconstruction of the strong lens SLACS1430+4105, where the source is
-reconstructed on a Voronoi mesh adapted to the source morphology, revealing it to be a grand-design face on spiral
-galaxy:
+**Study the background galaxy.** Pixelized reconstructions are a key tool for source science: investigating
+galaxy structure and measuring properties such as intrinsic flux, size and lensing magnification. Start with
+[source_science.py](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/pixelization/source_science.ipynb)
+to see how to analyse the reconstructed source, calculate flux and magnification, propagate uncertainties and
+export the reconstruction.
 
-```{image} https://github.com/PyAutoLabs/PyAutoLens/blob/main/files/imageaxis.png?raw=true
-:alt: Alternative text
-:width: 600
+```{image} images/overview_3/pixelization_illustration.png
+:alt: Conceptual illustration connecting lensed arcs through a lens mass model to a source mesh and reconstructed galaxy.
+:width: 100%
 ```
 
-The lens model a pixelized source composes is drawn below: the source's only sampled parameter is its
-regularization coefficient, while the `reconstruction` — the surface brightness of every source pixel — is solved
-for during the fit.
+Conceptual illustration, not observational data. The mesh and galaxy on the right show the same source
+brightness distribution; removing mesh lines adds no information. Reconstruction requires a lens mass model,
+and the recoverable detail depends on the data and modelling assumptions.
 
-```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/pixelization_model.png
-:alt: A pixelized source lens model, whose source reconstruction is solved for during the fit.
+Source brightness is solved during the fit, with regularization controlling how freely neighbouring mesh pixels
+can vary. This flexibility supports both source science and lens-mass modelling; it does not remove model
+degeneracies or guarantee that fine structure is real.
+
+Read the [pixelization feature introduction](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/pixelization/start_here.ipynb)
+for use cases, mesh choices, regularization and worked examples.
+
+For deeper teaching, see [the pixelization overview](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/overview/overview_5_pixelizations.ipynb)
+and Chapter 3 of [HowToLens](https://github.com/PyAutoLabs/HowToLens).
+
+The technical model below shows an example in which the source's sampled parameter is its regularization
+coefficient, while the surface brightness of the source mesh is solved during the fit.
+
+```{image} images/overview_3/pixelization_model.png
+:alt: A pixelized source lens model whose source brightness is solved during the fit.
 :width: 600
 ```
-
-A complete overview of pixelized source reconstructions can be found
-at `notebooks/overview/overview_5_pixelizations.ipynb`.
-
-Chapter 3 of the **HowToLens** lectures describes pixelizations in detail and teaches users how they can be used to
-perform lens modeling.
 
 ## Point Sources
 
