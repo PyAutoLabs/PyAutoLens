@@ -57,3 +57,15 @@
   background-color: var(--color-background-hover);
   color: var(--color-brand-content);
 }
+
+/* Feature overview: compact gallery and readable capability rows. */
+.feature-gallery { width: 100%; table-layout: fixed; border-collapse: collapse; }
+.feature-gallery td { padding: 8px; vertical-align: top; font-size: .9rem; }
+.feature-gallery img { width: 100%; height: 145px; object-fit: contain; background: #071322; border-radius: 5px; }
+.feature-entry { padding: 12px 0; border-bottom: 1px solid #dce5ec; }
+.feature-entry h3 { font-size: 1.1rem; margin: 0 0 6px; }
+.feature-entry p { margin: 0 0 8px; }
+.feature-more-images { margin: 12px 0 24px; }
+.feature-more-images summary, .directory summary { cursor: pointer; padding: 8px 0; }
+.directory { padding: 15px 20px; border: 1px solid #dce5ec; border-radius: 6px; }
+@media (max-width: 600px) { .feature-gallery tr { display: flex; flex-wrap: wrap; } .feature-gallery td { width: 50%; } .feature-gallery img { height: 110px; } }
