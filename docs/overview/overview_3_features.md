@@ -184,6 +184,31 @@ are solved by the inversion rather than sampled.
 :width: 600
 ```
 
+## Extra Galaxies
+
+Nearby galaxies contribute both light and gravity. Their emission can blend with lensed arcs, while their
+mass can change the deflection of the background source. The `extra_galaxies` feature accounts for these
+neighbours when reconstructing the source and inferring the main lens's mass distribution.
+
+Use it to model companions overlapping the arcs, test the influence of nearby visible mass, and investigate
+whether neighbouring structure explains an apparent lensing anomaly. For source science, separating these
+contributions helps avoid interpreting foreground emission as a bright source clump.
+
+![Extra galaxies contribute overlapping light and additional deflection](images/overview_3/extra_galaxies.png)
+
+*Conceptual illustration, not a fitted dataset or numerical prediction. Both panels emphasize different
+contributions of the same neighbours; light and gravity act together. Dashed arcs are schematic references
+for the main lens alone.*
+
+Decide separately whether each neighbour needs a light model, a mass model, or both. Masking its visible
+emission does not remove its gravitational effect. The examples compare downweighting contaminated pixels
+with explicitly fitting neighbouring light and mass, using measured centres to constrain the extra profiles.
+
+Start with the [Extra Galaxies introduction](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/extra_galaxies/start_here.ipynb)
+for noise scaling, overlapping components, centre constraints and the staged SLaM workflow. This folder
+focuses on a main galaxy-scale lens with a few neighbours; the multi-galaxy, group and cluster workflows
+address larger systems and different mass configurations.
+
 ## Multi-Galaxy Lenses, Groups and Clusters
 
 The strong lenses we've discussed so far have just a single lens galaxy responsible for the lensing. Above that
