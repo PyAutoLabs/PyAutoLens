@@ -1,0 +1,4 @@
+Source: PyAutoLabs/autolens_assistant docs/images/strong_lens_schematic.png
+AI-generated schematic supplied by James Nightingale. Copied byte-for-byte from the committed 1000 x 334 PNG.
+Provenance: autolens_assistant/docs/images/sources/README.md.
+Illustration of source light deflected by foreground galaxies towards JWST; not observational imaging of the COSMOS-Web Ring.
