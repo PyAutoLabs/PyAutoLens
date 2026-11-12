@@ -6,7 +6,7 @@
 
 When two or more galaxies are aligned perfectly down our line-of-sight, the background galaxy appears multiple times.
 
-This is called strong gravitational lensing and **PyAutoLens** makes it **simple** to model strong gravitational lenses, using JAX to **accelerate lens modeling on GPUs**.
+This is called strong gravitational lensing. **PyAutoLens** models strong gravitational lenses to measure the distribution of matter and reconstruct distant galaxies. Its JAX numerical backend provides automatic differentiation and GPU acceleration, while the PyAutoLens Assistant helps you develop and run analyses through conversation.
 
 # Getting Started
 

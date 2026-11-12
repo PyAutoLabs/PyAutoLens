@@ -1,8 +1,8 @@
-# PyAutoLens-JAX: Open-Source Strong Lensing
+# PyAutoLens: Automated, Autodifferentiable and Autonomous Gravitational Lensing
 
 <img src="https://github.com/Jammy2211/PyAutoLogo/blob/main/gifs/pyautolens.gif?raw=true" width="900" />
 
-**PyAutoLens** lets you simulate and model strong gravitational lenses, using JAX to accelerate lens modeling on GPUs. Explore examples, analyse your own observations and learn how lensing reveals the galaxies and matter along our line of sight.
+**PyAutoLens** models strong gravitational lenses to measure the distribution of matter and reconstruct distant galaxies. Its JAX numerical backend provides automatic differentiation and GPU acceleration, while the PyAutoLens Assistant helps you develop and run analyses through conversation.
 
 ## Getting Started
 
