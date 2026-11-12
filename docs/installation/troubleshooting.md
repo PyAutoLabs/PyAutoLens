@@ -2,70 +2,70 @@
 
 # Troubleshooting
 
-## Pip Version
+<span id="pip-version"></span>
 
-If an error message appears after trying to run `pip install autolens` first make sure you are using
-the latest version of pip.
+<span id="pip-conda"></span>
 
-```bash
-pip install --upgrade pip
-pip3 install --upgrade pip
-```
+## Check the active environment
 
-## Pip / Conda
-
-If you are trying to [install via pip](https://pyautolens.readthedocs.io/en/latest/installation/pip.html) but
-still having issues, we recommend you try to [install via conda](https://pyautogalaxy.readthedocs.io/en/latest/installation/conda.html)
-instead, or visa versa.
-
-## Community & Support
-
-Questions, help with your code or your analysis, and ideas: the
-[PyAutoLabs Discussions](https://github.com/orgs/PyAutoLabs/discussions).
-Bug reports with a reproducer (a snippet, the traceback, your versions):
-an issue on the library's tracker. The Slack is for collaborators, by
-invitation.
-
-## Current Working Directory
-
-**PyAutoLens** scripts assume that the `autolens_workspace` directory is the Python working directory. This means
-that, when you run an example script, you should run it from the `autolens_workspace` as follows:
+Run these commands in the terminal where installation or execution failed:
 
 ```bash
-cd path/to/autolens_workspace (if you are not already in the autolens_workspace).
-python3 examples/model/beginner/mass_total__source_lp.py
+python --version
+python -m pip --version
+python -m pip check
 ```
 
-The reasons for this are so that **PyAutoLens** can:
+Use Python 3.12 or later. If pip reports conflicting dependencies, resolve them or retry in a fresh environment. Do not ignore the conflict and assume the installation is complete.
 
-> - Load configuration settings from config files in the `autolens_workspace/config` folder.
-> - Load example data from the `autolens_workspace/dataset` folder.
-> - Output the results of models fits to your hard-disk to the `autolens/output` folder.
-
-If you have any errors relating to importing modules, loading data or outputting results it is likely because you
-are not running the script with the `autolens_workspace` as the working directory!
-
-## Matplotlib Backend
-
-Matplotlib uses the default backend on your computer, as set in the config file:
+For a pip installation error, update pip in that environment and retry:
 
 ```bash
-autolens_workspace/config/visualize/general.yaml
+python -m pip install --upgrade pip
+python -m pip install autolens
 ```
 
-If unchanged, the backend is set to 'default', meaning it will use the backend automatically set up for Python on
-your system.
+<span id="current-working-directory"></span>
+
+## Missing files when running examples
+
+Run scripts from the workspace root, not from inside a scripts subfolder:
 
 ```bash
-general:
-  backend: default
+cd path/to/autolens_workspace
+python scripts/imaging/start_here.py
 ```
 
-There have been reports that using the default backend causes crashes when running the test script below (either the
-code crashes without a error or your computer restarts). If this happens, change the config's backend until the test
-works (TKAgg has worked on Linux machines, Qt5Agg has worked on new MACs). For example:
+Replace `path/to/autolens_workspace` with your workspace location. Check that the dataset required by the example is present; a missing file is not always a working-directory problem.
+
+## Workspace and package versions
+
+A checkout of the workspace’s `main` branch can be newer than your installed library. Check your version:
 
 ```bash
-general:
-  backend: TKAgg
+python -c "import autolens; print(autolens.__version__)"
 ```
+
+Use a workspace release tag matching that version where available, or update to a compatible published library/workspace pair. Do not change API calls just to work around an unexplained version mismatch.
+
+<span id="matplotlib-backend"></span>
+
+## Plot windows do not open
+
+Check whether your Python session has access to a graphical desktop. On a remote or headless machine, save figures to files instead of opening windows.
+
+The workspace setting is `config/visualize/general.yaml` → `general` → `backend`. See [Matplotlib’s backend guide](https://matplotlib.org/stable/users/explain/figure/backends.html) before choosing a backend; interactive backends require their corresponding GUI packages.
+
+## GPU not detected
+
+See [GPU setup](acceleration.md) and check the output of `jax.devices()`.
+
+## Older Python versions
+
+Use a new environment with Python 3.12 or later for current releases. If you need a historical version, pin that version explicitly and use its corresponding documentation.
+
+<span id="community-support"></span>
+
+## Get help
+
+Post in [PyAutoLabs Discussions](https://github.com/orgs/PyAutoLabs/discussions) with your operating system, Python and package versions, the command you ran, and the complete traceback.
