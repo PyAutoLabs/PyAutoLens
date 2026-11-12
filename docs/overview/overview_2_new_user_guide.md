@@ -62,6 +62,8 @@ Many member galaxies lens multiple background sources at different redshifts. Th
 
 ## What dataset type?
 
+The illustrations below are conceptual, not observations; telescope and sky scales are schematic.
+
 For galaxy-scale lenses, choose the example for your observations. For multi-galaxy, group or cluster systems, begin with the scale-specific guide above.
 
 ![Four conceptual dataset representations: a pixelated lensed image, samples in the interferometer u–v plane, stacked spectral-channel images, and four compact quasar images around a lens galaxy.](images/overview_2/dataset_types.png)
@@ -79,18 +81,24 @@ Images from telescopes such as Hubble or JWST. Fit the lens light, mass and exte
 :::
 
 :::{grid-item-card} Interferometer
+![Conceptual illustration of interferometer](images/overview_2/interferometry.png)
+
 Radio or submillimetre observations, such as ALMA data. Fit the measured visibilities directly.
 
 [Notebook ](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/interferometer/start_here.ipynb)·[Google Colab ](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/interferometer/start_here.ipynb)
 :::
 
 :::{grid-item-card} Data cubes
+![Conceptual illustration of data cubes](images/overview_2/data_cubes.png)
+
 Spectral-line channels, such as an ALMA CO cube. Fit the channels together with a shared lens model.
 
 [Notebook ](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/interferometer/features/datacube/start_here.ipynb)·[Google Colab ](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/interferometer/features/datacube/start_here.ipynb)
 :::
 
 :::{grid-item-card} Point sources
+![Conceptual illustration of point sources](images/overview_2/point_sources.png)
+
 Multiple images of a compact source, such as a quasar or supernova. Start with the point-source example.
 
 [Notebook ](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/point_source/start_here.ipynb)·[Google Colab ](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/point_source/start_here.ipynb)
