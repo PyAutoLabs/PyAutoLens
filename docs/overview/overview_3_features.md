@@ -15,7 +15,7 @@ links to the relevant workspace examples.
 
 **Data Cubes**: Modeling spectral-line data cubes (e.g. ALMA CO cubes), fitting every channel simultaneously with a shared lens model.
 
-**Multi Gaussian Expansion (MGE)**: Decomposing the lens galaxy into hundreds of Gaussians, for a clean lens subtraction.
+**Multi Gaussian Expansion (MGE)**: Flexible models for foreground lens light and the background source.
 
 **Groups**: Modeling group-scale strong lenses with multiple lens galaxies and multiple source galaxies.
 
@@ -141,34 +141,38 @@ Checkout the `autolens_workspace/*/interferometer/features/datacube` package to 
 
 ## Multi Gaussian Expansion (MGE)
 
-An MGE decomposes the light of a galaxy into tens or hundreds of two dimensional Gaussians:
+An MGE models a galaxy's light as a sum of Gaussians. In strong lensing, use it to model foreground lens light
+that overlaps the arcs, or to describe the background source whose light is distorted by the lens mass model.
 
-```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/mge.png
-:alt: Alternative text
-:width: 600
+```{image} images/overview_3/mge_illustration.png
+:alt: Illustration separating amber foreground lens light from cyan arcs, connected to the source by a lens mass model.
+:width: 100%
 ```
 
-In the image above, 30 Gaussians are shown, where their sizes go from below the pixel scale (in order to resolve
-point emission) to beyond the size of the galaxy (to capture its extended emission).
+Illustration, not observational data. Amber represents foreground lens light; cyan represents source light.
+The lens mass model connects the source to its arcs. Gaussian components are mathematical building blocks,
+not separate galaxies; the components are fitted jointly.
 
-The lens model this composes is drawn below. It is built from two bases of 30 Gaussians each, whose `intensity`
-parameters are solved for by the inversion rather than sampled.
+An MGE can capture changes in a galaxy's shape with radius that a single simple light profile misses. Its
+Gaussian intensities are solved by linear algebra during fitting, rather than all being sampled separately.
+This also provides a flexible smooth source model for measuring source flux and magnification.
 
-```{image} https://raw.githubusercontent.com/PyAutoLabs/PyAutoLens/main/docs/overview/images/overview_3/mge_model.png
-:alt: The MGE lens model, whose sixty Gaussians are drawn as two plates of thirty components.
+[He et al. (2024)](https://arxiv.org/abs/2403.16253) demonstrate MGE lens-light modelling on 38 HST SLACS lenses,
+combined with a pixelized source reconstruction. The workspace also includes examples using an MGE source.
+
+MGEs can additionally connect stellar mass models to observed light, describe compact emission alongside its
+host galaxy, and support deprojection of galaxy light from two dimensions to three, with appropriate assumptions.
+
+Read the [MGE feature introduction](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/features/multi_gaussian_expansion/start_here.ipynb)
+for the scientific use cases, detailed teaching and worked examples.
+
+For a technical view, the model below contains two bases of 30 Gaussians each. Their intensity parameters
+are solved by the inversion rather than sampled.
+
+```{image} images/overview_3/mge_model.png
+:alt: An MGE lens model composed of two bases of thirty Gaussian components.
 :width: 600
 ```
-
-An MGE is an extremely powerful way to model and subtract the light of the foreground lens galaxy in strong lens imaging,
-and makes it possible to model the stellar mass of the lens galaxy in a way that is tied to its light.
-
-Scientific Applications include capturing departures from elliptical symmetry in the light of galaxies, providing a
-flexible model to deblend the emission of point sources (e.g. quasars) from the emission of their host galaxy and
-deprojecting the light of a galaxy from 2D to 3D.
-
-The following paper gives a detailed overview of MGEs and their applications in strong lensing: <https://arxiv.org/abs/2403.16253>
-
-Checkout `autolens_workspace/notebooks/features/multi_gaussian_expansion.ipynb` to learn how to use an MGE.
 
 ## Multi-Galaxy Lenses, Groups and Clusters
 
