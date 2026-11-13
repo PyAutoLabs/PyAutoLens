@@ -115,7 +115,7 @@ Multiple images of a compact source, such as a quasar or supernova.
 :::
 
 :::{grid-item-card} Weak lensing
-![Conceptual illustration of strong-lensing arcs and weakly distorted background galaxies](images/overview_3/strong_weak_lensing.png)
+![Conceptual illustration of a galaxy cluster with strong-lensing arcs near its centre and background galaxies tangentially stretched across the wider field](images/overview_2/weak_lensing.png)
 
 Subtle shape distortions of many background galaxies, alone or combined with strong lensing.
 
