@@ -15,7 +15,7 @@ Light from the background source galaxy is deflected by the foreground galaxies 
 
 ## Using This Guide
 
-This page gives an overview of the **PyAutoLens Python API**, including how to import `autolens`, create light and mass profiles, and perform lensing calculations. You can read through the examples here or run them in your web browser using [Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/start_here.ipynb).
+This page gives an overview of the **PyAutoLens Python API**, including how to import `autolens`, create light and mass profiles, and perform lensing calculations. You can read through the examples here or run them in your web browser using [Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.13.1/start_here.ipynb).
 
 If you use AI, the [PyAutoLens AI Assistant](https://github.com/PyAutoLabs/autolens_assistant) can give you an interactive walkthrough. Paste this prompt into Claude Code, Codex or another AI coding agent:
 

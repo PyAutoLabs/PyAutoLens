@@ -37,7 +37,7 @@ Approximate Einstein radius: ~1–3″
 
 Several foreground galaxies contribute significantly to the lensing.
 
-[Notebook](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/multi_galaxy/start_here.ipynb) · [Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/multi_galaxy/start_here.ipynb)
+[Notebook](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/multi_galaxy/start_here.ipynb) · [Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.13.1/notebooks/multi_galaxy/start_here.ipynb)
 :::
 
 :::{grid-item-card} Group
@@ -45,7 +45,7 @@ Approximate Einstein radius: ~3–10″
 
 A small galaxy group lenses a background source.
 
-[Notebook](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/group/start_here.ipynb) · [Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/group/start_here.ipynb)
+[Notebook](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/group/start_here.ipynb) · [Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.13.1/notebooks/group/start_here.ipynb)
 :::
 
 :::{grid-item-card} Cluster
@@ -53,7 +53,7 @@ Approximate Einstein radius: ~10–50″
 
 A galaxy cluster lenses multiple background sources.
 
-[Notebook](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/cluster/start_here.ipynb) · [Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/cluster/start_here.ipynb)
+[Notebook](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/cluster/start_here.ipynb) · [Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.13.1/notebooks/cluster/start_here.ipynb)
 :::
 
 ::::
@@ -83,7 +83,7 @@ Each notebook begins with example data and introduces the relevant model and fit
 
 Images of extended lensed sources, from telescopes such as Hubble or JWST.
 
-[Notebook](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/start_here.ipynb) · [Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/imaging/start_here.ipynb)
+[Notebook](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/imaging/start_here.ipynb) · [Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.13.1/notebooks/imaging/start_here.ipynb)
 :::
 
 :::{grid-item-card} Interferometer
@@ -91,7 +91,7 @@ Images of extended lensed sources, from telescopes such as Hubble or JWST.
 
 Radio or submillimetre observations, such as ALMA visibilities.
 
-[Notebook](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/interferometer/start_here.ipynb) · [Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/interferometer/start_here.ipynb)
+[Notebook](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/interferometer/start_here.ipynb) · [Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.13.1/notebooks/interferometer/start_here.ipynb)
 :::
 
 :::{grid-item-card} Multi-band imaging
@@ -99,7 +99,7 @@ Radio or submillimetre observations, such as ALMA visibilities.
 
 The same lens observed in several wavebands. Fit the images together with a shared lens model using `multi_dataset/`.
 
-[Notebook ](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/multi_dataset/start_here.ipynb)·[Google Colab ](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/multi_dataset/start_here.ipynb)
+[Notebook ](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/multi_dataset/start_here.ipynb)·[Google Colab ](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.13.1/notebooks/multi_dataset/start_here.ipynb)
 :::
 
 :::{grid-item-card} Data cubes
@@ -107,7 +107,7 @@ The same lens observed in several wavebands. Fit the images together with a shar
 
 Spectral-line observations across many channels, such as an ALMA CO cube.
 
-[Notebook](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/interferometer/features/datacube/start_here.ipynb) · [Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/interferometer/features/datacube/start_here.ipynb)
+[Notebook](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/interferometer/features/datacube/start_here.ipynb) · [Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.13.1/notebooks/interferometer/features/datacube/start_here.ipynb)
 :::
 
 :::{grid-item-card} Point sources
@@ -115,7 +115,7 @@ Spectral-line observations across many channels, such as an ALMA CO cube.
 
 Multiple images of a compact source, such as a quasar or supernova.
 
-[Notebook](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/point_source/start_here.ipynb) · [Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/point_source/start_here.ipynb)
+[Notebook](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/point_source/start_here.ipynb) · [Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.13.1/notebooks/point_source/start_here.ipynb)
 :::
 
 ::::
@@ -140,7 +140,7 @@ To model the subtle distortions of many background galaxies, start with [weak/](
 
 *AI-generated conceptual illustration. The panels cover different angular scales; dashed contours represent a mass model, not a direct measurement from individual galaxy shapes.*
 
-[Notebook ](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/weak/start_here.ipynb)·[Google Colab ](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/weak/start_here.ipynb)
+[Notebook ](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/weak/start_here.ipynb)·[Google Colab ](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.13.1/notebooks/weak/start_here.ipynb)
 
 ## Still unsure?
 
