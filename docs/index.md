@@ -13,7 +13,7 @@ This is called strong gravitational lensing. **PyAutoLens** models strong gravit
 ## Explore It Yourself
 
 - **[Start Here](https://pyautolens.readthedocs.io/en/latest/overview/overview_1_start_here.html)** — discover PyAutoLens and work through your first example.
-- **[Try it in your browser](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/start_here.ipynb)** — run the introductory notebook without installing anything.
+- **[Try it in your browser](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.13.1/start_here.ipynb)** — run the introductory notebook without installing anything.
 - **[Install PyAutoLens](https://pyautolens.readthedocs.io/en/latest/installation/overview.html)** — get set up on your computer.
 
 Explore more examples in the [workspace](https://github.com/PyAutoLabs/autolens_workspace), or learn lensing from the ground up with [HowToLens](https://github.com/PyAutoLabs/HowToLens).
