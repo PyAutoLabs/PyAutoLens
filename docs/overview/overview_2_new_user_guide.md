@@ -25,33 +25,33 @@ These categories are a starting guide, rather than strict boundaries based on th
 
 
 :::{grid-item-card} Galaxy
-Approximate Einstein radius: ~1″
+Einstein radius: ~1″
 
-One foreground galaxy dominates the lensing.
+One galaxy dominates the lensing.
 
 [Choose your data type below](#what-dataset-type)
 :::
 
 :::{grid-item-card} Multi-galaxy
-Approximate Einstein radius: ~1–3″
+Einstein radius: ~1–3″
 
-Several foreground galaxies contribute significantly to the lensing.
+Several galaxies share the lensing.
 
 [Notebook](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/multi_galaxy/start_here.ipynb) · [Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/multi_galaxy/start_here.ipynb)
 :::
 
 :::{grid-item-card} Group
-Approximate Einstein radius: ~3–10″
+Einstein radius: ~3–10″
 
-A small galaxy group lenses a background source.
+A galaxy group lenses a background source.
 
 [Notebook](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/group/start_here.ipynb) · [Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/group/start_here.ipynb)
 :::
 
 :::{grid-item-card} Cluster
-Approximate Einstein radius: ~10–50″
+Einstein radius: ~10–50″
 
-A galaxy cluster lenses multiple background sources.
+A cluster lenses many background sources.
 
 [Notebook](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/cluster/start_here.ipynb) · [Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/cluster/start_here.ipynb)
 :::
@@ -66,15 +66,11 @@ The **Einstein radius** gives a sense of the angular size of a lens, roughly the
 
 ## What dataset type?
 
-For a galaxy-scale lens, choose the notebook that matches the observations you want to analyse. An image, a set of interferometer measurements and the positions of compact lensed sources each call for a different starting workflow.
+For a galaxy-scale lens, choose the notebook that matches the observations you want to analyse. An image, a set of interferometer measurements, the positions of compact lensed sources and weak-lensing shear each call for a different starting workflow.
 
 Each notebook begins with example data and introduces the relevant model and fitting steps. If you do not have your own dataset yet, choose the example closest to your interests. For multi-galaxy, group or cluster systems, begin with the scale-specific guide above.
 
-![Five conceptual dataset representations: a pixelated lensed image, samples in the interferometer u–v plane, the same lens in three wavebands, stacked spectral-channel images, and four compact quasar images around a lens galaxy.](images/overview_2/dataset_types.png)
-
-*AI-generated schematic, not measured data. The interferometer panel shows sampling locations; multi-band images show separate wavebands, while cube slices represent spectral channels.*
-
-::::{grid} 1 2 2 2
+::::{grid} 1 2 3 3
 :gutter: 3
 
 
@@ -118,6 +114,14 @@ Multiple images of a compact source, such as a quasar or supernova.
 [Notebook](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/point_source/start_here.ipynb) · [Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/point_source/start_here.ipynb)
 :::
 
+:::{grid-item-card} Weak lensing
+![Conceptual illustration of strong-lensing arcs and weakly distorted background galaxies](images/overview_3/strong_weak_lensing.png)
+
+Subtle shape distortions of many background galaxies, alone or combined with strong lensing.
+
+[Notebook](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/weak/start_here.ipynb) · [Google Colab](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/weak/start_here.ipynb)
+:::
+
 ::::
 
 (google-colab)=
@@ -129,18 +133,6 @@ The **Notebook** links open a readable preview on GitHub. You can browse the exp
 To run an example in your browser, choose **Google Colab**. Run its setup cell first to install the software and prepare the example, then work through the notebook in order. This lets you try PyAutoLens without setting up a local installation.
 
 If you already have PyAutoLens installed and a local copy of the workspace, open the same notebook in Jupyter on your machine. Start with the supplied dataset so you can follow the complete workflow, then adapt it to your own observations.
-
-(weak-lensing)=
-
-## Weak lensing
-
-To model the subtle distortions of many background galaxies, start with [weak/](https://github.com/PyAutoLabs/autolens_workspace/tree/main/scripts/weak). You can also combine weak and strong lensing to study a cluster across both scales.
-
-![Strong-lensing arcs near a cluster centre and weakly distorted background galaxies across a wider field.](images/overview_3/strong_weak_lensing.png)
-
-*AI-generated conceptual illustration. The panels cover different angular scales; dashed contours represent a mass model, not a direct measurement from individual galaxy shapes.*
-
-[Notebook ](https://github.com/PyAutoLabs/autolens_workspace/blob/main/notebooks/weak/start_here.ipynb)·[Google Colab ](https://colab.research.google.com/github/PyAutoLabs/autolens_workspace/blob/2026.11.12.1/notebooks/weak/start_here.ipynb)
 
 ## Still unsure?
 
