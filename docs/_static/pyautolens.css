@@ -69,3 +69,13 @@
 .feature-more-images summary, .directory summary { cursor: pointer; padding: 8px 0; }
 .directory { padding: 15px 20px; border: 1px solid #dce5ec; border-radius: 6px; }
 @media (max-width: 600px) { .feature-gallery tr { display: flex; flex-wrap: wrap; } .feature-gallery td { width: 50%; } .feature-gallery img { height: 110px; } }
+
+/* Features page: tiled cards grouped by section */
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin: 10px 0 30px; }
+.feature-grid .feature-entry { display: flex; flex-direction: column; padding: 12px; border: 1px solid var(--color-background-border, #dce5ec); border-radius: 8px; background: var(--color-background-secondary, #f8f9fb); scroll-margin-top: 4rem; }
+.feature-grid .feature-entry:target { border-color: var(--color-brand-primary); box-shadow: 0 0 0 2px var(--color-brand-primary); }
+.feature-grid .feature-thumb { display: block; margin: -4px -4px 10px; }
+.feature-grid .feature-thumb img { display: block; width: 100%; aspect-ratio: 3 / 2; object-fit: contain; border-radius: 5px; background: #071322; }
+.feature-grid .feature-entry h3 { font-size: 1rem; margin: 0 0 6px; }
+.feature-grid .feature-entry p { font-size: .88rem; line-height: 1.45; margin: 0 0 8px; }
+.feature-grid .feature-entry p:last-child { margin-top: auto; margin-bottom: 0; }
