@@ -308,7 +308,7 @@ def test__positions_threshold_from(analysis_imaging_7x7):
             al.Galaxy(
                 redshift=0.5,
                 mass=al.mp.Isothermal(
-                    centre=(0.1, 0.0), einstein_radius=1.0, ell_comps=(0.0, 0.0)
+                    centre=(0.06, 0.08), einstein_radius=1.0, ell_comps=(0.0, 0.0)
                 ),
             ),
             al.Galaxy(redshift=1.0, bulge=al.lp.SersicSph(centre=(0.0, 0.0))),
@@ -319,16 +319,14 @@ def test__positions_threshold_from(analysis_imaging_7x7):
 
     result = res.Result(samples_summary=samples_summary, analysis=analysis_imaging_7x7)
 
-    # Knife-edge pin: the fixture is exactly mirror-symmetric (lens centre and source on
-    # x = 0), so the point solver's branch is decided by sub-ULP tie-breaking; PyAutoArray#519's
-    # exact identity transform at angle 0 selected the other branch (positions_threshold
-    # 0.0019501455 -> 0.0019534291, positions[1].x sign flip, magnitude bit-identical). Values
-    # are the exact-transform branch; a 1e-15 centre nudge flips them. The value moved again
-    # (0.0019534291 -> 0.00098983199) when the Isothermal q <= 0.99999 clamp was removed
-    # (PyAutoGalaxy#631), as the fixture is now exactly circular. See PyAutoLens#721.
-    assert result.positions_threshold_from() == pytest.approx(0.00098983199, 1.0e-4)
+    # The lens centre sits off every grid symmetry line (x = 0, y = 0, y = +/-x). On an
+    # axis the deflection there is exactly 0.0 and the point solver's branch is a sub-ULP
+    # tie-break: with the old centre (0.1, 0.0) a 1e-15 nudge moved the threshold x43 (see
+    # PyAutoLens#721, #860). Here a 1e-6 nudge in x or y leaves both images bit-identical and
+    # moves the threshold by < 3e-8 relative, so the pins measure the threshold.
+    assert result.positions_threshold_from() == pytest.approx(0.0012770598, 1.0e-4)
     assert result.positions_threshold_from(factor=5.0) == pytest.approx(
-        0.0049491599483, 1.0e-4
+        0.0063852988, 1.0e-4
     )
     assert result.positions_threshold_from(minimum_threshold=10.0) == pytest.approx(
         10.0, 1.0e-4
