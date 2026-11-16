@@ -12,7 +12,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "^(send_later|subscribe_pr_activity|ScheduleWakeup|CronCreate|RemoteTrigger|mcp__.*(send_later|subscribe_pr_activity).*)$",
+        "matcher": "^(send_later|subscribe_pr_activity|ScheduleWakeup|CronCreate|RemoteTrigger|Monitor|Bash|mcp__.*(send_later|subscribe_pr_activity).*)$",
         "hooks": [
           {
             "type": "command",
