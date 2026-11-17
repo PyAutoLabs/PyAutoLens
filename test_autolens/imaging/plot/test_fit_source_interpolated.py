@@ -63,6 +63,7 @@ def _titles(module, monkeypatch, subplot_fit, fit, **kwargs):
 
 def test__imaging__switch_off__mid_zoom_triangles(fit_imaging_delaunay, monkeypatch):
     axes = _titles(fit_imaging_plots, monkeypatch, fit_imaging_plots.subplot_fit, fit_imaging_delaunay)
+    assert "Source Plane (Max Zoom)" in axes
     assert "Source Plane (Mid Zoom)" in axes
     assert "Source Plane (Interpolated)" not in axes
 
@@ -73,10 +74,16 @@ def test__imaging__switch_on__mid_zoom_is_interpolated_raster(fit_imaging_delaun
         fit_imaging_delaunay, source_interpolated=True,
     )
     assert "Source Plane (Mid Zoom)" not in axes
-    assert len(axes["Source Plane (Interpolated)"].get_images()) == 1
-    # The max- and no-zoom panels keep the flat triangles.
-    assert len(axes["Source Plane (Max Zoom)"].get_images()) == 0
+    assert "Source Plane (Max Zoom)" not in axes
+    interpolated = axes["Source Plane (Interpolated)"]
+    zoom = axes["Source Plane (Zoom)"]
+    assert len(interpolated.get_images()) == 1
+    # Triangles at a reasonable zoom and unzoomed; the interpolated panel shares
+    # the zoomed panel's extent so the two compare side by side.
+    assert len(zoom.get_images()) == 0
     assert len(axes["Source Plane (No Zoom)"].get_images()) == 0
+    assert zoom.get_xlim() == pytest.approx(interpolated.get_xlim())
+    assert zoom.get_ylim() == pytest.approx(interpolated.get_ylim())
 
 
 def test__imaging__switch_on__rectangular_source_is_unchanged(monkeypatch):
@@ -84,6 +91,7 @@ def test__imaging__switch_on__rectangular_source_is_unchanged(monkeypatch):
         fit_imaging_plots, monkeypatch, fit_imaging_plots.subplot_fit,
         fixtures.make_fit_imaging_x2_plane_inversion_7x7(), source_interpolated=True,
     )
+    assert "Source Plane (Max Zoom)" in axes
     assert "Source Plane (Mid Zoom)" in axes
     assert "Source Plane (Interpolated)" not in axes
 
