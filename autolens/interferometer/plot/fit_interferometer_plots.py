@@ -26,7 +26,8 @@ logger = logging.getLogger(__name__)
 
 def _plot_source_plane(fit, ax, plane_index, zoom_to_brightest=True,
                        colormap=None, use_log10=False, title=None,
-                       lines=None, line_colors=None, vmax=None):
+                       lines=None, line_colors=None, vmax=None,
+                       interpolated: bool = False):
     """
     Plot the source-plane image into an axes, matching the imaging subplot_fit behaviour.
 
@@ -60,6 +61,10 @@ def _plot_source_plane(fit, ax, plane_index, zoom_to_brightest=True,
         Colours for each entry in *lines*.
     vmax : float, optional
         Shared colour-scale maximum.
+    interpolated : bool, optional
+        For an inversion source on a Delaunay / kNN mesh, draw the reconstruction the
+        likelihood uses between mesh vertices instead of flat-shaded triangles.
+        Ignored for parametric sources and rectangular meshes.
     """
     if ax is None:
         return
@@ -103,6 +108,7 @@ def _plot_source_plane(fit, ax, plane_index, zoom_to_brightest=True,
                 use_log10=use_log10,
                 vmax=vmax,
                 zoom_to_brightest=zoom_to_brightest,
+                interpolated=interpolated,
                 lines=lines,
                 line_colors=line_colors,
             )
@@ -122,6 +128,7 @@ def subplot_fit(
     source_plane_lines=None,
     source_plane_line_colors=None,
     title_prefix: str = None,
+    source_interpolated: bool = False,
 ):
     """
     Produce a 12-panel subplot summarising an interferometer fit.
@@ -157,8 +164,21 @@ def subplot_fit(
         Image format passed to :func:`~autoarray.plot.utils.save_figure`.
     colormap : str, optional
         Matplotlib colormap name applied to all image panels.
+    source_interpolated : bool, optional
+        Draw the zoomed source panel as the interpolated reconstruction the
+        likelihood uses ("Source Plane (Interpolated)") when the source is a
+        Delaunay / kNN pixelization, instead of flat-shaded triangles; the no-zoom
+        panel keeps the triangles. Set by ``plots.yaml``
+        ``fit: subplot_fit_source_interpolated`` (default off).
     """
+    from autolens.imaging.plot.fit_imaging_plots import _source_has_interpolated_view
+
     final_plane_index = len(fit.tracer.planes) - 1
+
+    zoom_interpolated = source_interpolated and _source_has_interpolated_view(
+        fit, final_plane_index
+    )
+    zoom_title = "Source Plane (Interpolated)" if zoom_interpolated else "Source Plane (Zoomed)"
 
     if image_plane_lines is None and source_plane_lines is None:
         tracer = fit.tracer_linear_light_profiles_to_light_profiles
@@ -185,9 +205,10 @@ def subplot_fit(
                    title=_pf("Dirty Residual Map (Natural)"), colormap=colormap)
         _plot_source_plane(fit, axes_flat[3], final_plane_index,
                            zoom_to_brightest=True, colormap=colormap,
-                           title=_pf("Source Plane (Zoomed)"),
+                           title=_pf(zoom_title),
                            lines=source_plane_lines,
-                           line_colors=source_plane_line_colors)
+                           line_colors=source_plane_line_colors,
+                           interpolated=zoom_interpolated)
         _plot_source_plane(fit, axes_flat[4], final_plane_index,
                            zoom_to_brightest=False, colormap=colormap,
                            title=_pf("Source Plane (No Zoom)"),
@@ -252,9 +273,10 @@ def subplot_fit(
     # Panel 7 (8th): source plane zoomed with caustics
     _plot_source_plane(fit, axes_flat[7], final_plane_index,
                        zoom_to_brightest=True, colormap=colormap,
-                       title=_pf("Source Plane (Zoomed)"),
+                       title=_pf(zoom_title),
                        lines=source_plane_lines,
-                       line_colors=source_plane_line_colors)
+                       line_colors=source_plane_line_colors,
+                       interpolated=zoom_interpolated)
 
     plot_array(array=fit.dirty_normalized_residual_map, ax=axes_flat[8],
                title=_pf("Dirty Normalized Residual Map"), colormap=colormap, cb_unit=r"$\sigma$")

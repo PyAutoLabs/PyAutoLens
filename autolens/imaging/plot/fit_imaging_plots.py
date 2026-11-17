@@ -70,7 +70,7 @@ def _plot_source_plane(fit, ax, plane_index, zoom_to_brightest=True,
                        lines=None, line_colors=None, vmax=None,
                        zoom_extent_scale: float = 1.0,
                        regions=None, region_alpha: float = 0.25,
-                       region_labels=None):
+                       region_labels=None, interpolated: bool = False):
     """
     Plot the source-plane image (or a blank inversion placeholder) into an axes.
 
@@ -112,6 +112,11 @@ def _plot_source_plane(fit, ax, plane_index, zoom_to_brightest=True,
         The alpha of each region's fill.
     region_labels : list of str, optional
         A label drawn at the centre of each region, matching its image-plane counterpart.
+    interpolated : bool, optional
+        For an inversion source on a Delaunay / kNN mesh, draw the reconstruction the
+        likelihood uses between mesh vertices (the mapper's own interpolant on a uniform
+        grid) instead of flat-shaded triangles. Ignored for parametric sources and
+        rectangular meshes.
     """
     tracer = fit.tracer_linear_light_profiles_to_light_profiles
     if not tracer.planes[plane_index].has(cls=aa.Pixelization):
@@ -168,6 +173,7 @@ def _plot_source_plane(fit, ax, plane_index, zoom_to_brightest=True,
                 vmax=vmax,
                 zoom_to_brightest=zoom_to_brightest,
                 zoom_extent_scale=zoom_extent_scale,
+                interpolated=interpolated,
                 lines=lines,
                 line_colors=line_colors,
                 regions=regions,
@@ -181,6 +187,25 @@ def _plot_source_plane(fit, ax, plane_index, zoom_to_brightest=True,
                 ax.set_title(f"Source Reconstruction (plane {plane_index})")
 
 
+def _source_has_interpolated_view(fit, plane_index) -> bool:
+    """
+    Whether the source at ``plane_index`` is a pixelization whose mesh has an
+    interpolated view (Delaunay / kNN / natural-neighbour), so a
+    ``source_interpolated`` panel differs from the flat-triangle one.
+    """
+    from autoarray.plot.inversion import mapper_has_interpolated_view
+
+    try:
+        tracer = fit.tracer_linear_light_profiles_to_light_profiles
+        if not tracer.planes[plane_index].has(cls=aa.Pixelization):
+            return False
+        mapper_list = fit.inversion.cls_list_from(cls=Mapper)
+        mapper = mapper_list[plane_index - 1] if plane_index > 0 else mapper_list[0]
+        return mapper_has_interpolated_view(mapper)
+    except Exception:
+        return False
+
+
 def subplot_fit(
     fit,
     output_path: Optional[str] = None,
@@ -192,6 +217,7 @@ def subplot_fit(
     source_plane_lines=None,
     source_plane_line_colors=None,
     title_prefix: str = None,
+    source_interpolated: bool = False,
 ):
     """
     Produce a 12-panel subplot summarising an imaging fit.
@@ -230,6 +256,12 @@ def subplot_fit(
     plane_index : int, optional
         Index of the source plane to use for the source-scale panels.
         Defaults to the final plane in the tracer.
+    source_interpolated : bool, optional
+        Draw the mid-zoom source panel as the interpolated reconstruction the
+        likelihood uses ("Source Plane (Interpolated)") when the source is a
+        Delaunay / kNN pixelization, instead of flat-shaded triangles. The max- and
+        no-zoom panels keep the triangles, which show the mesh resolution. Set by
+        ``plots.yaml`` ``fit: subplot_fit_source_interpolated`` (default off).
     """
     if len(fit.tracer.planes) == 1:
         return subplot_fit_x1_plane(fit, output_path=output_path,
@@ -302,11 +334,19 @@ def subplot_fit(
     else:
         axes_flat[6].axis("off")
 
-    # Source plane (mid zoom) — same centre as Max Zoom, 2.5x wider extent
+    # Source plane (mid zoom) — same centre as Max Zoom, 2.5x wider extent. With
+    # `source_interpolated` an irregular-mesh source is drawn as the likelihood's
+    # interpolant here instead of flat triangles.
+    mid_interpolated = source_interpolated and _source_has_interpolated_view(
+        fit, final_plane_index
+    )
     _plot_source_plane(fit, axes_flat[7], final_plane_index, zoom_to_brightest=True,
-                       colormap=colormap, title=_pf("Source Plane (Mid Zoom)"),
+                       colormap=colormap,
+                       title=_pf("Source Plane (Interpolated)" if mid_interpolated
+                                 else "Source Plane (Mid Zoom)"),
                        lines=source_plane_lines, line_colors=source_plane_line_colors,
-                       vmax=source_vmax, zoom_extent_scale=2.0)
+                       vmax=source_vmax, zoom_extent_scale=2.0,
+                       interpolated=mid_interpolated)
 
     # Normalized residual map (symmetric)
     norm_resid = fit.normalized_residual_map

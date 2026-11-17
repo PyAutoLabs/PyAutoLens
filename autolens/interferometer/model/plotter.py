@@ -75,6 +75,9 @@ class PlotterInterferometer(Plotter):
                 image_plane_lines=ip_lines, image_plane_line_colors=ip_colors,
                 source_plane_lines=sp_lines, source_plane_line_colors=sp_colors,
                 title_prefix=self.title_prefix,
+                # `fit.png` draws its zoomed source panel as the likelihood's
+                # interpolant (Delaunay / kNN sources) when this is on; default off.
+                source_interpolated=should_plot("subplot_fit_source_interpolated"),
             )
 
         if quick_update:
