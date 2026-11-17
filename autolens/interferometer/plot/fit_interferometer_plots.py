@@ -128,7 +128,7 @@ def subplot_fit(
     source_plane_lines=None,
     source_plane_line_colors=None,
     title_prefix: str = None,
-    source_interpolated: bool = False,
+    source_interpolated: bool = True,
 ):
     """
     Produce a 12-panel subplot summarising an interferometer fit.
@@ -165,20 +165,21 @@ def subplot_fit(
     colormap : str, optional
         Matplotlib colormap name applied to all image panels.
     source_interpolated : bool, optional
-        Draw the zoomed source panel as the interpolated reconstruction the
-        likelihood uses ("Source Plane (Interpolated)") when the source is a
-        Delaunay / kNN pixelization, instead of flat-shaded triangles; the no-zoom
-        panel keeps the triangles. Set by ``plots.yaml``
-        ``fit: subplot_fit_source_interpolated`` (default off).
+        When the source is a Delaunay / kNN pixelization, the bottom-right panel
+        shows "Source Plane (Interpolated)" -- the reconstruction the likelihood
+        uses, over the zoomed extent -- in place of the no-zoom panel, below the
+        zoomed flat-triangle panel. The array-free 2 x 3 layout adds it in its
+        free last panel and keeps both triangle panels. When ``False`` (or for
+        rectangular / parametric sources) the layout is zoomed + no zoom. Set by
+        ``plots.yaml`` ``fit: subplot_fit_source_interpolated`` (default ``True``).
     """
     from autolens.imaging.plot.fit_imaging_plots import _source_has_interpolated_view
 
     final_plane_index = len(fit.tracer.planes) - 1
 
-    zoom_interpolated = source_interpolated and _source_has_interpolated_view(
+    interpolated = source_interpolated and _source_has_interpolated_view(
         fit, final_plane_index
     )
-    zoom_title = "Source Plane (Interpolated)" if zoom_interpolated else "Source Plane (Zoomed)"
 
     if image_plane_lines is None and source_plane_lines is None:
         tracer = fit.tracer_linear_light_profiles_to_light_profiles
@@ -205,16 +206,23 @@ def subplot_fit(
                    title=_pf("Dirty Residual Map (Natural)"), colormap=colormap)
         _plot_source_plane(fit, axes_flat[3], final_plane_index,
                            zoom_to_brightest=True, colormap=colormap,
-                           title=_pf(zoom_title),
+                           title=_pf("Source Plane (Zoomed)"),
                            lines=source_plane_lines,
-                           line_colors=source_plane_line_colors,
-                           interpolated=zoom_interpolated)
+                           line_colors=source_plane_line_colors)
         _plot_source_plane(fit, axes_flat[4], final_plane_index,
                            zoom_to_brightest=False, colormap=colormap,
                            title=_pf("Source Plane (No Zoom)"),
                            lines=source_plane_lines,
                            line_colors=source_plane_line_colors)
-        axes_flat[5].axis("off")
+        if interpolated:
+            _plot_source_plane(fit, axes_flat[5], final_plane_index,
+                               zoom_to_brightest=True, colormap=colormap,
+                               title=_pf("Source Plane (Interpolated)"),
+                               lines=source_plane_lines,
+                               line_colors=source_plane_line_colors,
+                               interpolated=True)
+        else:
+            axes_flat[5].axis("off")
 
         tight_layout()
         save_figure(fig, path=output_path, filename="fit", format=output_format)
@@ -273,10 +281,9 @@ def subplot_fit(
     # Panel 7 (8th): source plane zoomed with caustics
     _plot_source_plane(fit, axes_flat[7], final_plane_index,
                        zoom_to_brightest=True, colormap=colormap,
-                       title=_pf(zoom_title),
+                       title=_pf("Source Plane (Zoomed)"),
                        lines=source_plane_lines,
-                       line_colors=source_plane_line_colors,
-                       interpolated=zoom_interpolated)
+                       line_colors=source_plane_line_colors)
 
     plot_array(array=fit.dirty_normalized_residual_map, ax=axes_flat[8],
                title=_pf("Dirty Normalized Residual Map"), colormap=colormap, cb_unit=r"$\sigma$")
@@ -294,12 +301,21 @@ def subplot_fit(
     plot_array(array=fit.dirty_chi_squared_map, ax=axes_flat[10],
                title=_pf("Dirty Chi-Squared Map"), colormap=colormap, cb_unit=r"$\chi^2$")
 
-    # Panel 11 (12th): source plane not zoomed with caustics
-    _plot_source_plane(fit, axes_flat[11], final_plane_index,
-                       zoom_to_brightest=False, colormap=colormap,
-                       title=_pf("Source Plane (No Zoom)"),
-                       lines=source_plane_lines,
-                       line_colors=source_plane_line_colors)
+    if interpolated:
+        # Panel 11 (12th): the reconstruction the likelihood uses, over the zoomed extent
+        _plot_source_plane(fit, axes_flat[11], final_plane_index,
+                           zoom_to_brightest=True, colormap=colormap,
+                           title=_pf("Source Plane (Interpolated)"),
+                           lines=source_plane_lines,
+                           line_colors=source_plane_line_colors,
+                           interpolated=True)
+    else:
+        # Panel 11 (12th): source plane not zoomed with caustics
+        _plot_source_plane(fit, axes_flat[11], final_plane_index,
+                           zoom_to_brightest=False, colormap=colormap,
+                           title=_pf("Source Plane (No Zoom)"),
+                           lines=source_plane_lines,
+                           line_colors=source_plane_line_colors)
 
     tight_layout()
     save_figure(fig, path=output_path, filename="fit", format=output_format)

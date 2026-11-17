@@ -1,6 +1,6 @@
 """
-`fit.png` source panel drawn as the likelihood's interpolant
-(`plots.yaml` `fit: subplot_fit_source_interpolated`, PyAutoArray#700).
+`fit.png` source panels with the likelihood's interpolant bottom right
+(`plots.yaml` `fit: subplot_fit_source_interpolated`, default on, PyAutoArray#700).
 """
 
 import matplotlib.pyplot as plt
@@ -61,61 +61,83 @@ def _titles(module, monkeypatch, subplot_fit, fit, **kwargs):
     return captured["axes"]
 
 
-def test__imaging__switch_off__mid_zoom_triangles(fit_imaging_delaunay, monkeypatch):
-    axes = _titles(fit_imaging_plots, monkeypatch, fit_imaging_plots.subplot_fit, fit_imaging_delaunay)
-    assert "Source Plane (Max Zoom)" in axes
-    assert "Source Plane (Mid Zoom)" in axes
-    assert "Source Plane (Interpolated)" not in axes
+def test__imaging__default__max_zoom__no_zoom__interpolated_bottom_right(
+    fit_imaging_delaunay, monkeypatch
+):
+    captured = {}
 
+    def _capture(fig, *args, **kw):
+        captured["fig"] = fig
 
-def test__imaging__switch_on__mid_zoom_is_interpolated_raster(fit_imaging_delaunay, monkeypatch):
-    axes = _titles(
-        fit_imaging_plots, monkeypatch, fit_imaging_plots.subplot_fit,
-        fit_imaging_delaunay, source_interpolated=True,
-    )
-    assert "Source Plane (Mid Zoom)" not in axes
-    assert "Source Plane (Max Zoom)" not in axes
-    interpolated = axes["Source Plane (Interpolated)"]
-    zoom = axes["Source Plane (Zoom)"]
+    monkeypatch.setattr(fit_imaging_plots, "save_figure", _capture)
+    fit_imaging_plots.subplot_fit(fit_imaging_delaunay)
+    fig = captured["fig"]
+    titles = {ax.get_title(): ax for ax in fig.axes if ax.get_title()}
+
+    assert "Source Plane (Mid Zoom)" not in titles
+    max_zoom = titles["Source Plane (Max Zoom)"]
+    no_zoom = titles["Source Plane (No Zoom)"]
+    interpolated = titles["Source Plane (Interpolated)"]
+
+    # Right-hand column, top to bottom: max zoom, no zoom, interpolated.
+    def _y(ax):
+        return ax.get_position().y0
+
+    assert _y(max_zoom) > _y(no_zoom) > _y(interpolated)
+    assert max_zoom.get_position().x0 == pytest.approx(interpolated.get_position().x0)
+
+    assert len(max_zoom.get_images()) == 0
+    assert len(no_zoom.get_images()) == 0
     assert len(interpolated.get_images()) == 1
-    # Triangles at a reasonable zoom and unzoomed; the interpolated panel shares
-    # the zoomed panel's extent so the two compare side by side.
-    assert len(zoom.get_images()) == 0
-    assert len(axes["Source Plane (No Zoom)"].get_images()) == 0
-    assert zoom.get_xlim() == pytest.approx(interpolated.get_xlim())
-    assert zoom.get_ylim() == pytest.approx(interpolated.get_ylim())
+    # The interpolated panel covers the max-zoom extent, for a direct comparison.
+    assert interpolated.get_xlim() == pytest.approx(max_zoom.get_xlim())
+    plt.close(fig)
 
 
-def test__imaging__switch_on__rectangular_source_is_unchanged(monkeypatch):
+def test__imaging__switch_off__max_mid_no_zoom(fit_imaging_delaunay, monkeypatch):
     axes = _titles(
         fit_imaging_plots, monkeypatch, fit_imaging_plots.subplot_fit,
-        fixtures.make_fit_imaging_x2_plane_inversion_7x7(), source_interpolated=True,
+        fit_imaging_delaunay, source_interpolated=False,
     )
     assert "Source Plane (Max Zoom)" in axes
     assert "Source Plane (Mid Zoom)" in axes
+    assert "Source Plane (No Zoom)" in axes
     assert "Source Plane (Interpolated)" not in axes
 
 
-def test__interferometer__switch_on__zoomed_panel_is_interpolated(
+def test__imaging__rectangular_source__keeps_max_mid_no_zoom(monkeypatch):
+    axes = _titles(
+        fit_imaging_plots, monkeypatch, fit_imaging_plots.subplot_fit,
+        fixtures.make_fit_imaging_x2_plane_inversion_7x7(),
+    )
+    assert "Source Plane (Max Zoom)" in axes
+    assert "Source Plane (Mid Zoom)" in axes
+    assert "Source Plane (No Zoom)" in axes
+    assert "Source Plane (Interpolated)" not in axes
+
+
+def test__interferometer__default__zoomed_then_interpolated(
     fit_interferometer_delaunay, monkeypatch
 ):
-    off = _titles(
+    on = _titles(
         fit_interferometer_plots, monkeypatch, fit_interferometer_plots.subplot_fit,
         fit_interferometer_delaunay,
     )
-    assert "Source Plane (Zoomed)" in off
-
-    on = _titles(
-        fit_interferometer_plots, monkeypatch, fit_interferometer_plots.subplot_fit,
-        fit_interferometer_delaunay, source_interpolated=True,
-    )
-    assert "Source Plane (Zoomed)" not in on
+    assert len(on["Source Plane (Zoomed)"].get_images()) == 0
     assert len(on["Source Plane (Interpolated)"].get_images()) == 1
-    assert "Source Plane (No Zoom)" in on
+    assert "Source Plane (No Zoom)" not in on
+
+    off = _titles(
+        fit_interferometer_plots, monkeypatch, fit_interferometer_plots.subplot_fit,
+        fit_interferometer_delaunay, source_interpolated=False,
+    )
+    assert "Source Plane (Zoomed)" in off
+    assert "Source Plane (No Zoom)" in off
+    assert "Source Plane (Interpolated)" not in off
 
 
-def test__plots_yaml__switch_defaults_off():
+def test__plots_yaml__switch_defaults_on():
     from autolens.analysis.plotter import plot_setting
 
-    assert plot_setting(section=["fit", "fit_imaging"], name="subplot_fit_source_interpolated") is False
-    assert plot_setting(section=["fit", "fit_interferometer"], name="subplot_fit_source_interpolated") is False
+    assert plot_setting(section=["fit", "fit_imaging"], name="subplot_fit_source_interpolated") is True
+    assert plot_setting(section=["fit", "fit_interferometer"], name="subplot_fit_source_interpolated") is True

@@ -76,8 +76,8 @@ class PlotterImaging(Plotter):
                 source_plane_lines, source_plane_line_colors,
             )
 
-        # `fit.png` draws its mid-zoom source panel as the likelihood's
-        # interpolant (Delaunay / kNN sources) when this is on; default off.
+        # `fit.png` shows the likelihood's interpolant bottom right (Delaunay /
+        # kNN sources) when this is on (default); off restores the mid-zoom panel.
         source_interpolated = should_plot("subplot_fit_source_interpolated")
 
         # Quick updates write the normal fit subplot (plain `fit.png`, final
