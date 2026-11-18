@@ -1,5 +1,5 @@
 ---
-title: "PyAutoLens-JAX: Differentiable GPU-accelerated strong and weak lensing from galaxies to clusters"
+title: "PyAutoLens II: Automated, Autodifferentiable and Autonomous Gravitational Lens Modelling"
 tags:
   - Python
   - astronomy
@@ -20,118 +20,185 @@ bibliography: paper.bib
 
 # Summary
 
-Gravitational lensing probes luminous and dark matter in galaxy-, group-, and cluster-scale systems. Lensing datasets 
-are growing rapidly in size: Stage IV surveys such as Euclid [@EuclidCollaboration2025] and the Vera C. Rubin 
+Gravitational lensing occurs when the gravitational field of intervening matter bends light from a distant
+source. It can produce multiple images and extended arcs around individual galaxies, groups and clusters,
+as well as weaker distortions in the shapes of background galaxies. These effects allow us to measure the
+distribution of luminous and dark matter, reconstruct distant sources and constrain cosmological parameters.
+Lensing datasets are growing rapidly in size: Stage IV surveys such as Euclid [@EuclidCollaboration2025] and the Vera C. Rubin
 Observatory [@LSSTDarkEnergyScienceCollaboration2012] will measure billions of galaxies across large fractions of the 
 sky. They are also growing in diversity: a single system may include strong- and weak-lensing constraints, multi-band 
 optical and infrared imaging, radio-interferometric visibilities, and point-source measurements of lensed quasars or
 supernovae. Fully exploiting these observations requires joint probabilistic modelling across lensing scales and data types. 
 However, the increasing volume of data and complexity of lens models make these analyses increasingly computationally expensive.
 
-PyAutoLens is now implemented using JAX throughout its core modelling framework, providing just-in-time compilation, 
-GPU acceleration, and automatic differentiation without introducing a separate package or replacing its established 
-object-oriented API. Galaxy-, group-, and cluster-scale lens models can be constrained using CCD imaging, 
-interferometer visibilities, point-source observables, and weak-lensing catalogues fully in JAX. Crucially, 
-these are not isolated capabilities: users can combine multiple datasets and strong- and weak-lensing constraints 
-within a single differentiable, GPU-accelerated probabilistic model. In doing so, PyAutoLens-JAX allows 
-gravitational-lensing analyses to scale with the size and complexity of next-generation datasets.
+PyAutoLens II brings together “the three autos”—automated modelling, automatic differentiation and autonomous
+workflows—within a unified framework for gravitational lens modelling. Automated modelling extends the
+established PyAutoLens approach to galaxy-, group- and cluster-scale systems, combining imaging,
+interferometric visibilities, point-source observables and weak-lensing measurements within reproducible
+analysis pipelines. Automatic differentiation, implemented through JAX alongside just-in-time compilation and
+GPU acceleration, supports efficient likelihood evaluation and gradient-based inference for increasingly
+complex models. Autonomous workflows, guided through the [PyAutoLens AI
+assistant](https://github.com/PyAutoLabs/autolens_assistant), help scientists construct analyses, plan
+computational campaigns and interpret their outputs, connecting individual model fits to the management of
+complete lens samples. Together, the three autos support increasingly scalable and autonomous analyses while
+scientists retain control over physical assumptions and scientific interpretation.
 
 # Statement of need
 
-Gravitational lensing analysis of modern lensing datasets is limited by computational run times and by the ability to fit
-more complex models with more parameters. For example, strong lenses are often observed across multiple optical and 
-submm wavelengths, however joint multiwavelength modeling is rarely performed. The most complex lensing clusters, 
-such as the Hubble Frontier Fields, require months of CPU time to analyse, even though the majority of galaxies are
-tied to some form of scaling relation. This restricts model complexity and makes inclusion of complementary data, notably
-weak lensing catalogues, unfeasible. Measuring the Hubble constant via time delay quasars also takes thousands of human hours partly driven by
-computational overheads, thus studies of lensed supernovae, which require rapid mass models and time-delay 
-predictions to guide time-sensitive follow-up [@Peng2023; @Lange2025; @Schaefer2020], are also infeasible.
-Euclid, Rubin and other wide-field surveys are poised to discover more than 100,000 galaxy-scale lenses and thousands of 
-group- and cluster-scale systems [@Collett2015; @Bergamini2025]. This influx of lensing data combined with a critical assessment of
-existing gravitational lensing studies shows new software and approaches are required to fully scale-up and exploit
-the data to its full scientific potential.
+Modern gravitational-lensing datasets offer the opportunity to study luminous and dark matter through richer
+models of individual systems and statistical analyses of large lens samples. Strong lenses observed across
+optical, infrared and submillimetre wavelengths can reveal complementary views of the source and lens mass
+distribution, but exploiting these observations requires joint multiwavelength modelling. Group- and
+cluster-scale systems offer constraints across a wider range of physical scales, yet incorporating many
+deflecting galaxies alongside both strong- and weak-lensing measurements introduces substantial model
+complexity. Lensed quasars and supernovae provide opportunities to measure cosmological distances, with
+transient systems also requiring rapid mass modelling and time-delay predictions to guide follow-up
+observations. Euclid, Rubin and other wide-field surveys will expand these opportunities to more than 100,000
+galaxy-scale lenses and thousands of group- and cluster-scale systems [@Collett2015; @Bergamini2025].
+Realising this potential requires overcoming both the computational cost of inference and the human effort
+needed to construct, execute and assess increasingly complex analyses across large samples.
 
-PyAutoLens-JAX provides the solution. It 
-extends the established automation of PyAutoLens beyond this computational boundary by making its 
-complete modelling framework compatible with just-in-time compilation, GPU execution, and automatic differentiation. 
-The same accelerated framework supports galaxy-, group-, and cluster-scale models constrained by imaging, 
-interferometric visibilities, point-source observables, and weak-lensing catalogues, including joint analyses across 
-these data types. Faster likelihood evaluation makes richer models and larger samples practical, while automatic 
-differentiation enables gradient-based optimisation and sampling methods that can scale to significantly more free parameters. 
-PyAutoLens-JAX therefore provides the computational foundation required to combine the richest available datasets, 
-model next-generation lens samples at scale, accelerate complex cluster analyses, and deliver rapid inference for time-critical transient lensing.
+PyAutoLens II provides the solution through three complementary capabilities: the three autos. **Automated
+modelling** builds on the original PyAutoLens framework, extending its approach from galaxy-scale strong
+lenses to groups, clusters and weak lensing, with pipelines that combine diverse observations and carry
+information between successive model fits. **Automatic differentiation** enables gradient-based optimisation
+and sampling, while JAX compilation and GPU acceleration reduce the computational cost of evaluating complex
+models. **Autonomous workflows**, supported by the [PyAutoLens AI
+assistant](https://github.com/PyAutoLabs/autolens_assistant), help scientists develop bespoke analyses, plan
+and manage computational campaigns, inspect model fits and assemble reproducible results libraries. These
+capabilities are connected through a composable Python API: users construct galaxies from light and mass
+profiles, arrange them across lens planes and combine the likelihoods of their chosen datasets into a single
+probabilistic model. For example, a cluster model can jointly fit extended arcs, multiple-image positions and
+a weak-lensing catalogue, while a galaxy-scale model can combine optical imaging with interferometric
+observations of the same source. This allows scientists to build bespoke likelihood functions around the
+observations and physical complexity of each lensing system, then apply the same tools for automation,
+differentiation and autonomous execution to the resulting analysis.
 
-The pre-JAX implementation of PyAutoLens has already demonstrated that automated lens modelling can scale to large 
-samples. COWLS I modelled 419 JWST-selected candidates across four NIRCam bands, while the Euclid Q1 analysis 
-successfully modelled more than 300 additional systems [@Nightingale2025; @Lines2025]. Existing lens analysis is therefore 
-limited by analysis run time and complexity; a massive speed up is required for the orders of magnitude increase in lens 
-numbers now being found. 
+# Case studies
 
-This rapid advance in lens analysis run time is paired with PyAutoLens-Assistant, which allows a scientist to describe
-lens modeling using natural language, such that agentic AI then performs it. In doing so, this makes performing bespoke
-and complex lens modeling of individual lenses or large lens samples feasible. PyAutoLens-JAX is therefore
-vital in delivering the computational run times that make this science possible. 
+We develop three case studies that connect the three autos to scientific analyses: combining
+complementary views of one galaxy-scale lens, modelling a complex cluster, and turning a sample of
+survey lenses into a reproducible catalogue. The construction of the models, likelihoods and inference
+workflows is described within each example.
 
-# State of the field
-
-<!--
-Position PyAutoLens-JAX relative to the published PyAutoLens software
-[@Nightingale2021] and other current strong- and weak-lensing packages. Focus on
-the combination of established modelling abstractions, joint multi-dataset
-inference, automatic differentiation, and GPU execution.
+<!-- DRAFT STATUS: These are planned analyses, not completed scientific results.
+Replace prospective descriptions with measured outcomes only after validation.
+Retain versioned data, configurations and run records behind every figure and performance claim.
 -->
 
-# Software design
+## One lens, two views: joint JWST and ALMA modelling
 
-## Differentiable modelling
+JWST imaging and ALMA interferometry reveal different components of a distant galaxy. A joint lens
+model can use both views to constrain the foreground mass distribution while reconstructing the
+near-infrared and submillimetre source emission independently. Our proposed example is SPT0418−47,
+a strong lens observed by both facilities.
 
-<!--
-Describe the JAX-compatible numerical backend, just-in-time compilation,
-automatic differentiation, and preservation of the public PyAutoLens API. Cite
-JAX [@jax2018github] and explain which model components are differentiable.
+The analysis will combine an imaging likelihood, including the JWST point-spread function and lens
+light, with a likelihood evaluated directly from ALMA visibilities. The two likelihoods will share
+lens mass parameters while retaining separate source models and accounting for relative astrometric
+alignment. This provides a concrete introduction to the composable API: each observation contributes
+its own likelihood to one physical lens model.
+
+We will use staged Source-Light-Mass (SLaM) modelling to initialise and refine the analysis, then
+compare Nautilus posterior sampling with a gradient-based fit of the same final model. The example
+will explain how automation carries information between modelling stages and how automatic
+differentiation supports the search for a solution. Optimisation and posterior sampling will be
+reported separately, with fit quality and uncertainty checks supporting the interpretation.
+
+**Figure placeholder:** JWST imaging alongside the ALMA continuum view, the corresponding model
+residuals, and independently reconstructed near-infrared and submillimetre source emission. ALMA
+image-plane panels are visualisations; the fit uses the visibilities.
+
+<!-- TO COMPLETE
+Verify science/error/PSF products, calibrated visibilities and weights; record archive identifiers,
+units, redshifts, masks, coordinate conventions and astrometric offsets. Include the source companion
+or document its masking. Select and validate the SLaM stages and gradient method. Report measured
+runtime in the narrative, linked to autolens_profiling / autolens_inference evidence where applicable.
+Target choice remains provisional until the data audit is complete.
 -->
 
-## Joint datasets and lensing regimes
+## A complex cluster: strong lensing in MACS J0416
 
-<!--
-Describe how analyses combine imaging, interferometer, point-source, and weak-
-lensing observations across lens planes and physical scales in one likelihood.
-Include a concise representative example or schematic.
+Cluster lenses combine large-scale dark matter haloes with many member galaxies and background
+sources at different redshifts. MACS J0416, a Hubble Frontier Fields cluster with a published catalogue
+of 237 spectroscopically confirmed multiple images, is our proposed demanding example.
+
+We will construct a mass model from cluster haloes and member galaxies, using scaling relations to
+connect member masses to their observed properties. Multiple-image positions will constrain the
+shared mass distribution through source-plane and image-plane chi-squared analyses. A source-plane
+fit can provide an initial solution for image-plane refinement; these are alternative treatments of
+the same positional measurements and will not be summed as independent constraints.
+
+The case study will explain how the API assembles many mass components and source systems, and test
+whether GPU execution and gradients make a complex analysis practical on short timescales. Success
+requires an acceptable predicted image configuration and stable inference, rather than runtime alone.
+
+**Figure placeholder:** The cluster field with observed and predicted image positions, critical
+curves for specified source redshifts, and selected reconstructed sources or magnification maps.
+
+<!-- TO COMPLETE
+Cite Bergamini et al. (2023), DOI 10.1051/0004-6361/202244834, and the selected catalogue version.
+Audit member photometry, image families, redshifts, positional errors, priors and mass components.
+Validate source-plane approximation, image matching and gradients. Distinguish cold-start and
+initialised runs, optimisation and posterior sampling. Under one hour on GPU is a target to test,
+not a result or a requirement that justifies simplifying the model without disclosure.
 -->
 
-## End-to-end modelling benchmarks
+## From a short instruction to a Euclid lens catalogue
 
-All benchmarks use gradient-based inference with JAX automatic differentiation and are executed on an NVIDIA A100 GPU. Unless otherwise stated, the lens model comprises a singular isothermal ellipsoid with external shear, a multi-Gaussian expansion for the lens light, and a pixelized reconstruction of the lensed source. For every analysis, we report the total wall-clock time, JAX compilation time, number of likelihood evaluations, and post-compilation runtime.
+The third case study will follow an AI-assisted analysis of 100 high-confidence lenses selected
+from the public Euclid Q1 discovery catalogue. Starting with a short scientific brief, a fixed sample
+and explicit modelling choices, the assistant will prepare and operate a campaign whose outputs
+form a traceable lens-model catalogue.
 
-### Single-dataset and single-regime benchmarks
+The narrative will follow the analysis from dataset preparation through automated modelling,
+resource planning, execution, fit inspection and results assembly. It will show the scientist's
+inputs alongside the actions completed by the assistant, including requests for intervention,
+retries and unsuccessful fits. The resulting catalogue will connect inferred parameters and
+uncertainties to diagnostic images, input data and run provenance.
 
-These benchmarks establish GPU acceleration and automatic differentiation across the individual lensing scales and observational data types supported by PyAutoLens-JAX.
+**Figure placeholder:** A mosaic of observed lenses and reconstructed sources, with a compact
+illustration of the progression from scientific brief to catalogue. Retain all selected systems
+in the outcome accounting, including those without an accepted fit.
 
-- **Galaxy-scale CCD imaging:** Model JWST COSMOS-Web Ring F150W imaging, including lens-light subtraction and a pixelized source reconstruction, in approximately five minutes.
-- **Interferometry:** Model a real ALMA strong-lensing dataset containing more than one million interferometer visibilities in approximately five minutes.
-- **Point-source lensing:** Model a real multiply imaged quasar or supernova using point-source observables, including image positions and, where available, time delays or flux information, in under five minutes.
-- **Group-scale strong lensing:** Model a real group-scale lens containing multiple deflecting galaxies in under five minutes, demonstrating that PyAutoLens-JAX is not restricted to isolated galaxy-scale lenses.
-- **Cluster-scale strong lensing:** Model a real cluster lens with multiple mass components, multiple images, and potentially multiple source planes in under five minutes.
-- **Weak lensing:** Fit a weak-lensing shear catalogue using a differentiable JAX likelihood in under five minutes, demonstrating that PyAutoLens-JAX is not restricted to strong-lensing data.
+<!-- GATED CASE STUDY
+Freeze 100 catalogue IDs using published grades and explicit pre-fit quality cuts; this is a
+selected demonstration sample, not an unbiased population sample. Verify science images, PSFs and
+noise maps. Run a small pilot before the full campaign. Full execution depends on validated many-lens
+HPC planning, recovery and results-library functionality. Record assistant/model versions, prompts,
+human interventions, completion criteria and compute use. Do not describe the workflow as demonstrated
+until end-to-end evidence exists. Public catalogue: https://zenodo.org/records/15025832.
+-->
 
-### Joint and multi-dataset benchmarks
+# Workspace and HowToLens tutorials
 
-These benchmarks demonstrate the central capability of PyAutoLens-JAX: different datasets, lensing regimes, and physical scales can be combined within a single differentiable, GPU-accelerated probabilistic model.
+The [PyAutoLens workspace](https://github.com/PyAutoLabs/autolens_workspace) provides runnable examples
+of model construction, dataset likelihoods and inference workflows. Readers can use these examples
+to develop analyses tailored to their observations, progressing from individual datasets to joint
+models and automated pipelines.
 
-- **Multi-band imaging:** Jointly model the four available JWST COSMOS-Web Ring bands, constraining a common lens mass model while fitting the wavelength-dependent lens and source emission in each dataset.
-- **Joint strong and weak lensing:** Constrain a single group- or cluster-scale mass model using both strong-lensing and weak-lensing observables.
-- **Imaging and point-source lensing:** Jointly model extended arcs and point-source constraints from a lensed quasar or supernova within the same lens model.
-- **Imaging and interferometry:** Jointly fit optical or infrared imaging and radio or submillimetre interferometer visibilities, constraining a common mass model using complementary observations of the lensed source.
+[HowToLens](https://github.com/PyAutoLabs/HowToLens) connects these tools to the underlying lensing
+physics and Bayesian inference. The new Chapter 4, *Scaling Up Lensing*, extends the tutorials beyond
+an isolated lens galaxy to multiple deflectors, scaling relations, group and cluster lenses, and weak
+lensing. These tutorials explain how model complexity and observational constraints change across
+physical scales, and how to assess the resulting fits and posterior uncertainties.
 
-The single examples verify that each major PyAutoLens likelihood and modelling regime is JAX compatible. The combined examples then demonstrate that these capabilities are not implemented as isolated workflows: they can be composed while retaining a common object-oriented API, automatic differentiation, and GPU execution.
+<!-- PLANNED TEACHING EXTENSION — NOT YET VERIFIED AS IMPLEMENTED
+Introduce gradients in the context of Bayesian inference: differentiating a likelihood/posterior,
+using gradients for optimisation and sampling, and distinguishing a MAP estimate from posterior
+uncertainty. Current Chapter 4 scripts use Nautilus and do not yet provide this gradient teaching.
+Link each completed paper case study to a runnable workspace example and the relevant tutorials.
+Do not claim the case-study examples are published in the user workspace before their release.
+-->
 
 # Research impact statement
 
 <!--
-Give specific evidence of research enabled by PyAutoLens and the JAX framework:
-published or ongoing projects, external adoption, survey-scale applications,
-and reproducible examples. Keep this about software impact rather than new
-scientific results.
+Give specific evidence of research enabled by PyAutoLens: published applications,
+external adoption and survey-scale analyses. Use existing large-sample studies to
+establish the automation foundation, then connect the additional capabilities of
+PyAutoLens II to supported scientific applications. Distinguish demonstrated impact
+from prospective uses; avoid repeating the benchmark results.
 -->
 
 # AI usage disclosure
