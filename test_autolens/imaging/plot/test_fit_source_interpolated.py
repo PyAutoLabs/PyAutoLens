@@ -1,6 +1,7 @@
 """
-`fit.png` source panels with the likelihood's interpolant bottom right
-(`plots.yaml` `fit: subplot_fit_source_interpolated`, default on, PyAutoArray#700).
+`fit.png` / `fit_log10.png` source panels with the likelihood's interpolant in the
+middle of the right-hand column, between max zoom and no zoom (`plots.yaml`
+`fit: subplot_fit_source_interpolated`, default on, PyAutoArray#700).
 """
 
 import matplotlib.pyplot as plt
@@ -61,7 +62,7 @@ def _titles(module, monkeypatch, subplot_fit, fit, **kwargs):
     return captured["axes"]
 
 
-def test__imaging__default__max_zoom__no_zoom__interpolated_bottom_right(
+def test__imaging__default__max_zoom__interpolated__no_zoom(
     fit_imaging_delaunay, monkeypatch
 ):
     captured = {}
@@ -79,12 +80,13 @@ def test__imaging__default__max_zoom__no_zoom__interpolated_bottom_right(
     no_zoom = titles["Source Plane (No Zoom)"]
     interpolated = titles["Source Plane (Interpolated)"]
 
-    # Right-hand column, top to bottom: max zoom, no zoom, interpolated.
+    # Right-hand column, top to bottom: max zoom, interpolated, no zoom.
     def _y(ax):
         return ax.get_position().y0
 
-    assert _y(max_zoom) > _y(no_zoom) > _y(interpolated)
+    assert _y(max_zoom) > _y(interpolated) > _y(no_zoom)
     assert max_zoom.get_position().x0 == pytest.approx(interpolated.get_position().x0)
+    assert max_zoom.get_position().x0 == pytest.approx(no_zoom.get_position().x0)
 
     assert len(max_zoom.get_images()) == 0
     assert len(no_zoom.get_images()) == 0
@@ -116,24 +118,139 @@ def test__imaging__rectangular_source__keeps_max_mid_no_zoom(monkeypatch):
     assert "Source Plane (Interpolated)" not in axes
 
 
-def test__interferometer__default__zoomed_then_interpolated(
+def _panel_titles(module, monkeypatch, subplot, fit, **kwargs):
+    """The 3 x 4 panel axes of a subplot in grid order (colorbars excluded)."""
+    captured = {}
+
+    def _capture(fig, *args, **kw):
+        captured["axes"] = fig.axes[:12]
+
+    monkeypatch.setattr(module, "save_figure", _capture)
+    subplot(fit, **kwargs)
+    axes = captured["axes"]
+    titles = [ax.get_title() for ax in axes]
+    plt.close(axes[0].get_figure())
+    return titles, axes
+
+
+def test__imaging_log10__default__max_zoom__interpolated__no_zoom(
+    fit_imaging_delaunay, monkeypatch
+):
+    titles, axes = _panel_titles(
+        fit_imaging_plots, monkeypatch, fit_imaging_plots.subplot_fit_log10,
+        fit_imaging_delaunay,
+    )
+    assert titles[3] == "Source Plane (Max Zoom)"
+    assert titles[7] == "Source Plane (Interpolated)"
+    assert titles[11] == "Source Plane (No Zoom)"
+    assert "Source Plane (Mid Zoom)" not in titles
+
+    interpolated = axes[7]
+    assert len(interpolated.get_images()) == 1
+    assert interpolated.get_images()[0].norm.__class__.__name__ == "LogNorm"
+    assert interpolated.get_xlim() == pytest.approx(axes[3].get_xlim())
+
+
+def test__imaging_log10__switch_off__max_mid_no_zoom(fit_imaging_delaunay, monkeypatch):
+    titles, _ = _panel_titles(
+        fit_imaging_plots, monkeypatch, fit_imaging_plots.subplot_fit_log10,
+        fit_imaging_delaunay, source_interpolated=False,
+    )
+    assert titles[3] == "Source Plane (Max Zoom)"
+    assert titles[7] == "Source Plane (Mid Zoom)"
+    assert titles[11] == "Source Plane (No Zoom)"
+    assert "Source Plane (Interpolated)" not in titles
+
+
+def test__imaging_log10__rectangular_source__keeps_max_mid_no_zoom(monkeypatch):
+    titles, _ = _panel_titles(
+        fit_imaging_plots, monkeypatch, fit_imaging_plots.subplot_fit_log10,
+        fixtures.make_fit_imaging_x2_plane_inversion_7x7(),
+    )
+    assert titles[3] == "Source Plane (Max Zoom)"
+    assert titles[7] == "Source Plane (Mid Zoom)"
+    assert titles[11] == "Source Plane (No Zoom)"
+
+
+_INTERFEROMETER_FIXED_PANELS = {
+    0: "Amplitudes vs UV-Distance",
+    1: "Dirty Image",
+    2: "Dirty Model Image",
+    4: "Dirty Residual Map",
+    5: "Normalized Residual Map (Real)",
+    6: "Normalized Residual Map (Imag)",
+    8: "Dirty Normalized Residual Map",
+    9: r"Normalized Residual Map $1\sigma$",
+    10: "Dirty Chi-Squared Map",
+}
+
+
+def _assert_interferometer_fixed_panels(titles):
+    assert "Dirty Signal-To-Noise Map" not in titles
+    for index, title in _INTERFEROMETER_FIXED_PANELS.items():
+        assert titles[index] == title
+
+
+def _colorbar_vmax(ax):
+    mappables = ax.get_images() or ax.collections
+    return mappables[0].norm.vmax
+
+
+def test__interferometer__default__max_zoom__interpolated__no_zoom(
     fit_interferometer_delaunay, monkeypatch
 ):
-    on = _titles(
+    titles, axes = _panel_titles(
         fit_interferometer_plots, monkeypatch, fit_interferometer_plots.subplot_fit,
         fit_interferometer_delaunay,
     )
-    assert len(on["Source Plane (Zoomed)"].get_images()) == 0
-    assert len(on["Source Plane (Interpolated)"].get_images()) == 1
-    assert "Source Plane (No Zoom)" not in on
+    _assert_interferometer_fixed_panels(titles)
+    assert titles[3] == "Source Plane (Max Zoom)"
+    assert titles[7] == "Source Plane (Interpolated)"
+    assert titles[11] == "Source Plane (No Zoom)"
 
-    off = _titles(
+    assert len(axes[3].get_images()) == 0
+    assert len(axes[7].get_images()) == 1
+    assert len(axes[11].get_images()) == 0
+    assert axes[7].get_xlim() == pytest.approx(axes[3].get_xlim())
+
+    # Every source-plane panel shares one colour scale.
+    vmax = fit_interferometer_plots._get_source_vmax(fit_interferometer_delaunay)
+    assert vmax is not None
+    for index in (3, 7, 11):
+        assert _colorbar_vmax(axes[index]) == pytest.approx(vmax)
+
+
+def test__interferometer__switch_off__max_mid_no_zoom(
+    fit_interferometer_delaunay, monkeypatch
+):
+    titles, _ = _panel_titles(
         fit_interferometer_plots, monkeypatch, fit_interferometer_plots.subplot_fit,
         fit_interferometer_delaunay, source_interpolated=False,
     )
-    assert "Source Plane (Zoomed)" in off
-    assert "Source Plane (No Zoom)" in off
-    assert "Source Plane (Interpolated)" not in off
+    _assert_interferometer_fixed_panels(titles)
+    assert titles[3] == "Source Plane (Max Zoom)"
+    assert titles[7] == "Source Plane (Mid Zoom)"
+    assert titles[11] == "Source Plane (No Zoom)"
+    assert "Source Plane (Interpolated)" not in titles
+
+
+@pytest.mark.parametrize(
+    "make_fit",
+    [
+        fixtures.make_fit_interferometer_x2_plane_inversion_7x7,
+        fixtures.make_fit_interferometer_x2_plane_7x7,
+    ],
+    ids=["rectangular", "parametric"],
+)
+def test__interferometer__no_interpolated_view__max_mid_no_zoom(make_fit, monkeypatch):
+    titles, _ = _panel_titles(
+        fit_interferometer_plots, monkeypatch, fit_interferometer_plots.subplot_fit,
+        make_fit(),
+    )
+    _assert_interferometer_fixed_panels(titles)
+    assert titles[3] == "Source Plane (Max Zoom)"
+    assert titles[7] == "Source Plane (Mid Zoom)"
+    assert titles[11] == "Source Plane (No Zoom)"
 
 
 def test__plots_yaml__switch_defaults_on():

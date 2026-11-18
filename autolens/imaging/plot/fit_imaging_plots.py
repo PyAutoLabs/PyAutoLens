@@ -238,9 +238,8 @@ def subplot_fit(
     * Chi-squared map
     * Source plane image (full extent)
 
-    With ``source_interpolated`` (default) and a Delaunay / kNN source, the mid-zoom
-    panel shows the full extent instead and the last panel shows the
-    interpolated reconstruction.
+    With ``source_interpolated`` (default) and a Delaunay / kNN source, the
+    mid-zoom panel shows the interpolated reconstruction instead.
 
     For single-plane tracers the function delegates to
     :func:`subplot_fit_x1_plane`, which uses a simpler 2 × 3 layout.
@@ -262,12 +261,12 @@ def subplot_fit(
         Defaults to the final plane in the tracer.
     source_interpolated : bool, optional
         When the source is a Delaunay / kNN pixelization, the right-hand source
-        panels are Source Plane (Max Zoom) and Source Plane (No Zoom) as flat
-        triangles, which show the mesh resolution, then "Source Plane
-        (Interpolated)" -- the reconstruction the likelihood uses, over the
-        max-zoom extent -- bottom right. When ``False`` (or for rectangular /
-        parametric sources) they are max, mid and no zoom. Set by ``plots.yaml``
-        ``fit: subplot_fit_source_interpolated`` (default ``True``).
+        panels are Source Plane (Max Zoom) as flat triangles, which show the
+        mesh resolution, then "Source Plane (Interpolated)" -- the
+        reconstruction the likelihood uses, over the max-zoom extent -- in the
+        middle, then Source Plane (No Zoom) bottom right. When ``False`` (or for
+        rectangular / parametric sources) they are max, mid and no zoom. Set by
+        ``plots.yaml`` ``fit: subplot_fit_source_interpolated`` (default ``True``).
     """
     if len(fit.tracer.planes) == 1:
         return subplot_fit_x1_plane(fit, output_path=output_path,
@@ -301,9 +300,9 @@ def subplot_fit(
 
     # The right-hand column holds the three source panels. With
     # `source_interpolated` (the default) and an irregular-mesh source they are:
-    # max zoom (3) and no zoom (7) as flat triangles, which show the mesh
-    # resolution, and the likelihood's interpolant (11) over the max-zoom extent,
-    # so it compares directly with panel 3. Otherwise (switch off, or a
+    # max zoom (3) as flat triangles, which show the mesh resolution, the
+    # likelihood's interpolant (7) over the max-zoom extent, so it compares
+    # directly with panel 3, and no zoom (11). Otherwise (switch off, or a
     # rectangular / parametric source) they are max, mid and no zoom.
     interpolated = source_interpolated and _source_has_interpolated_view(
         fit, final_plane_index
@@ -351,11 +350,12 @@ def subplot_fit(
         axes_flat[6].axis("off")
 
     if interpolated:
-        # Source plane not zoomed (the mid-zoom panel is replaced, see above)
-        _plot_source_plane(fit, axes_flat[7], final_plane_index, zoom_to_brightest=False,
-                           colormap=colormap, title=_pf("Source Plane (No Zoom)"),
+        # The reconstruction the likelihood uses, over the max-zoom extent (the
+        # mid-zoom panel is replaced, see above)
+        _plot_source_plane(fit, axes_flat[7], final_plane_index, zoom_to_brightest=True,
+                           colormap=colormap, title=_pf("Source Plane (Interpolated)"),
                            lines=source_plane_lines, line_colors=source_plane_line_colors,
-                           vmax=source_vmax)
+                           vmax=source_vmax, interpolated=True)
     else:
         # Source plane (mid zoom) — same centre as Max Zoom, 2.5x wider extent
         _plot_source_plane(fit, axes_flat[7], final_plane_index, zoom_to_brightest=True,
@@ -377,18 +377,11 @@ def subplot_fit(
     plot_array(array=fit.chi_squared_map, ax=axes_flat[10],
                title=_pf("Chi-Squared Map"), colormap=colormap, cb_unit=r"$\chi^2$")
 
-    if interpolated:
-        # The reconstruction the likelihood uses, over the max-zoom extent
-        _plot_source_plane(fit, axes_flat[11], final_plane_index, zoom_to_brightest=True,
-                           colormap=colormap, title=_pf("Source Plane (Interpolated)"),
-                           lines=source_plane_lines, line_colors=source_plane_line_colors,
-                           vmax=source_vmax, interpolated=True)
-    else:
-        # Source plane not zoomed
-        _plot_source_plane(fit, axes_flat[11], final_plane_index, zoom_to_brightest=False,
-                           colormap=colormap, title=_pf("Source Plane (No Zoom)"),
-                           lines=source_plane_lines, line_colors=source_plane_line_colors,
-                           vmax=source_vmax)
+    # Source plane not zoomed
+    _plot_source_plane(fit, axes_flat[11], final_plane_index, zoom_to_brightest=False,
+                       colormap=colormap, title=_pf("Source Plane (No Zoom)"),
+                       lines=source_plane_lines, line_colors=source_plane_line_colors,
+                       vmax=source_vmax)
 
     hide_unused_axes(axes_flat)
     tight_layout()
@@ -472,6 +465,7 @@ def subplot_fit_log10(
     source_plane_lines=None,
     source_plane_line_colors=None,
     title_prefix: str = None,
+    source_interpolated: bool = True,
 ):
     """
     Produce a 12-panel subplot summarising an imaging fit with log10 colour scaling.
@@ -484,6 +478,10 @@ def subplot_fit_log10(
     panels — Mid Zoom shares the Max Zoom centre with extents 2x larger,
     kept square and shrunk uniformly so all edges stay inside the No Zoom
     extent.
+
+    With ``source_interpolated`` (default) and a Delaunay / kNN source, the
+    right-hand column matches :func:`subplot_fit`: Source Plane (Max Zoom),
+    Source Plane (Interpolated) and Source Plane (No Zoom), all log10.
 
     For single-plane tracers the function delegates to
     :func:`subplot_fit_log10_x1_plane`.
@@ -502,6 +500,14 @@ def subplot_fit_log10(
     plane_index : int, optional
         Index of the source plane to use for the source-scale panels.
         Defaults to the final plane in the tracer.
+    source_interpolated : bool, optional
+        When the source is a Delaunay / kNN pixelization, the right-hand source
+        panels are Source Plane (Max Zoom) as flat triangles, then "Source Plane
+        (Interpolated)" -- the reconstruction the likelihood uses, over the
+        max-zoom extent -- in the middle, then Source Plane (No Zoom) bottom
+        right. When ``False`` (or for rectangular / parametric sources) they are
+        max, mid and no zoom. Set by ``plots.yaml``
+        ``fit: subplot_fit_source_interpolated`` (default ``True``).
     """
     if len(fit.tracer.planes) == 1:
         return subplot_fit_log10_x1_plane(fit, output_path=output_path,
@@ -537,6 +543,14 @@ def subplot_fit_log10(
     except ValueError:
         axes_flat[2].axis("off")
 
+    # The right-hand column holds the three source panels, as in `subplot_fit`:
+    # max zoom (3), the likelihood's interpolant (7) and no zoom (11) for an
+    # irregular-mesh source with `source_interpolated`; otherwise max, mid and
+    # no zoom.
+    interpolated = source_interpolated and _source_has_interpolated_view(
+        fit, final_plane_index
+    )
+
     # Source plane (max zoom)
     _plot_source_plane(fit, axes_flat[3], final_plane_index, zoom_to_brightest=True,
                        colormap=colormap, use_log10=True,
@@ -566,12 +580,21 @@ def subplot_fit_log10(
     except (IndexError, AttributeError):
         axes_flat[6].axis("off")
 
-    # Source plane (mid zoom) — same centre as Max Zoom, 2.5x wider extent
-    _plot_source_plane(fit, axes_flat[7], final_plane_index, zoom_to_brightest=True,
-                       colormap=colormap, use_log10=True,
-                       title=_pf("Source Plane (Mid Zoom)"),
-                       lines=source_plane_lines, line_colors=source_plane_line_colors,
-                       vmax=source_vmax, zoom_extent_scale=2.0)
+    if interpolated:
+        # The reconstruction the likelihood uses, over the max-zoom extent (the
+        # mid-zoom panel is replaced, see above)
+        _plot_source_plane(fit, axes_flat[7], final_plane_index, zoom_to_brightest=True,
+                           colormap=colormap, use_log10=True,
+                           title=_pf("Source Plane (Interpolated)"),
+                           lines=source_plane_lines, line_colors=source_plane_line_colors,
+                           vmax=source_vmax, interpolated=True)
+    else:
+        # Source plane (mid zoom) — same centre as Max Zoom, 2.5x wider extent
+        _plot_source_plane(fit, axes_flat[7], final_plane_index, zoom_to_brightest=True,
+                           colormap=colormap, use_log10=True,
+                           title=_pf("Source Plane (Mid Zoom)"),
+                           lines=source_plane_lines, line_colors=source_plane_line_colors,
+                           vmax=source_vmax, zoom_extent_scale=2.0)
 
     norm_resid = fit.normalized_residual_map
     _abs_max = _symmetric_vmax(norm_resid)

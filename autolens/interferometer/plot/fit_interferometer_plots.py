@@ -24,9 +24,40 @@ from autolens.lens.plot.critical_curves import _compute_critical_curve_lines
 logger = logging.getLogger(__name__)
 
 
+def _get_source_vmax(fit):
+    """
+    Return the colour-scale maximum shared by the source-plane panels of an
+    interferometer fit.
+
+    The interferometer counterpart of the imaging
+    :func:`~autolens.imaging.plot.fit_imaging_plots._get_source_vmax`: the
+    maximum over the source planes (index >= 1) of each plane's real-space
+    model image (its galaxies' entries in ``fit.galaxy_image_dict`` summed),
+    so every source-plane panel uses one colour scale.  Returns ``None`` when
+    no source-plane image is available, so callers fall back to automatic
+    scaling.
+    """
+    try:
+        galaxy_image_dict = fit.galaxy_image_dict
+        maxima = []
+        for plane in fit.tracer.planes[1:]:
+            images = [
+                np.asarray(getattr(galaxy_image_dict[galaxy], "array",
+                                   galaxy_image_dict[galaxy]), dtype=float)
+                for galaxy in plane
+                if galaxy in galaxy_image_dict
+            ]
+            if images:
+                maxima.append(float(np.max(np.sum(images, axis=0))))
+        return max(maxima) if maxima else None
+    except Exception:
+        return None
+
+
 def _plot_source_plane(fit, ax, plane_index, zoom_to_brightest=True,
                        colormap=None, use_log10=False, title=None,
                        lines=None, line_colors=None, vmax=None,
+                       zoom_extent_scale: float = 1.0,
                        interpolated: bool = False):
     """
     Plot the source-plane image into an axes, matching the imaging subplot_fit behaviour.
@@ -61,6 +92,9 @@ def _plot_source_plane(fit, ax, plane_index, zoom_to_brightest=True,
         Colours for each entry in *lines*.
     vmax : float, optional
         Shared colour-scale maximum.
+    zoom_extent_scale : float, optional
+        Widen the zoomed extent by this factor about the same centre (``2.0`` gives the
+        "Mid Zoom" panel), kept inside the no-zoom extent, as in the imaging subplot.
     interpolated : bool, optional
         For an inversion source on a Delaunay / kNN mesh, draw the reconstruction the
         likelihood uses between mesh vertices instead of flat-shaded triangles.
@@ -82,10 +116,20 @@ def _plot_source_plane(fit, ax, plane_index, zoom_to_brightest=True,
                 extent=zoom.extent_from(buffer=0),
                 shape_native=zoom.shape_native,
             )
+        zoom_extent_bounds = None
+        if zoom_extent_scale != 1.0:
+            zoom = aa.Zoom2D(mask=fit.dataset.real_space_mask)
+            no_zoom_grid = aa.Grid2D.from_extent(
+                extent=zoom.extent_from(buffer=0),
+                shape_native=zoom.shape_native,
+            )
+            zoom_extent_bounds = no_zoom_grid.geometry.extent
         image = plane_image_from(
             galaxies=tracer.planes[plane_index],
             grid=grid,
             zoom_to_brightest=zoom_to_brightest,
+            zoom_extent_scale=zoom_extent_scale,
+            zoom_extent_bounds=zoom_extent_bounds,
         )
         plot_array(
             array=image, ax=ax,
@@ -108,6 +152,7 @@ def _plot_source_plane(fit, ax, plane_index, zoom_to_brightest=True,
                 use_log10=use_log10,
                 vmax=vmax,
                 zoom_to_brightest=zoom_to_brightest,
+                zoom_extent_scale=zoom_extent_scale,
                 interpolated=interpolated,
                 lines=lines,
                 line_colors=line_colors,
@@ -133,21 +178,25 @@ def subplot_fit(
     """
     Produce a 12-panel subplot summarising an interferometer fit.
 
-    Arranges the following panels in a 3 × 4 grid:
+    Arranges the following panels in a 3 × 4 grid, the right-hand column
+    holding the source plane as in the imaging ``fit.png``:
 
     * Amplitudes vs UV-distance (scatter)
     * Dirty image
-    * Dirty signal-to-noise map
-    * Dirty model image
-    * Source plane image (final plane)
+    * Dirty model image (with critical curves)
+    * Source plane image (max zoom)
+    * Dirty residual map
     * Normalised residual (real part) vs UV-distance (scatter)
     * Normalised residual (imaginary part) vs UV-distance (scatter)
-    * Source plane image zoomed (final plane)
+    * Source plane image (mid zoom -- same centre as max zoom, 2× wider extent)
     * Dirty normalised residual map
     * Dirty normalised residual map clipped to ± 1 σ
-    * (panel 9 re-used for 1σ clip — see implementation note)
     * Dirty chi-squared map
     * Source plane image (full extent)
+
+    With ``source_interpolated`` (default) and a Delaunay / kNN source, the
+    mid-zoom panel shows the interpolated reconstruction instead.  Every
+    source-plane panel shares one colour scale (:func:`_get_source_vmax`).
 
     On an array-free dataset (``fit.dataset.is_array_free``) there are no visibilities, so a
     2 × 3 grid of the natural-weighted dirty image, dirty model image and dirty residual map
@@ -165,13 +214,15 @@ def subplot_fit(
     colormap : str, optional
         Matplotlib colormap name applied to all image panels.
     source_interpolated : bool, optional
-        When the source is a Delaunay / kNN pixelization, the bottom-right panel
-        shows "Source Plane (Interpolated)" -- the reconstruction the likelihood
-        uses, over the zoomed extent -- in place of the no-zoom panel, below the
-        zoomed flat-triangle panel. The array-free 2 x 3 layout adds it in its
-        free last panel and keeps both triangle panels. When ``False`` (or for
-        rectangular / parametric sources) the layout is zoomed + no zoom. Set by
-        ``plots.yaml`` ``fit: subplot_fit_source_interpolated`` (default ``True``).
+        When the source is a Delaunay / kNN pixelization, the right-hand source
+        panels are Source Plane (Max Zoom) as flat triangles, which show the
+        mesh resolution, then "Source Plane (Interpolated)" -- the
+        reconstruction the likelihood uses, over the max-zoom extent -- in the
+        middle, then Source Plane (No Zoom) bottom right. When ``False`` (or for
+        rectangular / parametric sources) they are max, mid and no zoom. The array-free 2 x 3
+        layout adds the interpolated panel in its free last panel and keeps both
+        triangle panels. Set by ``plots.yaml``
+        ``fit: subplot_fit_source_interpolated`` (default ``True``).
     """
     from autolens.imaging.plot.fit_imaging_plots import _source_has_interpolated_view
 
@@ -231,6 +282,8 @@ def subplot_fit(
     fig, axes = subplots(3, 4, figsize=conf_subplot_figsize(3, 4))
     axes_flat = list(axes.flatten())
 
+    source_vmax = _get_source_vmax(fit)
+
     # Panel 0: amplitudes vs UV-distances
     plot_yx(
         y=np.real(fit.residual_map),
@@ -244,13 +297,26 @@ def subplot_fit(
 
     plot_array(array=fit.dirty_image, ax=axes_flat[1], title=_pf("Dirty Image"),
                colormap=colormap)
-    plot_array(array=fit.dirty_signal_to_noise_map, ax=axes_flat[2],
-               title=_pf("Dirty Signal-To-Noise Map"), colormap=colormap)
 
-    # Panel 3 (4th): dirty model image with critical curves
-    plot_array(array=fit.dirty_model_image, ax=axes_flat[3], title=_pf("Dirty Model Image"),
+    # Panel 2: dirty model image with critical curves
+    plot_array(array=fit.dirty_model_image, ax=axes_flat[2], title=_pf("Dirty Model Image"),
                colormap=colormap, lines=image_plane_lines,
                line_colors=image_plane_line_colors)
+
+    # The right-hand column holds the three source panels, as in the imaging
+    # `fit.png`. With `source_interpolated` (the default) and an irregular-mesh
+    # source they are: max zoom (3) as flat triangles, which show the mesh
+    # resolution, the likelihood's interpolant (7) over the max-zoom extent, so
+    # it compares directly with panel 3, and no zoom (11). Otherwise (switch
+    # off, or a rectangular / parametric source) they are max, mid and no zoom.
+
+    # Panel 3: source plane (max zoom) with caustics
+    _plot_source_plane(fit, axes_flat[3], final_plane_index,
+                       zoom_to_brightest=True, colormap=colormap,
+                       title=_pf("Source Plane (Max Zoom)"),
+                       lines=source_plane_lines,
+                       line_colors=source_plane_line_colors,
+                       vmax=source_vmax)
 
     # Panel 4: dirty residual map
     plot_array(array=fit.dirty_residual_map, ax=axes_flat[4],
@@ -278,12 +344,23 @@ def subplot_fit(
         plot_axis_type="scatter",
     )
 
-    # Panel 7 (8th): source plane zoomed with caustics
-    _plot_source_plane(fit, axes_flat[7], final_plane_index,
-                       zoom_to_brightest=True, colormap=colormap,
-                       title=_pf("Source Plane (Zoomed)"),
-                       lines=source_plane_lines,
-                       line_colors=source_plane_line_colors)
+    if interpolated:
+        # Panel 7: the reconstruction the likelihood uses, over the max-zoom
+        # extent (the mid-zoom panel is replaced, see above)
+        _plot_source_plane(fit, axes_flat[7], final_plane_index,
+                           zoom_to_brightest=True, colormap=colormap,
+                           title=_pf("Source Plane (Interpolated)"),
+                           lines=source_plane_lines,
+                           line_colors=source_plane_line_colors,
+                           vmax=source_vmax, interpolated=True)
+    else:
+        # Panel 7: source plane (mid zoom) -- same centre as Max Zoom, 2x wider extent
+        _plot_source_plane(fit, axes_flat[7], final_plane_index,
+                           zoom_to_brightest=True, colormap=colormap,
+                           title=_pf("Source Plane (Mid Zoom)"),
+                           lines=source_plane_lines,
+                           line_colors=source_plane_line_colors,
+                           vmax=source_vmax, zoom_extent_scale=2.0)
 
     plot_array(array=fit.dirty_normalized_residual_map, ax=axes_flat[8],
                title=_pf("Dirty Normalized Residual Map"), colormap=colormap, cb_unit=r"$\sigma$")
@@ -301,21 +378,13 @@ def subplot_fit(
     plot_array(array=fit.dirty_chi_squared_map, ax=axes_flat[10],
                title=_pf("Dirty Chi-Squared Map"), colormap=colormap, cb_unit=r"$\chi^2$")
 
-    if interpolated:
-        # Panel 11 (12th): the reconstruction the likelihood uses, over the zoomed extent
-        _plot_source_plane(fit, axes_flat[11], final_plane_index,
-                           zoom_to_brightest=True, colormap=colormap,
-                           title=_pf("Source Plane (Interpolated)"),
-                           lines=source_plane_lines,
-                           line_colors=source_plane_line_colors,
-                           interpolated=True)
-    else:
-        # Panel 11 (12th): source plane not zoomed with caustics
-        _plot_source_plane(fit, axes_flat[11], final_plane_index,
-                           zoom_to_brightest=False, colormap=colormap,
-                           title=_pf("Source Plane (No Zoom)"),
-                           lines=source_plane_lines,
-                           line_colors=source_plane_line_colors)
+    # Panel 11: source plane not zoomed with caustics
+    _plot_source_plane(fit, axes_flat[11], final_plane_index,
+                       zoom_to_brightest=False, colormap=colormap,
+                       title=_pf("Source Plane (No Zoom)"),
+                       lines=source_plane_lines,
+                       line_colors=source_plane_line_colors,
+                       vmax=source_vmax)
 
     tight_layout()
     save_figure(fig, path=output_path, filename="fit", format=output_format)
