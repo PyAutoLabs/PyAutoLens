@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import autolens as al
-from autogalaxy.cosmology import Planck15
+from autogalaxy.cosmology import FlatLambdaCDM, Planck15
 from autolens.lens import los
 
 
@@ -287,7 +287,87 @@ def test__mass_function_ab_from__missing_colossus_raises_clear_import_error(
 def test__mass_function_ab_from__cosmology_astropy_is_deprecated():
     pytest.importorskip("colossus")
 
+    from astropy.cosmology import Planck15 as AstropyPlanck15
+
     with pytest.warns(DeprecationWarning, match="cosmology_astropy"):
-        A, B = los.mass_function_ab_from(redshift=0.5, cosmology_astropy=object())
+        A, B = los.mass_function_ab_from(
+            redshift=0.5, cosmology_astropy=AstropyPlanck15
+        )
 
     assert A == pytest.approx(-1.907, abs=0.01)
+
+
+def test__mass_function_ab_from__mismatched_cosmology_astropy_raises():
+    """
+    A ``cosmology_astropy`` that disagrees with the colossus cosmology must not be silently
+    ignored (it would give the Planck15 mass function for a WMAP9 caller): it raises a
+    ``ValueError`` naming both. A matching colossus name works.
+    """
+    pytest.importorskip("colossus")
+    from astropy.cosmology import WMAP9
+
+    with pytest.warns(DeprecationWarning):
+        with pytest.raises(ValueError, match="WMAP9") as exc:
+            los.mass_function_ab_from(redshift=0.5, cosmology_astropy=WMAP9)
+    assert "planck15" in str(exc.value)
+
+    with pytest.warns(DeprecationWarning):
+        A, B = los.mass_function_ab_from(
+            redshift=0.5, cosmology_astropy=WMAP9, cosmology_name="WMAP9"
+        )
+    assert B == pytest.approx(8.108, abs=0.002)
+
+
+def test__los_sampler__mismatched_cosmology_raises():
+    """
+    ``LOSSampler`` checks both ``cosmology`` and ``cosmology_astropy`` against
+    ``cosmology_name_colossus`` when it computes the halo statistics with colossus, and raises a
+    ``ValueError`` naming both on a mismatch. Matching pairs, and precomputed coefficients (no
+    colossus), work unchanged.
+    """
+    pytest.importorskip("colossus")
+    from astropy.cosmology import WMAP9
+
+    wmap9_like = FlatLambdaCDM(H0=69.32, Om0=0.2865)
+
+    with pytest.raises(ValueError, match="`cosmology`") as exc:
+        los.LOSSampler(
+            z_lens=0.5, z_source=1.0, cosmology=wmap9_like, seed=1
+        ).galaxies_from()
+    assert "planck15" in str(exc.value)
+
+    with pytest.warns(DeprecationWarning):
+        sampler = los.LOSSampler(
+            z_lens=0.5, z_source=1.0, cosmology_astropy=WMAP9, seed=1
+        )
+    with pytest.raises(ValueError, match="WMAP9") as exc:
+        sampler.galaxies_from()
+    assert "planck15" in str(exc.value)
+
+    mf, mc = _approx_coefficients(n_planes=9)
+    los.LOSSampler(
+        z_lens=0.5,
+        z_source=1.0,
+        cosmology=wmap9_like,
+        mass_function_coefficients=mf,
+        mass_concentration_coefficients=mc,
+        seed=1,
+    ).galaxies_from()
+
+
+def test__los_sampler__matching_cosmology_pair_is_accepted(monkeypatch):
+    pytest.importorskip("colossus")
+
+    monkeypatch.setenv("PYAUTO_TEST_MODE", "2")
+
+    wmap9_like = FlatLambdaCDM(H0=69.32, Om0=0.2865)
+
+    galaxies = los.LOSSampler(
+        z_lens=0.5,
+        z_source=1.0,
+        cosmology=wmap9_like,
+        cosmology_name_colossus="WMAP9",
+        seed=1,
+    ).galaxies_from()
+
+    assert len(galaxies) > 0
