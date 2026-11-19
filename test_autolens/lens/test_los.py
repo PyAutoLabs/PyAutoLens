@@ -8,9 +8,9 @@ from autolens.lens import los
 
 def _approx_coefficients(n_planes):
     """
-    Approximate per-plane mass-function and mass-concentration coefficients,
-    matching the pre-computed fallback used by the los_halos workspace
-    simulators (avoids the optional ``hmf`` / ``colossus`` dependencies).
+    Fixed placeholder mass-function and mass-concentration coefficients, for
+    tests that exercise the sampling machinery rather than the colossus fits.
+    They are not physically accurate (no redshift evolution).
     """
     mf = np.tile([-1.9, 8.0], (n_planes, 1))
     mc = np.tile([-3.0, 40.0], (n_planes, 1))
