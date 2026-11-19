@@ -8,9 +8,9 @@ from autolens.lens import los
 
 def _approx_coefficients(n_planes):
     """
-    Approximate per-plane mass-function and mass-concentration coefficients,
-    matching the pre-computed fallback used by the los_halos workspace
-    simulators (avoids the optional ``hmf`` / ``colossus`` dependencies).
+    Fixed placeholder mass-function and mass-concentration coefficients, for
+    tests that exercise the sampling machinery rather than the colossus fits.
+    They are not physically accurate (no redshift evolution).
     """
     mf = np.tile([-1.9, 8.0], (n_planes, 1))
     mc = np.tile([-3.0, 40.0], (n_planes, 1))
@@ -222,3 +222,72 @@ def test__the_population_is_sampled_once_and_shared(monkeypatch):
 
     assert [g.redshift for g in first] == [g.redshift for g in second]
     assert first[0] is second[0]
+
+
+def test__los_sampler__default_coefficients_match_sheth_tormen_reference(monkeypatch):
+    """
+    With no precomputed coefficients, ``LOSSampler`` fits the Sheth-Tormen mass function from
+    colossus. The per-plane slope must sit near the reference -1.906 and the expected number of
+    1e7 to 1e10 M_sun halos in a 5 arcsec cone (z_lens 0.5, z_source 1.0, 4 + 4 planes) near the
+    reference 1282 halos measured with the former hmf Sheth-Mo-Tormen fit.
+
+    Test mode only caps the *drawn* halos; the expected count ``n_bar`` each plane passes to
+    ``number_of_halos_from`` is the uncapped population, which is what is checked here.
+    """
+    pytest.importorskip("colossus")
+
+    monkeypatch.setenv("PYAUTO_TEST_MODE", "2")
+
+    slopes = []
+    n_bars = []
+
+    mass_function_ab_from = los.mass_function_ab_from
+    number_of_halos_from = los.number_of_halos_from
+
+    def recording_mass_function_ab_from(*args, **kwargs):
+        A, B = mass_function_ab_from(*args, **kwargs)
+        slopes.append(A)
+        return A, B
+
+    def recording_number_of_halos_from(*args, **kwargs):
+        n_bar = number_of_halos_from(*args, **kwargs)
+        n_bars.append(n_bar)
+        return n_bar
+
+    monkeypatch.setattr(los, "mass_function_ab_from", recording_mass_function_ab_from)
+    monkeypatch.setattr(los, "number_of_halos_from", recording_number_of_halos_from)
+
+    sampler = los.LOSSampler(z_lens=0.5, z_source=1.0, seed=1)
+    sampler.galaxies_and_fields_from()
+
+    assert len(slopes) == 9
+    assert all(A == pytest.approx(-1.906, abs=0.02) for A in slopes)
+    assert sum(n_bars) == pytest.approx(1282.0, rel=0.05)
+
+
+def test__mass_function_ab_from__missing_colossus_raises_clear_import_error(
+    monkeypatch,
+):
+    """
+    Without colossus installed the coefficient fits must stop with an ``ImportError`` that names
+    colossus and how to install it, never a bare ``ModuleNotFoundError`` for another package.
+    """
+    import sys
+
+    monkeypatch.setitem(sys.modules, "colossus", None)
+    monkeypatch.setitem(sys.modules, "colossus.cosmology", None)
+
+    with pytest.raises(ImportError, match="pip install colossus"):
+        los.mass_function_ab_from(redshift=0.5)
+
+    with pytest.raises(ImportError, match="pip install colossus"):
+        los.mass_concentration_ab_from(redshift=0.5)
+
+
+def test__mass_function_ab_from__cosmology_astropy_is_deprecated():
+    pytest.importorskip("colossus")
+
+    with pytest.warns(DeprecationWarning, match="cosmology_astropy"):
+        A, B = los.mass_function_ab_from(redshift=0.5, cosmology_astropy=object())
+
+    assert A == pytest.approx(-1.907, abs=0.01)
