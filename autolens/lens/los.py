@@ -136,9 +136,13 @@ def _colossus_cosmology_from(cosmology_name):
 # a genuinely different cosmology (e.g. WMAP9 vs planck15: 2.3% in H0, 7% in Om0) is far outside.
 _H0_RTOL = 1e-3
 _OM0_RTOL = 1e-2
+# Absolute tolerance on the curvature density Ok0 (colossus and autogalaxy cosmologies are flat).
+_OK0_ATOL = 1e-3
 
 
-def _check_cosmology_matches_colossus(cosmology, col_cosmo, cosmology_name, argument):
+def _check_cosmology_matches_colossus(
+    cosmology, col_cosmo, cosmology_name, argument, name_argument
+):
     """
     Raise a ``ValueError`` if ``cosmology`` disagrees with the colossus cosmology ``col_cosmo``.
 
@@ -149,28 +153,35 @@ def _check_cosmology_matches_colossus(cosmology, col_cosmo, cosmology_name, argu
     Parameters
     ----------
     cosmology
-        An ``astropy`` cosmology or an autogalaxy ``LensingCosmology``; compared by ``H0`` and ``Om0``.
+        An ``astropy`` cosmology or an autogalaxy ``LensingCosmology``; compared by ``H0``,
+        ``Om0`` and the curvature ``Ok0`` (taken as 0, flat, when it has none).
     col_cosmo
         The colossus cosmology set from ``cosmology_name``.
     cosmology_name
         The colossus cosmology name, quoted in the error.
     argument
         The name of the argument ``cosmology`` was passed as, quoted in the error.
+    name_argument
+        The name of the argument that sets the colossus cosmology name, quoted in the error's hint.
     """
     h0 = float(getattr(cosmology.H0, "value", cosmology.H0))
     om0 = float(cosmology.Om0)
+    ok0 = float(getattr(cosmology, "Ok0", 0.0))
 
-    if np.isclose(h0, col_cosmo.H0, rtol=_H0_RTOL, atol=0.0) and np.isclose(
-        om0, col_cosmo.Om0, rtol=_OM0_RTOL, atol=0.0
+    if (
+        np.isclose(h0, col_cosmo.H0, rtol=_H0_RTOL, atol=0.0)
+        and np.isclose(om0, col_cosmo.Om0, rtol=_OM0_RTOL, atol=0.0)
+        and abs(ok0 - col_cosmo.Ok0) <= _OK0_ATOL
     ):
         return
 
     name = getattr(cosmology, "name", None) or type(cosmology).__name__
     raise ValueError(
-        f"`{argument}` ({name}: H0={h0:g}, Om0={om0:g}) does not match the colossus cosmology "
-        f"{cosmology_name!r} (H0={col_cosmo.H0:g}, Om0={col_cosmo.Om0:g}) used for the halo mass "
-        "function and concentration relation. Pass the matching colossus cosmology name (e.g. "
-        "`cosmology_name_colossus='WMAP9'` for WMAP9) so both describe the same universe."
+        f"`{argument}` ({name}: H0={h0:g}, Om0={om0:g}, Ok0={ok0:g}) does not match the colossus "
+        f"cosmology {cosmology_name!r} (H0={col_cosmo.H0:g}, Om0={col_cosmo.Om0:g}, "
+        f"Ok0={col_cosmo.Ok0:g}) used for the halo mass function and concentration relation. "
+        f"Pass the matching colossus cosmology name (e.g. `{name_argument}='WMAP9'` for WMAP9) so "
+        "both describe the same universe."
     )
 
 
@@ -233,7 +244,11 @@ def mass_function_ab_from(
 
     if cosmology_astropy is not None:
         _check_cosmology_matches_colossus(
-            cosmology_astropy, col_cosmo, cosmology_name, "cosmology_astropy"
+            cosmology_astropy,
+            col_cosmo,
+            cosmology_name,
+            "cosmology_astropy",
+            "cosmology_name",
         )
 
     from colossus.lss.mass_function import massFunction
@@ -851,7 +866,11 @@ class LOSSampler:
             ):
                 if supplied is not None:
                     _check_cosmology_matches_colossus(
-                        supplied, col_cosmo, self.cosmology_name_colossus, argument
+                        supplied,
+                        col_cosmo,
+                        self.cosmology_name_colossus,
+                        argument,
+                        "cosmology_name_colossus",
                     )
 
         if mf_coeffs is None:

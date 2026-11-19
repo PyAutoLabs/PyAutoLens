@@ -304,12 +304,19 @@ def test__mass_function_ab_from__mismatched_cosmology_astropy_raises():
     ``ValueError`` naming both. A matching colossus name works.
     """
     pytest.importorskip("colossus")
-    from astropy.cosmology import WMAP9
+    from astropy.cosmology import LambdaCDM, WMAP9
 
     with pytest.warns(DeprecationWarning):
         with pytest.raises(ValueError, match="WMAP9") as exc:
             los.mass_function_ab_from(redshift=0.5, cosmology_astropy=WMAP9)
     assert "planck15" in str(exc.value)
+    assert "`cosmology_name='WMAP9'`" in str(exc.value)
+
+    curved = LambdaCDM(H0=67.74, Om0=0.3089, Ode0=0.5)
+
+    with pytest.warns(DeprecationWarning):
+        with pytest.raises(ValueError, match="Ok0"):
+            los.mass_function_ab_from(redshift=0.5, cosmology_astropy=curved)
 
     with pytest.warns(DeprecationWarning):
         A, B = los.mass_function_ab_from(
@@ -335,6 +342,7 @@ def test__los_sampler__mismatched_cosmology_raises():
             z_lens=0.5, z_source=1.0, cosmology=wmap9_like, seed=1
         ).galaxies_from()
     assert "planck15" in str(exc.value)
+    assert "`cosmology_name_colossus='WMAP9'`" in str(exc.value)
 
     with pytest.warns(DeprecationWarning):
         sampler = los.LOSSampler(
