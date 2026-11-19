@@ -78,6 +78,24 @@ def _halo_parameter_extractor_from(profile_cls):
     raise ValueError(f"Unsupported halo profile class: {profile_cls}")
 
 
+def _padding_params_from(profile_cls, n_params):
+    """
+    The parameter row put into an empty halo slot: a zero centre followed by the profile's
+    ``vmapped_padding_params`` (ones when it has none).
+
+    The mask zeroes an empty slot's deflection, but zero padding would put a zero scale
+    radius into the profile, whose infinite partial derivatives turn every ``jax.grad``
+    through the plane into NaN (zero cotangent times infinity). A row inside the profile's
+    domain keeps the gradients finite. ``vmapped_deflections_from`` swaps in the same row
+    itself; padding here as well keeps the gradients finite with an autogalaxy whose hook
+    predates that swap.
+    """
+    radial = getattr(profile_cls, "vmapped_padding_params", None)
+    if radial is None:
+        radial = np.ones(n_params - 2)
+    return np.concatenate([np.zeros(2), np.asarray(radial, dtype=float)])
+
+
 def precompute_scaling_matrix(plane_redshifts, cosmology=None):
     import jax.numpy as jnp
 
@@ -168,7 +186,8 @@ def galaxies_to_halo_arrays(galaxies, plane_redshifts, max_n, profile_cls):
     Returns
     -------
     The halo parameters ``(n_planes, max_n, n_params)``, the slot mask ``(n_planes, max_n)``
-    and the sheet convergence of each plane ``(n_planes,)``.
+    and the sheet convergence of each plane ``(n_planes,)``. Slots the mask leaves empty hold
+    the profile's benign padding parameters (see ``_padding_params_from``), not zeros.
     """
     import jax.numpy as jnp
 
@@ -183,7 +202,10 @@ def galaxies_to_halo_arrays(galaxies, plane_redshifts, max_n, profile_cls):
     else:
         _check_max_n(counts=counts, plane_redshifts=plane_redshifts, max_n=max_n)
 
-    params = np.zeros((n_planes, max_n, n_params))
+    params = np.tile(
+        _padding_params_from(profile_cls=profile_cls, n_params=n_params),
+        (n_planes, max_n, 1),
+    )
     mask = np.zeros((n_planes, max_n), dtype=bool)
     sheet_kappas = np.zeros(n_planes)
 
