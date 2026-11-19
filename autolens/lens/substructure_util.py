@@ -99,11 +99,89 @@ def precompute_scaling_matrix(plane_redshifts, cosmology=None):
     return jnp.array(mat)
 
 
+def _plane_index_of_halos(galaxies, plane_redshifts, profile_cls):
+    """
+    Return, for each halo of type ``profile_cls`` that sits on one of ``plane_redshifts``,
+    the index of its plane, in the order the halos appear in ``galaxies``.
+    """
+    z_to_plane = {round(float(z), 8): i for i, z in enumerate(plane_redshifts)}
+
+    plane_indexes = []
+    for g in galaxies:
+        plane_i = z_to_plane.get(round(float(g.redshift), 8))
+        if plane_i is None or hasattr(g, "mass_sheet"):
+            continue
+        if hasattr(g, "mass") and isinstance(g.mass, profile_cls):
+            plane_indexes.append(plane_i)
+
+    return plane_indexes
+
+
+def halo_counts_per_plane_from(galaxies, plane_redshifts, profile_cls):
+    """
+    The number of halos of type ``profile_cls`` on each plane of ``plane_redshifts``.
+
+    The largest entry is the smallest ``max_n`` that ``galaxies_to_halo_arrays`` accepts for
+    these galaxies.
+    """
+    counts = np.zeros(len(plane_redshifts), dtype=int)
+    for plane_i in _plane_index_of_halos(galaxies, plane_redshifts, profile_cls):
+        counts[plane_i] += 1
+    return counts
+
+
+def _check_max_n(counts, plane_redshifts, max_n):
+    overflowing = [
+        f"plane {i} (z={float(plane_redshifts[i]):.4f}) holds {int(count)} halos"
+        for i, count in enumerate(counts)
+        if count > max_n
+    ]
+    if overflowing:
+        raise ValueError(
+            f"max_n={max_n} is too small: "
+            + "; ".join(overflowing)
+            + f". Pass max_n={int(max(counts))} or more, or max_n=None to size the arrays "
+            "to the fullest plane. Halos beyond max_n would be dropped while the "
+            "negative-convergence sheets still remove their mass."
+        )
+
+
 def galaxies_to_halo_arrays(galaxies, plane_redshifts, max_n, profile_cls):
+    """
+    Pack the halos in ``galaxies`` into padded, fixed-shape arrays for the JAX ray-tracing scan.
+
+    Parameters
+    ----------
+    galaxies
+        The halo galaxies (mass profiles of type ``profile_cls``) and the sheet galaxies or
+        fields (with a ``mass_sheet``) of one line of sight.
+    plane_redshifts
+        The redshift of every plane; galaxies at any other redshift are ignored.
+    max_n
+        The number of halo slots per plane. A plane holding more halos than this raises a
+        ``ValueError`` naming the plane and the ``max_n`` needed, because dropping halos while
+        keeping the sheets that compensate for their mass would break mass conservation.
+        ``None`` sizes the arrays to the fullest plane.
+    profile_cls
+        The halo mass profile class, which sets which parameters are packed.
+
+    Returns
+    -------
+    The halo parameters ``(n_planes, max_n, n_params)``, the slot mask ``(n_planes, max_n)``
+    and the sheet convergence of each plane ``(n_planes,)``.
+    """
     import jax.numpy as jnp
 
     n_planes = len(plane_redshifts)
     n_params, extract = _halo_parameter_extractor_from(profile_cls=profile_cls)
+
+    counts = halo_counts_per_plane_from(
+        galaxies=galaxies, plane_redshifts=plane_redshifts, profile_cls=profile_cls
+    )
+    if max_n is None:
+        max_n = max(int(counts.max(initial=0)), 1)
+    else:
+        _check_max_n(counts=counts, plane_redshifts=plane_redshifts, max_n=max_n)
 
     params = np.zeros((n_planes, max_n, n_params))
     mask = np.zeros((n_planes, max_n), dtype=bool)
@@ -123,9 +201,8 @@ def galaxies_to_halo_arrays(galaxies, plane_redshifts, max_n, profile_cls):
             sheet_kappas[plane_i] = float(g.mass_sheet.kappa)
         elif hasattr(g, "mass") and isinstance(g.mass, profile_cls):
             slot = int(mask[plane_i].sum())
-            if slot < max_n:
-                params[plane_i, slot] = extract(g.mass)
-                mask[plane_i, slot] = True
+            params[plane_i, slot] = extract(g.mass)
+            mask[plane_i, slot] = True
 
     return jnp.array(params), jnp.array(mask), jnp.array(sheet_kappas)
 
@@ -248,19 +325,47 @@ def los_realizations_to_arrays(
     max_n,
     profile_cls,
 ):
+    """
+    Run ``galaxies_to_halo_arrays`` on every line of sight in ``realization_galaxies`` and stack
+    the results along a leading batch axis.
+
+    ``max_n=None`` sizes the arrays to the fullest plane across the whole batch, so every
+    realisation shares one shape. An integer ``max_n`` that any plane of any realisation
+    overflows raises a ``ValueError``.
+    """
     import jax.numpy as jnp
+
+    if max_n is None:
+        max_n = max(
+            [
+                int(
+                    halo_counts_per_plane_from(
+                        galaxies=galaxies,
+                        plane_redshifts=plane_redshifts,
+                        profile_cls=profile_cls,
+                    ).max(initial=0)
+                )
+                for galaxies in realization_galaxies
+            ]
+            + [1]
+        )
 
     all_params = []
     all_masks = []
     all_kappas = []
 
-    for galaxies in realization_galaxies:
-        params, mask, kappas = galaxies_to_halo_arrays(
-            galaxies=galaxies,
-            plane_redshifts=plane_redshifts,
-            max_n=max_n,
-            profile_cls=profile_cls,
-        )
+    for realization_i, galaxies in enumerate(realization_galaxies):
+        try:
+            params, mask, kappas = galaxies_to_halo_arrays(
+                galaxies=galaxies,
+                plane_redshifts=plane_redshifts,
+                max_n=max_n,
+                profile_cls=profile_cls,
+            )
+        except ValueError as error:
+            if "max_n=" not in str(error):
+                raise
+            raise ValueError(f"Realisation {realization_i}: {error}") from error
         all_params.append(params)
         all_masks.append(mask)
         all_kappas.append(kappas)
