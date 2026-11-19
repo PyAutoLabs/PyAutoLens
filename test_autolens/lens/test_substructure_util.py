@@ -130,3 +130,110 @@ def test__galaxies_to_halo_arrays__packs_yang_profile_parameters():
             ]
         ),
     )
+
+
+def _nfw_truncated_halos_on_plane(redshift, total):
+    return [
+        al.Galaxy(
+            redshift=redshift,
+            mass=al.mp.NFWTruncatedSph(
+                centre=(0.01 * i, 0.0),
+                kappa_s=0.01,
+                scale_radius=1.0,
+                truncation_radius=2.0,
+            ),
+        )
+        for i in range(total)
+    ]
+
+
+@requires_jax
+def test__galaxies_to_halo_arrays__raises_when_a_plane_overflows_max_n():
+    galaxies = (
+        _nfw_truncated_halos_on_plane(redshift=0.3, total=2)
+        + _nfw_truncated_halos_on_plane(redshift=0.7, total=5)
+        + [al.Galaxy(redshift=0.7, mass_sheet=al.mp.MassSheet(kappa=-0.01))]
+    )
+
+    with pytest.raises(ValueError) as error:
+        substructure_util.galaxies_to_halo_arrays(
+            galaxies=galaxies,
+            plane_redshifts=[0.3, 0.7],
+            max_n=3,
+            profile_cls=al.mp.NFWTruncatedSph,
+        )
+
+    message = str(error.value)
+    assert "plane 1 (z=0.7000) holds 5 halos" in message
+    assert "plane 0" not in message
+    assert "max_n=5" in message
+
+
+@requires_jax
+def test__galaxies_to_halo_arrays__max_n_none_sizes_to_fullest_plane_and_keeps_every_halo():
+    galaxies = (
+        _nfw_truncated_halos_on_plane(redshift=0.3, total=2)
+        + _nfw_truncated_halos_on_plane(redshift=0.7, total=5)
+        + [al.Galaxy(redshift=0.7, mass_sheet=al.mp.MassSheet(kappa=-0.01))]
+    )
+
+    params, mask, sheet_kappas = substructure_util.galaxies_to_halo_arrays(
+        galaxies=galaxies,
+        plane_redshifts=[0.3, 0.7],
+        max_n=None,
+        profile_cls=al.mp.NFWTruncatedSph,
+    )
+
+    assert params.shape[:2] == (2, 5)
+    assert mask.sum(axis=1).tolist() == [2, 5]
+    assert int(mask.sum()) == 7
+    np.testing.assert_allclose(
+        np.asarray(params[1, :, 0]), [0.0, 0.01, 0.02, 0.03, 0.04]
+    )
+    assert sheet_kappas.tolist() == [0.0, -0.01]
+
+
+@requires_jax
+def test__galaxies_to_halo_arrays__exact_max_n_is_accepted():
+    params, mask, _ = substructure_util.galaxies_to_halo_arrays(
+        galaxies=_nfw_truncated_halos_on_plane(redshift=0.7, total=3),
+        plane_redshifts=[0.7],
+        max_n=3,
+        profile_cls=al.mp.NFWTruncatedSph,
+    )
+
+    assert mask.tolist() == [[True, True, True]]
+
+
+@requires_jax
+def test__los_realizations_to_arrays__max_n_none_sizes_to_fullest_plane_across_batch():
+    realization_galaxies = [
+        _nfw_truncated_halos_on_plane(redshift=0.7, total=2),
+        _nfw_truncated_halos_on_plane(redshift=0.3, total=4),
+    ]
+
+    params, mask, _ = substructure_util.los_realizations_to_arrays(
+        realization_galaxies=realization_galaxies,
+        plane_redshifts=[0.3, 0.7],
+        max_n=None,
+        profile_cls=al.mp.NFWTruncatedSph,
+    )
+
+    assert params.shape[:3] == (2, 2, 4)
+    assert mask.sum(axis=(1, 2)).tolist() == [2, 4]
+
+
+@requires_jax
+def test__los_realizations_to_arrays__overflow_names_the_realisation():
+    realization_galaxies = [
+        _nfw_truncated_halos_on_plane(redshift=0.7, total=2),
+        _nfw_truncated_halos_on_plane(redshift=0.3, total=4),
+    ]
+
+    with pytest.raises(ValueError, match=r"Realisation 1: .*plane 0 \(z=0.3000\) holds 4 halos"):
+        substructure_util.los_realizations_to_arrays(
+            realization_galaxies=realization_galaxies,
+            plane_redshifts=[0.3, 0.7],
+            max_n=3,
+            profile_cls=al.mp.NFWTruncatedSph,
+        )
