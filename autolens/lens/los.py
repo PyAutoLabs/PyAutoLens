@@ -106,36 +106,68 @@ def los_planes_from(
     return boundaries, centres
 
 
+_COLOSSUS_MESSAGE = (
+    "The line-of-sight halo sampler (autolens.lens.los) computes the Sheth-Tormen halo mass "
+    "function and the Ludlow+16 concentration-mass relation with the optional dependency "
+    "`colossus`, which is not installed. Install it with `pip install colossus` (or "
+    "`pip install autolens[los]`), or pass precomputed `mass_function_coefficients` and "
+    "`mass_concentration_coefficients` to `LOSSampler`."
+)
+
+
+def _colossus_cosmology_from(cosmology_name):
+    """
+    Import ``colossus`` and set (and return) the named colossus cosmology.
+
+    ``colossus`` is an optional dependency of PyAutoLens (the ``los`` extra). A missing install
+    raises an ``ImportError`` that names it and says how to install it, rather than a bare
+    ``ModuleNotFoundError`` deep inside the sampler.
+    """
+    try:
+        from colossus.cosmology import cosmology as col_cosmology
+    except ImportError as e:
+        raise ImportError(_COLOSSUS_MESSAGE) from e
+
+    return col_cosmology.setCosmology(cosmology_name)
+
+
 def mass_function_ab_from(
     redshift,
-    cosmology_astropy,
+    cosmology_astropy=None,
     m_min_log10=5.9,
     m_max_log10=10.1,
     dlog10m=0.1,
+    cosmology_name="planck15",
 ):
     """
-    Linear fit to the Sheth-Mo-Tormen halo mass function at a given redshift.
+    Linear fit to the Sheth-Tormen halo mass function at a given redshift.
 
     Returns coefficients (A, B) such that::
 
         log10(dn/dm) ≈ A * log10(m) + B
 
-    where dn/dm is in units of h^4 Mpc^-3 M_sun^-1 (with h factors folded
-    in to give masses in M_sun rather than M_sun/h).
+    where m is in M_sun and dn/dm in Mpc^-3 M_sun^-1 (comoving, h factors folded in).
+
+    The mass function is ``colossus`` ``massFunction`` with ``model='sheth99'`` (Sheth & Tormen
+    1999, friends-of-friends masses), the same library the sampler uses for the concentration
+    relation.
 
     Parameters
     ----------
     redshift
         Redshift at which to evaluate the mass function.
     cosmology_astropy
-        An ``astropy.cosmology`` instance (e.g. ``Planck15``), required by
-        the ``hmf`` library.
+        Deprecated and ignored. The mass function was formerly computed with ``hmf``, which took an
+        ``astropy`` cosmology; it is now computed with ``colossus``, which takes
+        ``cosmology_name``. Passing it raises a ``DeprecationWarning``.
     m_min_log10
         Lower bound of log10(m / M_sun) for the fit range.
     m_max_log10
         Upper bound of log10(m / M_sun) for the fit range.
     dlog10m
         Mass bin spacing in dex.
+    cosmology_name
+        Colossus cosmology name (e.g. ``"planck15"``).
 
     Returns
     -------
@@ -144,28 +176,31 @@ def mass_function_ab_from(
     B : float
         Intercept of the linear fit.
     """
-    import hmf
-    import hmf.fitting_functions
+    if cosmology_astropy is not None:
+        warnings.warn(
+            "mass_function_ab_from: `cosmology_astropy` is deprecated and ignored. The mass "
+            "function is computed with colossus, whose cosmology is set by `cosmology_name` "
+            f"(here {cosmology_name!r}).",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
-    h = cosmology_astropy.h
+    col_cosmo = _colossus_cosmology_from(cosmology_name)
 
-    m_min_h = m_min_log10 + np.log10(h)
-    m_max_h = m_max_log10 + np.log10(h)
+    from colossus.lss.mass_function import massFunction
 
-    mf = hmf.MassFunction(
-        Mmin=m_min_h,
-        Mmax=m_max_h,
-        z=redshift,
-        hmf_model=hmf.fitting_functions.SMT,
-        dlog10m=dlog10m,
-        cosmo_model=cosmology_astropy,
-    )
+    h = col_cosmo.h
 
-    x = np.arange(m_min_log10, m_max_log10, dlog10m)
-    y = np.log10(mf.dndm * (h ** 4.0))
+    lgm = np.arange(m_min_log10, m_max_log10, dlog10m)
+    m = 10.0 ** lgm
 
-    design = np.vstack([x, np.ones(len(x))]).T
-    A, B = np.linalg.lstsq(design, y, rcond=None)[0]
+    # colossus takes masses in M_sun/h and returns dn/dlnM in (Mpc/h)^-3; convert to dn/dm in
+    # Mpc^-3 M_sun^-1 with masses in M_sun.
+    dn_dlnm = massFunction(m * h, redshift, mdef="fof", model="sheth99", q_out="dndlnM")
+    log10_dn_dm = np.log10(dn_dlnm * h**3 / m)
+
+    design = np.vstack([lgm, np.ones(len(lgm))]).T
+    A, B = np.linalg.lstsq(design, log10_dn_dm, rcond=None)[0]
 
     return A, B
 
@@ -204,10 +239,9 @@ def mass_concentration_ab_from(
     B : float
         Intercept.
     """
-    from colossus.cosmology import cosmology as col_cosmology
-    from colossus.halo.concentration import concentration as col_concentration
+    col_cosmo = _colossus_cosmology_from(cosmology_name)
 
-    col_cosmo = col_cosmology.setCosmology(cosmology_name)
+    from colossus.halo.concentration import concentration as col_concentration
 
     lgm_range = np.linspace(m_min_log10, m_max_log10, n_points)
     mass_input = 10 ** lgm_range * col_cosmo.h
@@ -565,14 +599,17 @@ class LOSSampler:
     cosmology
         A ``LensingCosmology`` instance. Defaults to ``Planck15()``.
     cosmology_astropy
-        An ``astropy.cosmology`` instance for ``hmf``. Required if
-        ``mass_function_ab_from`` is used (i.e. ``mass_function_coefficients``
-        are not provided).
+        Deprecated and ignored: the mass function is now computed with
+        ``colossus`` (see ``cosmology_name_colossus``). Passing it raises a
+        ``DeprecationWarning``.
     cosmology_name_colossus
-        Colossus cosmology name (e.g. ``"planck15"``).
+        Colossus cosmology name (e.g. ``"planck15"``), used for both the
+        Sheth-Tormen mass function and the Ludlow+16 concentration relation.
+        The optional dependency ``colossus`` (``pip install autolens[los]``)
+        is required unless both coefficient arrays below are provided.
     mass_function_coefficients
         Optional pre-computed (A, B) per plane, shape (n_planes, 2).
-        If provided, skips ``hmf`` computation.
+        If provided, skips the ``colossus`` mass-function computation.
     mass_concentration_coefficients
         Optional pre-computed (A, B) per plane, shape (n_planes, 2).
         If provided, skips ``colossus`` computation.
@@ -608,6 +645,14 @@ class LOSSampler:
         self.c_scatter = c_scatter
         self.truncation_factor = truncation_factor
         self.cosmology = cosmology or Planck15()
+        if cosmology_astropy is not None:
+            warnings.warn(
+                "LOSSampler: `cosmology_astropy` is deprecated and ignored. The mass function is "
+                "computed with colossus, whose cosmology is set by `cosmology_name_colossus` "
+                f"(here {cosmology_name_colossus!r}).",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         self.cosmology_astropy = cosmology_astropy
         self.cosmology_name_colossus = cosmology_name_colossus
         self.mass_function_coefficients = mass_function_coefficients
@@ -750,7 +795,7 @@ class LOSSampler:
             for i in range(n_planes):
                 A, B = mass_function_ab_from(
                     redshift=centres[i],
-                    cosmology_astropy=self.cosmology_astropy,
+                    cosmology_name=self.cosmology_name_colossus,
                 )
                 mf_coeffs[i] = [A, B]
 

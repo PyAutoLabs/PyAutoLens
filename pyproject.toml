@@ -54,8 +54,12 @@ local_scheme = "no-local-version"
 # `pip install autolens[jax]` keeps resolving (#687).
 jax = []
 coolest = ["coolest"]
+# Line-of-sight halos (autolens.lens.los): colossus computes the Sheth-Tormen
+# mass function and the Ludlow+16 concentration-mass relation.
+los = ["colossus"]
 optional = [
     "autolens[jax]",
+    "autolens[los]",
     "coolest",
     "numba",
     "zeus-mcmc==2.5.4",
