@@ -237,3 +237,116 @@ def test__los_realizations_to_arrays__overflow_names_the_realisation():
             max_n=3,
             profile_cls=al.mp.NFWTruncatedSph,
         )
+
+
+def _multi_plane_summed_deflections(grid, plane_params, plane_masks, scaling_matrix):
+    """
+    Trace ``grid`` through the halo planes one at a time and return the sum of every plane's
+    deflections, each plane taking its own (possibly unpadded) parameter array.
+    """
+    import jax.numpy as jnp
+
+    deflections = []
+    total = 0.0
+    for i, (params, mask) in enumerate(zip(plane_params, plane_masks)):
+        traced = grid
+        for j in range(i):
+            traced = traced - scaling_matrix[i, j] * deflections[j]
+        plane_deflections = al.mp.NFWTruncatedSph.vmapped_deflections_from(
+            traced, params, mask
+        )
+        deflections.append(plane_deflections)
+        total = total + jnp.sum(plane_deflections)
+    return total
+
+
+def _nfw_truncated_halos_scattered(redshift, total, seed):
+    rng = np.random.default_rng(seed)
+    return [
+        al.Galaxy(
+            redshift=redshift,
+            mass=al.mp.NFWTruncatedSph(
+                centre=tuple(rng.uniform(-1.0, 1.0, size=2)),
+                kappa_s=float(rng.uniform(0.01, 0.05)),
+                scale_radius=float(rng.uniform(0.5, 1.5)),
+                truncation_radius=float(rng.uniform(2.0, 4.0)),
+            ),
+        )
+        for _ in range(total)
+    ]
+
+
+@requires_jax
+def test__galaxies_to_halo_arrays__padded_slots_keep_multi_plane_gradients_finite():
+    import jax
+    import jax.numpy as jnp
+
+    plane_redshifts = [0.3, 0.6]
+    counts = [2, 5]
+    galaxies = _nfw_truncated_halos_scattered(
+        redshift=0.3, total=2, seed=1
+    ) + _nfw_truncated_halos_scattered(redshift=0.6, total=5, seed=2)
+
+    with jax.enable_x64(True):
+        grid = jnp.array(np.random.default_rng(3).uniform(-2.0, 2.0, size=(30, 2)))
+        scaling_matrix = substructure_util.precompute_scaling_matrix(plane_redshifts)
+
+        padded_params, padded_mask, _ = substructure_util.galaxies_to_halo_arrays(
+            galaxies=galaxies,
+            plane_redshifts=plane_redshifts,
+            max_n=8,
+            profile_cls=al.mp.NFWTruncatedSph,
+        )
+        assert not bool(padded_mask.all())
+
+        unpadded = [
+            substructure_util.galaxies_to_halo_arrays(
+                galaxies=[g for g in galaxies if g.redshift == z],
+                plane_redshifts=[z],
+                max_n=count,
+                profile_cls=al.mp.NFWTruncatedSph,
+            )
+            for z, count in zip(plane_redshifts, counts)
+        ]
+        unpadded_params = [params[0] for params, _, _ in unpadded]
+        unpadded_masks = [mask[0] for _, mask, _ in unpadded]
+        assert all(bool(mask.all()) for mask in unpadded_masks)
+
+        def padded(grid, params):
+            return _multi_plane_summed_deflections(
+                grid, list(params), list(padded_mask), scaling_matrix
+            )
+
+        def no_padding(grid, params):
+            return _multi_plane_summed_deflections(
+                grid, params, unpadded_masks, scaling_matrix
+            )
+
+        d_grid, d_params = jax.grad(padded, argnums=(0, 1))(grid, padded_params)
+        d_grid_ref, d_params_ref = jax.grad(no_padding, argnums=(0, 1))(
+            grid, unpadded_params
+        )
+
+    assert np.isfinite(np.asarray(d_grid)).all()
+    assert np.isfinite(np.asarray(d_params)).all()
+    np.testing.assert_allclose(d_grid, d_grid_ref, rtol=0.0, atol=1e-10)
+    for plane, count in enumerate(counts):
+        np.testing.assert_allclose(
+            d_params[plane, :count], d_params_ref[plane], rtol=0.0, atol=1e-10
+        )
+        assert np.all(np.asarray(d_params[plane, count:]) == 0.0)
+
+
+@requires_jax
+def test__galaxies_to_halo_arrays__empty_slots_hold_benign_padding():
+    params, mask, _ = substructure_util.galaxies_to_halo_arrays(
+        galaxies=_nfw_truncated_halos_on_plane(redshift=0.7, total=1),
+        plane_redshifts=[0.7],
+        max_n=3,
+        profile_cls=al.mp.NFWTruncatedSph,
+    )
+
+    assert mask.tolist() == [[True, False, False]]
+    np.testing.assert_allclose(np.asarray(params[0, 0]), [0.0, 0.0, 0.01, 1.0, 2.0])
+    radial_padding = np.asarray(params[0, 1:, 2:])
+    assert np.all(radial_padding[:, 1] > 0.0)
