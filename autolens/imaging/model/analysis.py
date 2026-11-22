@@ -237,7 +237,7 @@ class AnalysisImaging(AnalysisDataset):
             preloads=preloads,
         )
 
-    def save_attributes(self, paths: af.DirectoryPaths):
+    def save_attributes(self, paths: af.AbstractPaths):
         """
         Before the non-linear search begins, output the imaging ``dataset.fits``
         to the ``image`` folder. The write is unconditional (it is not gated on any
@@ -273,10 +273,7 @@ class AnalysisImaging(AnalysisDataset):
             header_dict=self.dataset.mask.header_dict,
         )
 
-        dataset_path = paths.image_path / "dataset.fits"
-
-        if not dataset_path.exists():
-            hdu_list.writeto(dataset_path, overwrite=True)
+        self._save_dataset_fits(paths=paths, hdu_list=hdu_list)
 
     @staticmethod
     def _register_fit_imaging_pytrees() -> None:

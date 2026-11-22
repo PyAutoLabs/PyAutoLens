@@ -311,3 +311,89 @@ def test__save_attributes__array_free_dataset__aggregator_round_trip(
         assert al.FitInterferometer(
             dataset=interferometer_7, tracer=tracer
         ).figure_of_merit == pytest.approx(figure_of_merit, rel=1.0e-8)
+
+
+@pytest.mark.parametrize("array_free", [False, True])
+def test__save_attributes__registers_dataset_fits_in_database(
+    interferometer_7, tmp_path, array_free
+):
+    import numpy as np
+
+    from autofit.aggregator.search_output import SearchOutput
+    from autofit.database import Fit, open_database
+    from autogalaxy.aggregator import agg_util
+    from autolens.aggregator import _interferometer_from
+
+    if array_free:
+        dataset = aa.Interferometer.from_stream(
+            [
+                (
+                    interferometer_7.uv_wavelengths,
+                    interferometer_7.data,
+                    interferometer_7.noise_map,
+                )
+            ],
+            real_space_mask=interferometer_7.real_space_mask,
+            transformer_class=type(interferometer_7.transformer),
+        )
+    else:
+        dataset = interferometer_7
+    analysis = al.AnalysisInterferometer(dataset=dataset, use_jax=False)
+    directory_paths = af.DirectoryPaths(
+        name="directory", path_prefix=str(tmp_path), is_identifier_in_paths=False
+    )
+    analysis.save_attributes(paths=directory_paths)
+    directory_fit = SearchOutput(directory_paths.output_path)
+    (directory_dataset,) = _interferometer_from(fit=directory_fit)
+
+    with open_database(str(tmp_path / "fits.sqlite")) as session:
+        database_paths = af.DatabasePaths(
+            session=session,
+            name="database",
+            path_prefix=str(tmp_path),
+            is_identifier_in_paths=False,
+        )
+        analysis.save_attributes(paths=database_paths)
+        fit_id = database_paths.fit.id
+        session.commit()
+        session.expunge_all()
+        database_fit = session.get(Fit, fit_id)
+
+        with database_fit.value("dataset") as database_hdus, directory_fit.value(
+            "dataset"
+        ) as directory_hdus:
+            assert [hdu.name for hdu in database_hdus] == [
+                hdu.name for hdu in directory_hdus
+            ]
+            for database_hdu, directory_hdu in zip(database_hdus, directory_hdus):
+                np.testing.assert_array_equal(database_hdu.data, directory_hdu.data)
+
+        mask, _ = agg_util.mask_header_from(fit=database_fit)
+        directory_mask, _ = agg_util.mask_header_from(fit=directory_fit)
+        np.testing.assert_array_equal(mask.array, directory_mask.array)
+        assert mask.pixel_scales == directory_mask.pixel_scales
+        assert mask.origin == directory_mask.origin
+
+        (database_dataset,) = _interferometer_from(fit=database_fit)
+
+    assert database_dataset.is_array_free == directory_dataset.is_array_free == array_free
+    if array_free:
+        np.testing.assert_array_equal(
+            database_dataset.sparse_terms.nufft_precision_operator,
+            directory_dataset.sparse_terms.nufft_precision_operator,
+        )
+        np.testing.assert_array_equal(
+            database_dataset.sparse_terms.dirty_image_native,
+            directory_dataset.sparse_terms.dirty_image_native,
+        )
+    else:
+        np.testing.assert_array_equal(
+            database_dataset.data.array, directory_dataset.data.array
+        )
+        np.testing.assert_array_equal(
+            database_dataset.noise_map.array, directory_dataset.noise_map.array
+        )
+        np.testing.assert_array_equal(
+            database_dataset.uv_wavelengths, directory_dataset.uv_wavelengths
+        )
+        assert type(database_dataset.transformer) is type(directory_dataset.transformer)

@@ -317,7 +317,7 @@ class AnalysisInterferometer(AnalysisDataset):
 
         _FIT_INTERFEROMETER_PYTREES_REGISTERED = True
 
-    def save_attributes(self, paths: af.DirectoryPaths):
+    def save_attributes(self, paths: af.AbstractPaths):
         """
          Before the model-fit begins, this routine saves attributes of the `Analysis` object to the `files` folder
          such that they can be loaded after the analysis using PyAutoFit's database and aggregator tools.
@@ -355,17 +355,7 @@ class AnalysisInterferometer(AnalysisDataset):
         # `autogalaxy.interferometer.model.analysis.interferometer_hdu_list_from`).
         hdu_list = interferometer_hdu_list_from(dataset=self.dataset)
 
-        # `dataset.fits` is written once per search, to the `image` folder, and is written
-        # unconditionally (it is not gated on any visualization setting). The write is skipped
-        # if the file already exists, so a resumed search does not rewrite it.
-        #
-        # The aggregator loaders (e.g. `InterferometerAgg`, `agg_util.mask_header_from`) reload
-        # the dataset via `fit.value(name="dataset")`, which scans the `image` folder for .fits
-        # files, so this single write is all that is required.
-        dataset_path = paths.image_path / "dataset.fits"
-
-        if not dataset_path.exists():
-            hdu_list.writeto(dataset_path, overwrite=True)
+        self._save_dataset_fits(paths=paths, hdu_list=hdu_list)
 
         # An array-free dataset has no transformer; its transformer class name is recorded in
         # the `dataset.fits` header instead.
