@@ -16,6 +16,8 @@ import logging
 import numpy as np
 from typing import List, Optional
 
+from astropy.io.fits import HDUList
+
 from autonerves import conf
 from autonerves.dictable import output_to_json
 
@@ -38,6 +40,22 @@ logger.setLevel(level="INFO")
 
 
 class AnalysisDataset(AgAnalysisDataset, AnalysisLens):
+    @staticmethod
+    def _save_dataset_fits(paths: af.AbstractPaths, hdu_list: HDUList) -> None:
+        """Save the dataset for directory and database aggregators."""
+        dataset_path = paths.image_path / "dataset.fits"
+        if not dataset_path.exists():
+            hdu_list.writeto(dataset_path, overwrite=True)
+
+        if isinstance(paths, af.DatabasePaths) and not any(
+            fits.name == "dataset" for fits in paths.fit.fits
+        ):
+            # PyAutoFit reloads database HDU data as big-endian float64.
+            for hdu in hdu_list:
+                if hdu.data is not None:
+                    hdu.data = hdu.data.astype(">f8", copy=False)
+            paths.save_fits(name="dataset", fits=hdu_list)
+
     def __init__(
         self,
         dataset,

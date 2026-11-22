@@ -318,3 +318,69 @@ def test__preloads_scoped__cross_type_preloads_reduced_to_mesh_view(masked_imagi
     same_type = aa.PreloadsImaging(source_plane_mesh_grid=[["mesh"]])
     fit = al.FitImaging(dataset=masked_imaging_7x7, tracer=tracer, preloads=same_type)
     assert fit._preloads_scoped is same_type
+
+
+def test__save_attributes__registers_dataset_fits_in_database(masked_imaging_7x7, tmp_path):
+    import numpy as np
+
+    from autofit.aggregator.search_output import SearchOutput
+    from autofit.database import Fit, Fits, open_database
+    from autogalaxy.aggregator import agg_util
+    from autolens.aggregator import _imaging_from
+
+    analysis = al.AnalysisImaging(dataset=masked_imaging_7x7, use_jax=False)
+    directory_paths = af.DirectoryPaths(
+        name="directory", path_prefix=str(tmp_path), is_identifier_in_paths=False
+    )
+    analysis.save_attributes(paths=directory_paths)
+    directory_fit = SearchOutput(directory_paths.output_path)
+    (directory_dataset,) = _imaging_from(fit=directory_fit)
+
+    with open_database(str(tmp_path / "fits.sqlite")) as session:
+        database_paths = af.DatabasePaths(
+            session=session,
+            name="database",
+            path_prefix=str(tmp_path),
+            is_identifier_in_paths=False,
+        )
+        analysis.save_attributes(paths=database_paths)
+        fit_id = database_paths.fit.id
+        session.commit()
+        session.expunge_all()
+        resumed_paths = af.DatabasePaths(
+            session=session,
+            name="database",
+            path_prefix=str(tmp_path),
+            is_identifier_in_paths=False,
+        )
+        analysis.save_attributes(paths=resumed_paths)
+        session.commit()
+        assert session.query(Fits).count() == 1
+        database_fit = session.get(Fit, fit_id)
+
+        with database_fit.value("dataset") as database_hdus, directory_fit.value(
+            "dataset"
+        ) as directory_hdus:
+            assert [hdu.name for hdu in database_hdus] == [
+                hdu.name for hdu in directory_hdus
+            ]
+            for database_hdu, directory_hdu in zip(database_hdus, directory_hdus):
+                np.testing.assert_array_equal(database_hdu.data, directory_hdu.data)
+
+        mask, _ = agg_util.mask_header_from(fit=database_fit)
+        directory_mask, _ = agg_util.mask_header_from(fit=directory_fit)
+        np.testing.assert_array_equal(mask.array, directory_mask.array)
+        assert mask.pixel_scales == directory_mask.pixel_scales
+        assert mask.origin == directory_mask.origin
+
+        (database_dataset,) = _imaging_from(fit=database_fit)
+
+    np.testing.assert_array_equal(
+        database_dataset.data.array, directory_dataset.data.array
+    )
+    np.testing.assert_array_equal(
+        database_dataset.noise_map.array, directory_dataset.noise_map.array
+    )
+    np.testing.assert_array_equal(
+        database_dataset.psf.kernel.array, directory_dataset.psf.kernel.array
+    )
