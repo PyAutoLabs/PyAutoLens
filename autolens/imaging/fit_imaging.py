@@ -31,7 +31,10 @@ import autogalaxy as ag
 from autogalaxy.abstract_fit import AbstractFitInversion
 
 from autolens.lens.tracer import Tracer
-from autolens.lens.to_inversion import TracerToInversion
+from autolens.lens.to_inversion import (
+    TracerToInversion,
+    _galaxy_image_dict_with_linear_reconstruction,
+)
 
 from autolens import exc
 
@@ -220,11 +223,10 @@ class FitImaging(aa.FitImaging, AbstractFitInversion):
             xp=self._xp
         )
 
-        galaxy_linear_obj_image_dict = self.galaxy_linear_obj_data_dict_from(
-            use_operated=False,
+        return _galaxy_image_dict_with_linear_reconstruction(
+            galaxy_image_dict=galaxy_image_2d_dict,
+            linear_images=self.galaxy_linear_obj_data_dict_from(use_operated=False),
         )
-
-        return {**galaxy_image_2d_dict, **galaxy_linear_obj_image_dict}
 
     @cached_property
     def galaxy_model_image_dict(self) -> Dict[ag.Galaxy, np.ndarray]:
@@ -248,11 +250,10 @@ class FitImaging(aa.FitImaging, AbstractFitInversion):
             xp=self._xp
         )
 
-        galaxy_linear_obj_image_dict = self.galaxy_linear_obj_data_dict_from(
-            use_operated=True,
+        return _galaxy_image_dict_with_linear_reconstruction(
+            galaxy_image_dict=galaxy_blurred_image_2d_dict,
+            linear_images=self.galaxy_linear_obj_data_dict_from(use_operated=True),
         )
-
-        return {**galaxy_blurred_image_2d_dict, **galaxy_linear_obj_image_dict}
 
     @functools.cached_property
     def subtracted_images_of_galaxies_dict(self) -> Dict[ag.Galaxy, np.ndarray]:
