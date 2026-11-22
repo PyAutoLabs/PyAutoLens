@@ -28,6 +28,18 @@ import autogalaxy as ag
 from autoarray.inversion.inversion.factory import inversion_from
 
 
+def _galaxy_image_dict_with_linear_reconstruction(
+    galaxy_image_dict: Dict[ag.Galaxy, aa.Array2D],
+    linear_images: Dict[ag.Galaxy, aa.Array2D],
+) -> Dict[ag.Galaxy, aa.Array2D]:
+    """Add each galaxy's reconstructed linear light to its ordinary image."""
+    for galaxy, linear_image in linear_images.items():
+        if galaxy in galaxy_image_dict:
+            linear_image = galaxy_image_dict[galaxy] + linear_image
+        galaxy_image_dict[galaxy] = linear_image
+    return galaxy_image_dict
+
+
 class TracerToInversion(ag.AbstractToInversion):
     def __init__(
         self,

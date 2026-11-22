@@ -1192,3 +1192,24 @@ def test__mask_padding__off_centre_mask__same_likelihood_as_centred():
     assert fit_off.log_likelihood == pytest.approx(
         fit_centred.log_likelihood, abs=1e-4,
     )
+
+
+
+def test__galaxy_image_dicts__add_ordinary_and_linear_light(masked_imaging_7x7):
+    galaxy = al.Galaxy(
+        redshift=0.5,
+        bulge=al.lp.Sersic(intensity=0.1),
+        disk=al.lp_linear.Gaussian(sigma=1.0),
+    )
+    fit = al.FitImaging(dataset=masked_imaging_7x7, tracer=al.Tracer(galaxies=[galaxy]))
+    ordinary = galaxy.bulge.image_2d_from(grid=fit.grids.lp)
+    linear = fit.inversion.mapped_reconstructed_data
+    assert np.any(ordinary.array)
+    assert np.any(linear.array)
+
+    np.testing.assert_allclose(
+        fit.galaxy_image_dict[galaxy].array, ordinary.array + linear.array
+    )
+    np.testing.assert_allclose(
+        fit.galaxy_model_image_dict[galaxy].array, fit.model_data.array
+    )
