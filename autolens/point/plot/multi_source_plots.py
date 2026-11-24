@@ -8,7 +8,8 @@ cluster), drawn in one visual language:
 - ``fit.png`` (:func:`plot_fit_positions`): "Fit Positions": the observed positions, the model positions (red ✕) at
   their true position joined to their observed image by a true-length residual line (solid for hard pairing, dashed
   for the soft all-pairs mixture), unmatched model images, and each source's critical curves at its OWN redshift in
-  its colour (darker), over the solver extent. The legend gives the σ of each source (2-8 sources) and the fit's
+  its colour. Cluster overviews frame the observed and model positions in the same square cutout. The legend
+  gives the fitted statistic of each source (2–8 sources) and the fit's
   figure of merit: ``χ² = …``, or ``−2 ln L = …`` for the all-pairs mixture (``FitPositionsImagePairAll``), whose
   value is a mixture log likelihood, not a chi-squared. Beyond 8 sources colour follows redshift (colourbar) and the
   model ✕ is smaller.
@@ -157,6 +158,8 @@ def place_labels(
     obstacles=None,
     fontsize: float = pp.FIT_NUMBER_FONTSIZE,
     marker_radius: float = 7.0,
+    label_colors=None,
+    halo_color=None,
 ):
     """
     Labels every point, beside its own marker when a free spot exists, otherwise pushed further out with a thin
@@ -229,7 +232,7 @@ def place_labels(
     for i, ((c, ring), text) in enumerate(zip(results, labels)):
         y, x = points[i]
         dx, dy = c - markers[i]
-        ax.annotate(
+        annotation = ax.annotate(
             text,
             (x, y),
             xytext=(dx, dy),
@@ -238,15 +241,19 @@ def place_labels(
             va="center",
             fontsize=fontsize,
             weight="bold",
-            color="k",
+            color=label_colors[i] if label_colors is not None else "k",
             zorder=10,
-            bbox=LABEL_BBOX,
+            bbox=LABEL_BBOX if halo_color is None else None,
             arrowprops=(
                 dict(arrowstyle="-", color="0.45", lw=0.6, shrinkA=0, shrinkB=3)
                 if ring > 0
                 else None
             ),
         )
+        if halo_color is not None:
+            from matplotlib import patheffects
+
+            annotation.set_path_effects([patheffects.withStroke(linewidth=2.5, foreground=halo_color)])
 
 
 def label_records(ax, extent, records, extra_points=(), extra_labels=(), obstacles=None):
@@ -480,7 +487,7 @@ def observed_handles(records, edgecolor="k"):
     ]
 
 
-def fit_handles(records, model_size, has_curves: bool, has_mass_centres: bool):
+def fit_handles(records, model_size, has_curves: bool, has_mass_centres: bool, curve_label=None):
     from matplotlib.lines import Line2D
 
     first = records[0]
@@ -544,7 +551,7 @@ def fit_handles(records, model_size, has_curves: bool, has_mass_centres: bool):
                 [],
                 color=CURVE_COLOR if not multi else "0.35",
                 linewidth=CURVE_LINEWIDTH,
-                label="Critical curve (each source's z)" if multi else "Critical curve",
+                label=curve_label or ("Critical curve (each source's z)" if multi else "Critical curve"),
             )
         )
     if has_mass_centres:
@@ -734,6 +741,179 @@ def draw_fit_positions(
         ax.legend(handles=handles, loc=legend_location_from(extent, drawn), **kwargs)
 
 
+def _cluster_curves(ax, records, curves, on_image, fallback_lines):
+    """Return the curve key for the curves actually drawn on this map."""
+    has_curves = False
+    for r in records:
+        own = r.curves_from(curves)
+        if own is None and curves:
+            own = curves.get(("source", r.k))
+        if own is not None:
+            for line in own.tangential:
+                ax.plot(
+                    line[:, 1], line[:, 0], color=r.color, lw=0.95, alpha=0.8, zorder=2
+                )
+                has_curves = True
+            if not on_image and not is_many(records):
+                for line in own.radial:
+                    ax.plot(
+                        line[:, 1],
+                        line[:, 0],
+                        color=r.color,
+                        lw=0.85,
+                        ls=":",
+                        alpha=0.8,
+                        zorder=2,
+                    )
+                    has_curves = True
+    if has_curves:
+        return "Critical curve (each source's z)"
+    if fallback_lines is not None and len(fallback_lines):
+        for line in fallback_lines:
+            line = np.asarray(line)
+            ax.plot(line[:, 1], line[:, 0], color="white", lw=0.95, zorder=2)
+        return "Critical curve (last source plane)"
+    return None
+
+
+def _cluster_fit_overview(
+    records,
+    curves,
+    field_extent,
+    colormap,
+    title_prefix,
+    image=None,
+    fallback_lines=None,
+):
+    """Draw a cluster fit on one shared sky field, with family and symbol keys outside the data."""
+    from matplotlib import patheffects
+    from autolens.point.plot.cluster_sky import (
+        angular_axes,
+        cluster_field,
+        draw_cluster_image,
+        family_style,
+    )
+
+    on_image = image is not None
+    many = is_many(records)
+    models = [r.model for r in records if r.has_model]
+    centre, half = cluster_field(
+        field_extent, np.vstack([r.observed for r in records] + models)
+    )
+    # Leave one line per family above the map, and space below it for the fit symbols.
+    family_columns = 2 if 4 < len(records) <= ps.MAX_QUALITATIVE else 1
+    family_rows = 1 if many else (len(records) + family_columns - 1) // family_columns
+    side = 9.0 if many else 6.8
+    header = 0.52 + 0.25 * family_rows
+    footer = 1.05
+    height = side + header + footer
+    width = side + (1.75 if many else 0.9)
+    fig, ax = subplots(figsize=(width, height))
+    fig.subplots_adjust(
+        left=0.57 / width,
+        right=(0.57 + side) / width,
+        top=(footer + side) / height,
+        bottom=footer / height,
+    )
+    if on_image:
+        draw_cluster_image(ax, image)
+    angular_axes(ax, centre, half)
+    extent = [*ax.get_xlim(), *ax.get_ylim()]
+    title = "Cluster fit on the observed image" if on_image else "Cluster fit overview"
+    ax.set_title(
+        f"{_prefix(title_prefix)}{title}",
+        x=0,
+        ha="left",
+        y=1 + (0.23 * family_rows + 0.17) / side,
+        fontsize=19,
+        weight="bold",
+        color="#172f49",
+    )
+    points, labels, colors = [], [], []
+    for r in records:
+        if not many:
+            bright, dark, r.marker = family_style(r)
+            r.color = bright if on_image else dark
+        observed = ax.scatter(
+            *r.observed.T[::-1],
+            s=marker_size_from(r.marker, base=85),
+            marker=r.marker,
+            facecolors="none",
+            edgecolors=[r.color],
+            linewidths=1.8,
+            label="Observed",
+            zorder=5,
+        )
+        if on_image:
+            observed.set_path_effects(
+                [patheffects.withStroke(linewidth=3, foreground="#303038")]
+            )
+        points.extend(r.observed)
+        labels.extend(image_label_from(r, n, True) for n in r.numbers)
+        colors.extend([r.color] * len(r.numbers))
+        points.extend(r.model[r.unmatched])
+        labels.extend(
+            image_label_from(r, letter, True) for letter in r.unmatched_labels
+        )
+        colors.extend([r.color] * len(r.unmatched_labels))
+    curve_key = _cluster_curves(ax, records, curves, on_image, fallback_lines)
+
+    centres = np.empty((0, 2))
+    if not on_image:
+        tracer = records[0].fit.tracer
+        centres = pp.mass_centres_from(tracer)
+        pp.plot_mass_centres(ax, tracer, size=40, linewidths=1)
+        draw_noise_circles(ax, records)
+    size = model_size_from(records)
+    draw_model_and_residuals(
+        ax, records, size, unmatched_color=".80" if on_image else pp.UNMATCHED_COLOR
+    )
+    place_labels(
+        ax,
+        extent,
+        points,
+        labels,
+        obstacles=np.vstack([centres] + models),
+        fontsize=9 if many else 10,
+        label_colors=colors,
+        halo_color="#23282d" if on_image else "white",
+    )
+
+    handles = observed_handles(records)
+    for handle in handles:
+        handle.set_markeredgecolor(handle.get_markerfacecolor())
+        handle.set_markerfacecolor("none")
+        handle.set_markeredgewidth(1.8)
+    # The legend sits on white even for the raster: darken bright outlines for legibility.
+    if on_image and not many:
+        for r, handle in zip(records, handles):
+            handle.set_markeredgecolor(family_style(r)[1])
+    ax.legend(
+        handles=handles,
+        loc="lower left",
+        bbox_to_anchor=(0, 1.006),
+        frameon=False,
+        borderaxespad=0,
+        fontsize=10,
+        handlelength=1.25,
+        ncol=family_columns,
+    )
+    symbols = fit_handles(
+        records, size, bool(curve_key), bool(len(centres)), curve_label=curve_key
+    )
+    fig.legend(
+        handles=symbols,
+        loc="upper center",
+        bbox_to_anchor=((0.57 + side / 2) / width, (footer - 0.33) / height),
+        ncol=min(3, len(symbols)) or 1,
+        fontsize=9,
+        frameon=False,
+        columnspacing=1.4,
+    )
+    add_colourbar(fig, ax, colormap, records, 0.65)
+    return fig
+
+
 def plot_fit_positions(
     fits,
     solver=None,
@@ -742,11 +922,13 @@ def plot_fit_positions(
     output_format: str = None,
     filename: str = "fit",
     title_prefix: str = None,
+    image_extent=None,
 ):
     """
     Plots ``fit.png`` ("Fit Positions") of one or many ``FitPointDataset`` objects of the same lens model on the
     solver extent (see the module docstring). ``curves`` are the per-plane curves of
     :func:`~autolens.point.plot.point_sources.curves_for_planes`, computed if ``None``.
+    For a cluster, pass ``image_extent`` to match the image-backed overview's sky field.
     """
 
     fits = list(fits)
@@ -758,19 +940,24 @@ def plot_fit_positions(
     if curves is None:
         curves = ps.curves_for_fits(fits, records, extent)
 
-    fig, ax = subplots(1, 1, figsize=figsize_from(records))
-    draw_fit_positions(
-        ax,
-        records,
-        curves,
-        extent,
-        tracer,
-        title=f"{_prefix(title_prefix)}Fit Positions",
-        scale=font_scale_from(records),
-        legend="outside" if len(records) > 1 else "inside",
-        colormap=colormap,
-    )
-    add_colourbar(fig, ax, colormap, records, font_scale_from(records))
+    if len(records) > 1:
+        fig = _cluster_fit_overview(
+            records,
+            curves,
+            image_extent if image_extent is not None else extent,
+            colormap,
+            title_prefix,
+        )
+    else:
+        fig, ax = subplots(1, 1, figsize=figsize_from(records))
+        draw_fit_positions(
+            ax,
+            records,
+            curves,
+            extent,
+            tracer,
+            title=f"{_prefix(title_prefix)}Fit Positions",
+        )
     save_figure(fig, path=output_path, filename=filename, format=output_format)
 
 
@@ -1052,7 +1239,8 @@ def plot_image_with_points(
     ``fits`` the model positions, residual lines and each source's tangential critical curves at its own redshift are
     added (``fit_image_with_points.png``, so both figures coexist). Clusters (several sources, or an image wider than
     ``CLUSTER_IMAGE_WIDTH``) use a log10 colour scale (a bright BCG and faint arcs); a galaxy-scale lens keeps the
-    linear scale. Fitted clusters with up to eight families include a per-family merit legend.
+    linear scale. Fitted multi-source overviews use the family figure's grayscale asinh stretch and
+    show per-family merit for up to eight sources.
 
     ``image_plane_lines`` (pre-computed last-plane curves) are drawn only when ``curves`` cannot be computed.
     """
@@ -1065,7 +1253,7 @@ def plot_image_with_points(
         records = ps.records_from_fits(fits)
     else:
         records = ps.records_from_datasets(list(datasets))
-    ps.assign_styles(records)
+    colormap = ps.assign_styles(records)
     multi = len(records) > 1
     many = is_many(records)
     scale = font_scale_from(records)
@@ -1075,6 +1263,24 @@ def plot_image_with_points(
         curves = ps.curves_for_fits(
             fits, records, ps.union_extent_from(records, solver=solver)
         )
+
+    if multi and is_fit:
+        fig = _cluster_fit_overview(
+            records,
+            curves,
+            image.geometry.extent,
+            colormap,
+            title_prefix,
+            image=image,
+            fallback_lines=image_plane_lines,
+        )
+        save_figure(
+            fig,
+            path=output_path,
+            filename="fit_image_with_points",
+            format=output_format,
+        )
+        return
 
     name = "Fit Image With Points" if is_fit else "Image With Points"
     title = f"{_prefix(title_prefix)}{name}" + (f" ({records[0].name})" if not multi else "")
@@ -1147,7 +1353,5 @@ def plot_image_with_points(
         shown,
         obstacles=np.vstack(models) if models else None,
     )
-    if is_fit and multi and not many:
-        ax.legend(handles=observed_handles(records, edgecolor="w"), loc="best", fontsize=10)
     filename = "fit_image_with_points" if is_fit else "image_with_points"
     save_figure(fig, path=output_path, filename=filename, format=output_format)

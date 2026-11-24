@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 import numpy as np
 import pytest
+from matplotlib.colors import AsinhNorm, to_rgba
 
 import autolens as al
 from autolens.point.plot import multi_source_plots as msp
@@ -87,13 +88,17 @@ def make_cluster():
 
 @pytest.fixture(name="figures")
 def make_figures(monkeypatch):
+    from matplotlib import pyplot as plt
+
     figures = []
 
     def capture(fig, path=None, filename=None, **kwargs):
         figures.append(SimpleNamespace(fig=fig, path=path, filename=filename))
 
     monkeypatch.setattr(msp, "save_figure", capture)
-    return figures
+    yield figures
+    for saved in figures:
+        plt.close(saved.fig)
 
 
 def _legend_labels(ax):
@@ -176,22 +181,24 @@ def _assert_family_legend_labels(labels, fits, statistic):
 def test__plot_fit_positions__global_figure(cluster, figures):
     msp.plot_fit_positions(cluster.fits["FitPositionsImagePair"], solver=cluster.solver)
 
-    ax = figures[0].fig.axes[0]
+    fig = figures[0].fig
+    (ax,) = fig.axes
     assert figures[0].filename == "fit"
-    assert ax.get_title() == "Fit Positions"
-    labels = _legend_labels(ax)
+    assert ax.get_title() == "Cluster fit overview"
     _assert_family_legend_labels(
-        labels, cluster.fits["FitPositionsImagePair"], "Image-plane χ²"
+        _legend_labels(ax), cluster.fits["FitPositionsImagePair"], "Image-plane χ²"
     )
-    assert "Critical curve (each source's z)" in labels
-    assert any(label.startswith("χ² = ") for label in labels)
-    # Residual lines are drawn at true length (observed -> model), never exaggerated.
+    keys = [text.get_text() for legend in fig.legends for text in legend.get_texts()]
+    assert "Critical curve (each source's z)" in keys
+    assert any(label.startswith("χ² = ") for label in keys)
+
     record = ps.source_record_from_fit(0, cluster.fits["FitPositionsImagePair"][0])
-    residuals = [
-        line for line in ax.lines if line.get_color() == "r" and len(line.get_xydata()) == 2
-    ]
-    lengths = sorted(np.hypot(*np.diff(line.get_xydata(), axis=0)[0]) for line in residuals)
-    assert max(lengths) < 10 * np.nanmax(record.delta) + 1e-6
+    expected_segment = np.stack([record.observed[0], record.model[record.indexes[0]]])
+    assert any(
+        np.allclose(line.get_xydata(), expected_segment[:, ::-1])
+        for line in ax.lines
+        if len(line.get_xydata()) == 2
+    )
 
 
 def test__plot_fit_positions__mixture_shows_minus_two_ln_l(cluster, figures):
@@ -199,13 +206,14 @@ def test__plot_fit_positions__mixture_shows_minus_two_ln_l(cluster, figures):
         cluster.fits["FitPositionsImagePairAll"], solver=cluster.solver
     )
 
-    labels = _legend_labels(figures[0].fig.axes[0])
+    fig = figures[0].fig
     _assert_family_legend_labels(
-        labels, cluster.fits["FitPositionsImagePairAll"], "−2 ln L"
+        _legend_labels(fig.axes[0]), cluster.fits["FitPositionsImagePairAll"], "−2 ln L"
     )
-    assert any(label.startswith("−2 ln L = ") for label in labels)
-    assert not any(label.startswith("χ²") for label in labels)
-    assert "Residual (nearest, soft pairing)" in labels
+    keys = [text.get_text() for legend in fig.legends for text in legend.get_texts()]
+    assert any(label.startswith("−2 ln L = ") for label in keys)
+    assert not any(label.startswith("χ²") for label in keys)
+    assert "Residual (nearest, soft pairing)" in keys
 
 
 def test__subplot_fit_per_image__rows_no_legends_sigma_values(cluster, figures):
@@ -305,8 +313,89 @@ def test__plot_image_with_points__fitted_sources_show_fit_statistic(
     else:
         _assert_family_legend_labels(_legend_labels(ax), fits, statistic)
         assert figures[0].filename == "fit_image_with_points"
+        assert ax.get_title() == "Cluster fit on the observed image"
     texts = {t.get_text() for t in ax.texts}
     assert "0·1" in texts and "1·1" in texts
+
+
+@pytest.mark.parametrize("far_positions", [False, True])
+def test__cluster_fit_overviews__same_physical_square(
+    cluster, figures, monkeypatch, far_positions
+):
+    fits = cluster.fits["FitPositionsImagePair"]
+    image = al.Array2D.ones(shape_native=(80, 80), pixel_scales=1.0)
+    records = ps.records_from_fits(fits)
+    if far_positions:
+        records[0].observed = records[0].observed.copy()
+        records[0].observed[0] = (37.0, 34.0)
+        records[1].model = records[1].model.copy()
+        records[1].model[0] = (-38.0, -36.0)
+        monkeypatch.setattr(ps, "records_from_fits", lambda fits: records)
+
+    msp.plot_fit_positions(fits, curves={}, image_extent=image.geometry.extent)
+    msp.plot_image_with_points(image, fits=fits, curves={})
+
+    (plain,) = figures[0].fig.axes
+    (sky,) = figures[1].fig.axes
+    assert plain.get_xlim() == pytest.approx(sky.get_xlim())
+    assert plain.get_ylim() == pytest.approx(sky.get_ylim())
+    assert np.ptp(sky.get_xlim()) == pytest.approx(np.ptp(sky.get_ylim()))
+    if far_positions:
+        x_min, x_max = sky.get_xlim()
+        y_min, y_max = sky.get_ylim()
+        for record in records:
+            for y, x in np.vstack([record.observed, record.model]):
+                assert x_min <= x <= x_max
+                assert y_min <= y <= y_max
+    else:
+        assert sky.get_xlim() == pytest.approx((-30, 30))
+        assert sky.get_ylim() == pytest.approx((-30, 30))
+
+    assert not plain.images
+    (raster,) = sky.images
+    assert isinstance(raster.norm, AsinhNorm)
+    assert raster.origin == "upper"
+    assert raster.get_extent() == pytest.approx(image.geometry.extent)
+    gray = raster.cmap(0.4)
+    assert gray[:3] == pytest.approx([gray[0]] * 3)
+    for ax, colors in (
+        (plain, ("#a15b0c", "#00778a")),
+        (sky, ("#ffbc53", "#5fe3ee")),
+    ):
+        labels = {text.get_text() for text in ax.texts}
+        assert {f"{r.k}·{n}" for r in records for n in r.numbers} <= labels
+        for record, color in zip(records, colors):
+            assert any(
+                np.allclose(ring.get_edgecolors(), to_rgba(color))
+                and not ring.get_facecolors().size
+                and np.allclose(ring.get_offsets(), record.observed[:, ::-1])
+                for ring in ax.collections
+                if ring.get_edgecolors().size
+                and ring.get_offsets().shape == record.observed.shape
+            )
+
+
+def test__cluster_fit_image__fallback_curve_labels_last_source_plane(cluster, figures):
+    image = al.Array2D.ones(shape_native=(80, 80), pixel_scales=1.0)
+    curve = np.array([[-2.0, 1.0], [-1.0, 2.0], [0.0, 3.0]])
+
+    msp.plot_image_with_points(
+        image,
+        fits=cluster.fits["FitPositionsImagePair"],
+        curves={},
+        image_plane_lines=[curve],
+    )
+
+    fig = figures[0].fig
+    keys = [text.get_text() for legend in fig.legends for text in legend.get_texts()]
+    assert "Critical curve (last source plane)" in keys
+    assert "Critical curve (each source's z)" not in keys
+    (ax,) = fig.axes
+    assert any(
+        np.allclose(line.get_xydata(), curve[:, ::-1])
+        for line in ax.lines
+        if len(line.get_xydata()) == len(curve)
+    )
 
 
 def test__visualizer__combined_figures_written_for_several_point_analyses(

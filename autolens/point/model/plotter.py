@@ -196,7 +196,14 @@ class PlotterPoint(Plotter):
             title_prefix=self.title_prefix,
         )
 
-    def fit_point_combined(self, fit_list, curves=None, solver=None, quick_update: bool = False):
+    def fit_point_combined(
+        self,
+        fit_list,
+        curves=None,
+        solver=None,
+        quick_update: bool = False,
+        image_extent=None,
+    ):
         """
         Output ``fit.png`` of every point dataset of a multi-dataset (e.g. cluster) fit in one panel ("Fit
         Positions", each source's curves at its own redshift), controlled by
@@ -208,6 +215,7 @@ class PlotterPoint(Plotter):
             return
         multi_source_plots.plot_fit_positions(
             fit_list,
+            image_extent=image_extent,
             solver=solver,
             curves=curves,
             output_path=str(self.image_path),

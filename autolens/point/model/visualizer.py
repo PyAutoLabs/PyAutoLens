@@ -193,11 +193,15 @@ class VisualizerPoint(af.Visualizer):
         )
         curves = curves_for_point_fits(fits=fit_list, solver=solver)
 
+        image = _image_from(analyses)
         plotter.fit_point_combined(
-            fit_list=fit_list, curves=curves, solver=solver, quick_update=quick_update
+            fit_list=fit_list,
+            curves=curves,
+            solver=solver,
+            quick_update=quick_update,
+            image_extent=image.geometry.extent if image is not None else None,
         )
 
-        image = _image_from(analyses)
         if image is not None:
             plotter.image_with_points_combined(
                 image=image,
