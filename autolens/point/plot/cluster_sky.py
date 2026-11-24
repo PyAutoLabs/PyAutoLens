@@ -6,14 +6,26 @@ from matplotlib.colors import AsinhNorm, to_hex
 from autoarray.plot.utils import _arcsec_labels, apply_extent, apply_labels
 
 
+_FAMILY_ACCENTS = (("#ffbc53", "#a15b0c", "o"), ("#5fe3ee", "#00778a", "D"))
+
+
 def family_style(record):
     """Bright and dark colours and marker for one family on image and white backgrounds."""
-    styles = [("#ffbc53", "#a15b0c", "o"), ("#5fe3ee", "#00778a", "D")]
-    return (
-        styles[record.k]
-        if record.k < 2
-        else (to_hex(record.color), to_hex(record.color), record.marker)
-    )
+    if record.k < len(_FAMILY_ACCENTS):
+        return _FAMILY_ACCENTS[record.k]
+    color = to_hex(record.color)
+    return color, color, record.marker
+
+
+def indexed_family_style(family_index):
+    """Family accents for a single analysis with an explicit cluster family index."""
+    if 0 <= family_index < len(_FAMILY_ACCENTS):
+        return _FAMILY_ACCENTS[family_index]
+
+    from autolens.point.plot.point_sources import MARKERS, SOURCE_PALETTE
+
+    color = SOURCE_PALETTE[family_index % len(SOURCE_PALETTE)]
+    return color, color, MARKERS[family_index % len(MARKERS)]
 
 
 def draw_cluster_image(ax, image):

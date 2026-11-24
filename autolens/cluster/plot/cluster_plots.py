@@ -8,11 +8,9 @@ and — because the sources sit at *different* redshifts — every source plane 
 own critical curves and caustics. The helpers here encode the cluster-figure
 conventions of the observational literature:
 
-- A percentile-driven ``LogNorm`` on a perceptually-ordered colormap, so one image
-  spans the BCG core, intra-cluster light and faint arcs without saturating.
-- Per-source qualitative colouring from the Wong (2011) colour-blind-safe palette
-  (https://www.nature.com/articles/nmeth.1618), applied consistently across every
-  panel so "the orange source" means the same thing everywhere.
+- A grayscale asinh stretch on the cluster image, using its native sky geometry.
+- Shared family colours and marker shapes. Dense fields use the redshift palette
+  when redshifts are supplied, with source index colours otherwise.
 - Per-source-plane critical curves computed through the multi-plane ``LensCalc``
   (``use_multi_plane=True, plane_j=j``): at cluster scale the critical curves of the
   z=1 and z=2 source planes differ visibly, and plotting only the last plane's curve
@@ -39,9 +37,12 @@ Neither path is claimed to be ``jax.jit`` / ``jax.vmap`` safe here: these are pl
 helpers that run on the numpy path.
 """
 
+from types import SimpleNamespace
 from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
+
+import autoarray as aa
 
 from autoarray.plot.utils import (
     subplots,
@@ -49,75 +50,133 @@ from autoarray.plot.utils import (
     tight_layout,
 )
 
-# Wong (2011) colour-blind-safe qualitative palette; per-source colours in every helper.
+from autolens.point.plot.cluster_sky import (
+    angular_axes,
+    cluster_field,
+    draw_cluster_image,
+    family_style,
+)
+from autolens.point.plot.point_sources import assign_styles
+from autolens.point.plot.positions_panel import image_order_from
+
+
+# Wong (2011) qualitative colours for source-plane curves.
 WONG_PALETTE = [
-    "#E69F00",  # orange
-    "#56B4E9",  # sky blue
-    "#009E73",  # bluish green
-    "#F0E442",  # yellow
-    "#0072B2",  # blue
-    "#D55E00",  # vermillion
-    "#CC79A7",  # reddish purple
-    "#000000",  # black
+    "#E69F00",
+    "#56B4E9",
+    "#009E73",
+    "#F0E442",
+    "#0072B2",
+    "#D55E00",
+    "#CC79A7",
+    "#000000",
 ]
-
-CLUSTER_CMAP = "gnuplot2"
-
-
-def _image_native_and_pixel_scale(image, pixel_scales) -> Tuple[np.ndarray, float]:
-    """Return ``(native 2D array, pixel scale)`` for an ``Array2D`` or raw ndarray."""
-    native = np.asarray(image.native if hasattr(image, "native") else image)
-    if pixel_scales is None:
-        if hasattr(image, "pixel_scales"):
-            pixel_scales = image.pixel_scales[0]
-        else:
-            raise ValueError(
-                "pixel_scales must be given when image is a raw ndarray with no "
-                ".pixel_scales attribute."
-            )
-    scale = pixel_scales[0] if isinstance(pixel_scales, (tuple, list)) else pixel_scales
-    return native, float(scale)
-
-
-def _lognorm_from(image_native: np.ndarray):
-    """Percentile-driven ``LogNorm`` (5th / 99.5th of positive pixels).
-
-    Cluster imaging has bright cores and faint arcs; fixed ``(vmin, vmax)`` bounds do
-    not transfer between datasets. Non-positive pixels are excluded because
-    ``LogNorm`` needs strictly positive bounds.
-    """
-    from matplotlib.colors import LogNorm
-
-    positive = image_native[image_native > 0]
-    if positive.size == 0:
-        raise ValueError("Image has no positive pixels; cannot build a LogNorm.")
-    vmin = float(np.percentile(positive, 5.0))
-    vmax = float(np.percentile(positive, 99.5))
-    return LogNorm(vmin=vmin, vmax=max(vmax, vmin * 10.0))
-
-
-def _extent_from(image_native: np.ndarray, pixel_scale: float) -> Tuple:
-    """``imshow`` extent ``(left, right, bottom, top)`` for an origin-centred field."""
-    half_y = image_native.shape[0] * pixel_scale / 2.0
-    half_x = image_native.shape[1] * pixel_scale / 2.0
-    return (-half_x, half_x, -half_y, half_y)
 
 
 def _positions_array(positions) -> np.ndarray:
-    """Return an ``(N, 2)`` ``[y, x]`` array from a Grid2DIrregular / list / array."""
+    """Return an (N, 2) array of (y, x) positions."""
     array = positions.array if hasattr(positions, "array") else positions
-    return np.atleast_2d(np.asarray(array))
+    return np.asarray(array).reshape(-1, 2)
 
 
-def _draw_image(ax, image, pixel_scales):
-    native, scale = _image_native_and_pixel_scale(image, pixel_scales)
-    ax.imshow(
-        native,
-        origin="lower",
-        cmap=CLUSTER_CMAP,
-        norm=_lognorm_from(native),
-        extent=_extent_from(native, scale),
+def _cluster_image(image, pixel_scales):
+    if image is None or (hasattr(image, "geometry") and pixel_scales is None):
+        return image
+    if pixel_scales is None:
+        raise ValueError("pixel_scales must be given for a raw image.")
+    if hasattr(image, "geometry") and np.allclose(image.pixel_scales, pixel_scales):
+        return image
+    return aa.Array2D.no_mask(
+        values=np.asarray(getattr(image, "native", image)),
+        pixel_scales=pixel_scales,
+        origin=getattr(getattr(image, "geometry", None), "origin", (0.0, 0.0)),
     )
+
+
+def _family_markers(positions_list, datasets, on_image):
+    positions_list = list(positions_list)
+    if datasets is not None and len(datasets) != len(positions_list):
+        raise ValueError("datasets must supply metadata for each position family.")
+    records = [
+        SimpleNamespace(
+            k=index,
+            name=dataset.name if dataset is not None else f"Source {index}",
+            redshift=dataset.redshift if dataset is not None else None,
+        )
+        for index, dataset in enumerate(
+            datasets if datasets is not None else [None] * len(positions_list)
+        )
+    ]
+    redshift_styles = assign_styles(records)
+    for record, positions in zip(records, positions_list):
+        arr = _positions_array(positions)
+        if not len(arr):
+            continue
+        if redshift_styles is None:
+            bright, dark, marker = family_style(record)
+        else:
+            bright = dark = record.color
+            marker = record.marker
+        name, redshift = record.name, record.redshift
+        label = f"{name} · {len(arr)} {'image' if len(arr) == 1 else 'images'}"
+        if redshift is not None:
+            label += f" · z={redshift:.2f}"
+        yield arr, bright if on_image else dark, marker, name, label
+
+
+def _scatter_family(ax, positions, colour, marker, size, label=None):
+    from matplotlib import patheffects
+    from matplotlib.colors import to_rgb
+
+    artist = ax.scatter(
+        positions[:, 1],
+        positions[:, 0],
+        facecolors="none",
+        edgecolors=colour,
+        marker=marker,
+        s=size,
+        linewidths=1.6,
+        zorder=7,
+        label=label,
+    )
+
+    if ax.images and np.dot(to_rgb(colour), (0.2126, 0.7152, 0.0722)) < 0.35:
+        artist.set_path_effects(
+            [patheffects.withStroke(linewidth=2.6, foreground=(1, 1, 1, 0.65))]
+        )
+
+
+def _set_sky_field(ax, image=None, positions=None):
+    if image is not None:
+        centre, half = cluster_field(
+            image.geometry.extent, np.empty((0, 2)) if positions is None else positions
+        )
+    else:
+        bounds = np.asarray(ax.dataLim.get_points())[:, ::-1]
+        if np.isfinite(bounds).all():
+            centre = bounds.mean(axis=0)
+            half = max(float(np.ptp(bounds, axis=0).max()) * 0.56, 1.0e-4)
+        else:
+            centre, half = (0.0, 0.0), 1.0
+    angular_axes(ax, centre, half)
+
+
+def _top_legend(ax):
+    handles, labels = ax.get_legend_handles_labels()
+    if handles:
+        ax.legend(
+            handles,
+            labels,
+            loc="lower center",
+            bbox_to_anchor=(0.5, 1.02),
+            ncols=min(
+                5 if len(handles) > 12 else 4 if len(handles) > 4 else 3, len(handles)
+            ),
+            frameon=False,
+            fontsize=8,
+            handletextpad=0.4,
+            columnspacing=1.1,
+        )
 
 
 def _draw_centre_markers(ax, centres, halo_centres, marker_size: float):
@@ -154,19 +213,19 @@ def _draw_centre_markers(ax, centres, halo_centres, marker_size: float):
         )
 
 
-def _draw_kpc_scale_bar(ax, redshift: float, cosmology, kpc: float):
+def _draw_kpc_scale_bar(ax, redshift: float, cosmology, kpc: float, colour: str):
     """Draw a physical scale bar in the bottom-left corner of *ax*."""
     arcsec_per_kpc = float(cosmology.arcsec_per_kpc_proper(redshift))
     bar_arcsec = kpc * arcsec_per_kpc
     xlim, ylim = ax.get_xlim(), ax.get_ylim()
     x0 = xlim[0] + 0.05 * (xlim[1] - xlim[0])
     y0 = ylim[0] + 0.05 * (ylim[1] - ylim[0])
-    ax.plot([x0, x0 + bar_arcsec], [y0, y0], color="white", lw=3.0, zorder=5)
+    ax.plot([x0, x0 + bar_arcsec], [y0, y0], color=colour, lw=3.0, zorder=5)
     ax.text(
         x0 + bar_arcsec / 2.0,
         y0 + 0.02 * (ylim[1] - ylim[0]),
         f"{int(kpc)} kpc",
-        color="white",
+        color=colour,
         ha="center",
         va="bottom",
         fontsize=11,
@@ -202,7 +261,10 @@ _CURVE_ROUTINES = {
             "tangential",
             "critical_curve",
         ): "tangential_critical_curve_list_via_zero_contour_from",
-        ("radial", "critical_curve"): "radial_critical_curve_list_via_zero_contour_from",
+        (
+            "radial",
+            "critical_curve",
+        ): "radial_critical_curve_list_via_zero_contour_from",
         ("tangential", "caustic"): "tangential_caustic_list_via_zero_contour_from",
         ("radial", "caustic"): "radial_caustic_list_via_zero_contour_from",
     },
@@ -246,6 +308,8 @@ def plot_positions_overlay(
     output_path: Optional[str] = None,
     output_filename: str = "cluster_positions",
     output_format: Optional[str] = None,
+    *,
+    datasets: Optional[Sequence] = None,
 ):
     """
     Plot every source's observed multiple-image positions, per-source coloured, on the
@@ -255,11 +319,12 @@ def plot_positions_overlay(
     ----------
     positions_list
         One ``Grid2DIrregular`` (or ``(N, 2)`` array) of image-plane positions per
-        source. Source ``i`` is drawn in ``WONG_PALETTE[i]`` — the same colour this
-        source gets in every other helper.
+        source. Colours and marker shapes are shared across the cluster dataset figures.
+    datasets
+        Optional point datasets in the same order, supplying family names and redshifts.
     image
         Optional background image (``Array2D`` or raw 2D ndarray) drawn with the
-        cluster ``LogNorm``; without it positions are drawn on a blank field.
+        shared grayscale asinh stretch; without it positions are drawn on a blank field.
     pixel_scales
         Arcsec per pixel of *image*; taken from ``image.pixel_scales`` when omitted
         and the image is an ``Array2D``.
@@ -275,42 +340,43 @@ def plot_positions_overlay(
     output_path, output_filename, output_format
         Standard workspace output controls (ignored when *ax* is supplied).
     """
+    image = _cluster_image(image, pixel_scales)
+    families = list(
+        _family_markers(positions_list, datasets, on_image=image is not None)
+    )
     standalone = ax is None
     if standalone:
-        fig, ax = subplots(1, 1)
-
+        fig, ax = subplots(1, 1, figsize=(10 if len(families) > 5 else 7, 7))
     if image is not None:
-        _draw_image(ax, image, pixel_scales)
+        draw_cluster_image(ax, image)
 
-    for i, positions in enumerate(positions_list):
-        arr = _positions_array(positions)
-        colour = WONG_PALETTE[i % len(WONG_PALETTE)]
-        ax.scatter(
-            arr[:, 1],
-            arr[:, 0],
-            facecolors="none",
-            edgecolors=colour,
-            marker="o",
-            s=140,
-            linewidths=1.8,
-            zorder=6,
-            label=f"Source {i} images",
-        )
+    for arr, colour, marker, _, label in families:
+        _scatter_family(ax, arr, colour, marker, size=95, label=label)
 
     _draw_centre_markers(
         ax, centres=centres, halo_centres=halo_centres, marker_size=marker_size
     )
+    positions = [arr for arr, *_ in families]
+    if centres is not None:
+        positions.append(_positions_array(centres))
+    if halo_centres is not None:
+        positions.append(_positions_array(halo_centres))
+    _set_sky_field(ax, image, np.concatenate(positions) if positions else None)
 
     if kpc_scale_bar is not None and redshift is not None and cosmology is not None:
         _draw_kpc_scale_bar(
-            ax, redshift=redshift, cosmology=cosmology, kpc=kpc_scale_bar
+            ax,
+            redshift=redshift,
+            cosmology=cosmology,
+            kpc=kpc_scale_bar,
+            colour="white" if image is not None else "#282d32",
         )
 
-    ax.set_xlabel('x (")')
-    ax.set_ylabel('y (")')
-    ax.set_title(title)
-    ax.set_aspect("equal")
-    ax.legend(loc="upper right", fontsize=9, framealpha=0.6)
+    if standalone:
+        fig.suptitle(title, y=0.99)
+    else:
+        ax.set_title(title, y=1.02 + 0.07 * np.ceil(len(families) / 5))
+    _top_legend(ax)
 
     if standalone:
         tight_layout()
@@ -329,6 +395,8 @@ def plot_image_group_zooms(
     output_path: Optional[str] = None,
     output_filename: str = "cluster_image_zooms",
     output_format: Optional[str] = None,
+    *,
+    datasets: Optional[Sequence] = None,
 ):
     """
     A panel grid with one zoom per multiple image, rows grouped by source.
@@ -336,7 +404,8 @@ def plot_image_group_zooms(
     Each panel is a ``zoom_arcsec``-wide cut-out centred on one observed image
     position, framed in that source's palette colour. This is how the eye verifies a
     model at cluster scale: full-field residuals hide a half-arcsecond position
-    mismatch that a 6" zoom makes obvious.
+    mismatch that a 6" zoom makes obvious. Image numbers follow the angular
+    ordering used in the point-fit figures.
 
     Parameters
     ----------
@@ -344,6 +413,8 @@ def plot_image_group_zooms(
         One ``Grid2DIrregular`` (or ``(N, 2)`` array) per source.
     image
         Background image (``Array2D`` or raw 2D ndarray).
+    datasets
+        Optional point datasets in the same order, used for family names.
     pixel_scales
         Arcsec per pixel; taken from ``image.pixel_scales`` when omitted.
     zoom_arcsec
@@ -351,54 +422,36 @@ def plot_image_group_zooms(
     max_cols
         Maximum panels per row; a source with more images wraps onto extra rows.
     """
-    native, scale = _image_native_and_pixel_scale(image, pixel_scales)
-    norm = _lognorm_from(native)
-    extent = _extent_from(native, scale)
-    half = zoom_arcsec / 2.0
-
-    panels = [
-        (i, arr_row)
-        for i, positions in enumerate(positions_list)
-        for arr_row in _positions_array(positions)
-    ]
-    n_panels = max(len(panels), 1)
-    n_cols = min(max_cols, n_panels)
-    n_rows = int(np.ceil(n_panels / n_cols))
-
-    fig, axes = subplots(n_rows, n_cols)
-    axes = np.atleast_1d(axes).ravel()
-
-    for ax in axes[n_panels:]:
+    if max_cols < 1 or zoom_arcsec <= 0:
+        raise ValueError("max_cols and zoom_arcsec must be positive.")
+    image = _cluster_image(image, pixel_scales)
+    families = list(_family_markers(positions_list, datasets, on_image=True))
+    n_cols = min(max_cols, max((len(arr) for arr, *_ in families), default=1))
+    n_rows = max(1, sum(int(np.ceil(len(arr) / n_cols)) for arr, *_ in families))
+    fig, axes = subplots(
+        n_rows, n_cols, squeeze=False, figsize=(2.6 * n_cols, 2.7 * n_rows)
+    )
+    for ax in axes.flat:
         ax.set_axis_off()
 
-    counters = {}
-    for ax, (source_index, (y, x)) in zip(axes, panels):
-        counters[source_index] = counters.get(source_index, 0) + 1
-        colour = WONG_PALETTE[source_index % len(WONG_PALETTE)]
-        ax.imshow(native, origin="lower", cmap=CLUSTER_CMAP, norm=norm, extent=extent)
-        ax.scatter(
-            [x],
-            [y],
-            facecolors="none",
-            edgecolors=colour,
-            marker="o",
-            s=220,
-            linewidths=2.0,
-        )
-        ax.set_xlim(x - half, x + half)
-        ax.set_ylim(y - half, y + half)
-        ax.set_title(
-            f"Source {source_index} image {counters[source_index]}",
-            color=colour,
-            fontsize=10,
-        )
-        ax.set_xticks([])
-        ax.set_yticks([])
-        for spine in ax.spines.values():
-            spine.set_edgecolor(colour)
-            spine.set_linewidth(2.0)
+    row = 0
+    for positions, colour, marker, name, _ in families:
+        for index, position in enumerate(positions[image_order_from(positions)]):
+            row_offset, col = divmod(index, n_cols)
+            ax = axes[row + row_offset, col]
+            ax.set_axis_on()
+            draw_cluster_image(ax, image)
+            _scatter_family(ax, position[None, :], colour, marker, size=120)
+            angular_axes(ax, position, zoom_arcsec / 2, small=True)
+            ax.set_xlabel("")
+            ax.set_ylabel("")
+            ax.set_title(f"{name} · Image {index + 1}", fontsize=10)
+            for spine in ax.spines.values():
+                spine.set_edgecolor(colour)
+                spine.set_linewidth(1.5)
+        row += int(np.ceil(len(positions) / n_cols))
 
-    fig.suptitle(title)
+    fig.suptitle(title, y=1 - 0.08 / fig.get_figheight())
     tight_layout()
     save_figure(fig, path=output_path, filename=output_filename, format=output_format)
 
@@ -422,9 +475,8 @@ def plot_critical_curves(
 
     At cluster scale each source redshift has its own critical curves (the lensing
     strength D_LS / D_S differs per plane), so a z=2 source's tangential curve sits
-    well outside a z=1 source's. Curves are coloured per plane with the same palette
-    the positions helpers use for the corresponding source, and labelled with the
-    plane redshift.
+    well outside a z=1 source's. Curve colours identify the source planes and match the
+    caustic colours. Legend labels give each plane's redshift and curve type.
 
     The curve engine is ``general.critical_curves_method`` from the visualize config,
     read once per call (see the module docstring): ``marching_squares`` (default)
@@ -457,10 +509,11 @@ def plot_critical_curves(
     """
     standalone = ax is None
     if standalone:
-        fig, ax = subplots(1, 1)
+        fig, ax = subplots(1, 1, figsize=(8, 7))
 
+    image = _cluster_image(image, pixel_scales)
     if image is not None:
-        _draw_image(ax, image, pixel_scales)
+        draw_cluster_image(ax, image)
 
     method = _critical_curves_method()
 
@@ -499,11 +552,15 @@ def plot_critical_curves(
                     label=f"z={redshift:.2f} radial" if k == 0 else None,
                 )
 
-    ax.set_xlabel('x (")')
-    ax.set_ylabel('y (")')
-    ax.set_title(title)
-    ax.set_aspect("equal")
-    ax.legend(loc="upper right", fontsize=9, framealpha=0.6)
+    curves = [
+        np.column_stack((line.get_ydata(), line.get_xdata())) for line in ax.lines
+    ]
+    _set_sky_field(ax, image, np.concatenate(curves) if curves else None)
+    _top_legend(ax)
+    if standalone:
+        fig.suptitle(title, y=0.99)
+    else:
+        ax.set_title(title, y=1.14)
 
     if standalone:
         tight_layout()
@@ -552,7 +609,7 @@ def plot_caustics(
     """
     standalone = ax is None
     if standalone:
-        fig, ax = subplots(1, 1)
+        fig, ax = subplots(1, 1, figsize=(8, 7))
 
     method = _critical_curves_method()
 
@@ -589,11 +646,14 @@ def plot_caustics(
                     label=f"z={redshift:.2f} radial" if k == 0 else None,
                 )
 
-    ax.set_xlabel('source-plane x (")')
-    ax.set_ylabel('source-plane y (")')
-    ax.set_title(title)
-    ax.set_aspect("equal")
-    ax.legend(loc="upper right", fontsize=9, framealpha=0.6)
+    _set_sky_field(ax)
+    ax.set_xlabel("Source-plane x")
+    ax.set_ylabel("Source-plane y")
+    _top_legend(ax)
+    if standalone:
+        fig.suptitle(title, y=0.99)
+    else:
+        ax.set_title(title, y=1.14)
 
     if standalone:
         tight_layout()
@@ -615,16 +675,20 @@ def subplot_cluster_dataset(
     output_path: Optional[str] = None,
     output_filename: str = "subplot_cluster_dataset",
     output_format: Optional[str] = None,
+    *,
+    datasets: Optional[Sequence] = None,
 ):
     """
     Combined cluster mosaic: positions overlay | per-plane critical curves (+ image).
 
     When *tracer* (and *grid*) are omitted only the positions panel is drawn. The
     right panel repeats the positions on top of the critical curves so image
-    multiplicities can be read against the curves directly.
+    multiplicities can be read against the curves directly. Optional ``datasets``
+    supply the family names and redshifts in the same order as ``positions_list``.
     """
+    positions_list = list(positions_list)
     n_cols = 2 if tracer is not None else 1
-    fig, axes = subplots(1, n_cols)
+    fig, axes = subplots(1, n_cols, figsize=(8 * n_cols, 7))
     axes = np.atleast_1d(axes).ravel()
 
     plot_positions_overlay(
@@ -636,6 +700,7 @@ def subplot_cluster_dataset(
         kpc_scale_bar=None,
         ax=axes[0],
         title="Multiple-Image Positions",
+        datasets=datasets,
     )
 
     if tracer is not None:
@@ -650,18 +715,22 @@ def subplot_cluster_dataset(
             ax=axes[1],
             title="Per-Plane Critical Curves",
         )
-        for i, positions in enumerate(positions_list):
-            arr = _positions_array(positions)
-            axes[1].scatter(
-                arr[:, 1],
-                arr[:, 0],
-                facecolors="none",
-                edgecolors=WONG_PALETTE[i % len(WONG_PALETTE)],
-                marker="o",
-                s=90,
-                linewidths=1.4,
-                zorder=7,
-            )
+        families = list(
+            _family_markers(positions_list, datasets, on_image=image is not None)
+        )
+        for arr, colour, marker, _, _ in families:
+            _scatter_family(axes[1], arr, colour, marker, size=72)
+        # Use the same sky field so a family can be located across both panels.
+        axis_limits = [
+            (min(a.get_xlim()[0] for a in axes), max(a.get_xlim()[1] for a in axes)),
+            (min(a.get_ylim()[0] for a in axes), max(a.get_ylim()[1] for a in axes)),
+        ]
+        centre = [np.mean(limits) for limits in reversed(axis_limits)]
+        half = max(high - low for low, high in axis_limits) / 2
+        for ax in axes:
+            panel_title = ax.get_title()
+            angular_axes(ax, centre, half)
+            ax.set_title(panel_title, fontsize=11)
 
     fig.suptitle(title)
     tight_layout()

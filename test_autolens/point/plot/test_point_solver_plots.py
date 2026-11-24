@@ -427,3 +427,35 @@ def test__critical_curves__source_plane_own_curves_when_not_given(solver, tracer
 
     labels = [h.get_label() for h in psp.legend_handles_from(data, marked=False)]
     assert "Critical curve" in labels
+
+
+
+def test__solver_panel__family_style_alters_only_observed_markers(data):
+    from dataclasses import replace
+    from matplotlib import pyplot as plt
+    from matplotlib.colors import to_rgba
+
+    data = replace(data, positions=data.solved)
+    fig, axes = plt.subplots(1, 2)
+    try:
+        for ax, family_index, expected_color, expected_marker in (
+            (axes[0], None, psp.OBSERVED_COLOR, "o"),
+            (axes[1], 1, "#00778a", "D"),
+        ):
+            marked = psp.draw_point_solver_panel(
+                ax, data.steps[0], data, panel_inches=4.0, family_index=family_index
+            )
+            handles = {
+                h.get_label(): h
+                for h in psp.legend_handles_from(data, marked, family_index=family_index)
+            }
+            observed = handles["Observed"]
+            assert observed.get_marker() == expected_marker
+            assert to_rgba(observed.get_markeredgecolor()) == to_rgba(expected_color)
+            assert to_rgba(handles["Solved"].get_color()) == to_rgba(psp.SOLVED_COLOR)
+            assert {text.get_text() for text in ax.texts} >= {"1", "r1"}
+            observed_artist, solved_artist = ax.collections[-2:]
+            assert observed_artist.get_edgecolors()[0] == pytest.approx(to_rgba(expected_color))
+            assert solved_artist.get_facecolors()[0] == pytest.approx(to_rgba(psp.SOLVED_COLOR))
+    finally:
+        plt.close(fig)

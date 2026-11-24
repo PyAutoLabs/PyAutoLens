@@ -695,6 +695,16 @@ def _annotate_images(ax, data: PointSolverFigureData, panel_inches: float):
         )
 
 
+def _observed_style(family_index):
+    if family_index is None:
+        return OBSERVED_COLOR, "o"
+
+    from autolens.point.plot.cluster_sky import indexed_family_style
+
+    _, color, marker = indexed_family_style(family_index)
+    return color, marker
+
+
 def draw_point_solver_panel(
     ax,
     step,
@@ -704,6 +714,7 @@ def draw_point_solver_panel(
     tick_fontsize: float = 10,
     title_fontsize: float = 12,
     annotation_fontsize: float = 10,
+    family_index=None,
 ) -> bool:
     """
     Draws one refinement step on ``ax``: the panel shared by the 2x2 still and every animation frame.
@@ -821,12 +832,14 @@ def draw_point_solver_panel(
                 )
 
     if data.positions is not None and len(data.positions):
+        observed_color, observed_marker = _observed_style(family_index)
         ax.scatter(
             data.positions[:, 1],
             data.positions[:, 0],
             s=60,
             facecolors="none",
-            edgecolors=OBSERVED_COLOR,
+            edgecolors=observed_color,
+            marker=observed_marker,
             linewidths=1.3,
             zorder=7,
         )
@@ -855,7 +868,9 @@ def draw_point_solver_panel(
     return as_markers
 
 
-def legend_handles_from(data: PointSolverFigureData, marked: bool) -> list:
+def legend_handles_from(
+    data: PointSolverFigureData, marked: bool, family_index=None
+) -> list:
     """
     Returns the legend handles shared by the still and the animation; the ``Kept (too small to draw)`` entry is
     included only when a panel drew its kept triangles as centroid markers.
@@ -910,14 +925,15 @@ def legend_handles_from(data: PointSolverFigureData, marked: bool) -> list:
             )
         )
     if data.positions is not None and len(data.positions):
+        observed_color, observed_marker = _observed_style(family_index)
         handles.append(
             Line2D(
                 [],
                 [],
-                marker="o",
+                marker=observed_marker,
                 ls="",
                 mfc="none",
-                mec=OBSERVED_COLOR,
+                mec=observed_color,
                 label="Observed",
             )
         )
@@ -954,7 +970,9 @@ def _resolve_format(output_format) -> str:
     return output_format
 
 
-def _save_animation(data, output_path, filename, title_prefix, dpi=100):
+def _save_animation(
+    data, output_path, filename, title_prefix, dpi=100, family_index=None
+):
     import matplotlib.pyplot as plt
     from matplotlib.animation import FuncAnimation, PillowWriter
 
@@ -965,7 +983,7 @@ def _save_animation(data, output_path, filename, title_prefix, dpi=100):
 
     marked = any(is_too_small_to_draw(s, data, panel_inches) for s in data.steps)
     fig.legend(
-        handles=legend_handles_from(data, marked),
+        handles=legend_handles_from(data, marked, family_index=family_index),
         loc="lower center",
         ncol=3,
         fontsize=8.5,
@@ -986,6 +1004,7 @@ def _save_animation(data, output_path, filename, title_prefix, dpi=100):
             panel_inches=panel_inches,
             title=prefix + panel_title_from(step, data, short=True),
             tick_fontsize=9,
+            family_index=family_index,
         )
 
     animation = FuncAnimation(fig, update, frames=frames)
@@ -1018,6 +1037,7 @@ def plot_point_solver(
     title_prefix: str = None,
     animate: bool = False,
     filename: str = "point_solver",
+    family_index=None,
 ):
     """
     Plot how the ``PointSolver`` refines its triangle tiling to find the multiple images of a point source.
@@ -1061,6 +1081,8 @@ def plot_point_solver(
         If ``True`` write the GIF animation instead of the still.
     filename
         The file name (without extension) of the output.
+    family_index
+        The zero-based cluster family index, if any. It styles the observed positions and their legend key.
     """
     data = point_solver_data_from(
         solver=solver,
@@ -1077,6 +1099,7 @@ def plot_point_solver(
         title_prefix=title_prefix,
         animate=animate,
         filename=filename,
+        family_index=family_index,
     )
 
 
@@ -1087,6 +1110,7 @@ def plot_point_solver_from_data(
     title_prefix: str = None,
     animate: bool = False,
     filename: str = "point_solver",
+    family_index=None,
 ):
     """
     Draws the point-solver still or animation from data already collected by :func:`point_solver_data_from`, so
@@ -1100,6 +1124,7 @@ def plot_point_solver_from_data(
             output_path=None if output_path is None else str(output_path),
             filename=filename,
             title_prefix=title_prefix,
+            family_index=family_index,
         )
 
     n = len(data.steps)
@@ -1120,11 +1145,12 @@ def plot_point_solver_from_data(
             data,
             panel_inches=panel_inches,
             title=prefix + panel_title_from(step, data),
+            family_index=family_index,
         )
     hide_unused_axes(axes_flat[n:])
 
     fig.legend(
-        handles=legend_handles_from(data, marked),
+        handles=legend_handles_from(data, marked, family_index=family_index),
         loc="lower center",
         ncol=5,
         fontsize=10.5,

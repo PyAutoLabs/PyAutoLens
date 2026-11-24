@@ -23,7 +23,7 @@ def _setting(section, name: str, default: bool = True) -> bool:
 
 
 class PlotterPoint(Plotter):
-    def dataset_point(self, dataset: PointDataset, solver=None):
+    def dataset_point(self, dataset: PointDataset, solver=None, family_index=None):
         """
         Output visualization of a `PointDataset` dataset.
 
@@ -49,6 +49,7 @@ class PlotterPoint(Plotter):
                 output_format=fmt,
                 title_prefix=self.title_prefix,
                 solver=solver,
+                family_index=family_index,
             )
 
     def image_with_points(
@@ -59,6 +60,7 @@ class PlotterPoint(Plotter):
         image_plane_lines=None,
         image_plane_line_colors=None,
         curves=None,
+        family_index=None,
     ):
         """
         Output an observed image of the lensed point source with the point-source positions overlaid.
@@ -102,6 +104,7 @@ class PlotterPoint(Plotter):
             image_plane_line_colors=image_plane_line_colors,
             title_prefix=self.title_prefix,
             curves=curves,
+            family_index=family_index,
         )
 
     def fit_point(
@@ -113,6 +116,7 @@ class PlotterPoint(Plotter):
         source_plane_lines=None,
         source_plane_line_colors=None,
         curves=None,
+        family_index=None,
     ):
         """
         Visualizes a `FitPointDataset` object: ``fit.png`` (controlled by ``fit: subplot_fit``, also output on a
@@ -147,10 +151,17 @@ class PlotterPoint(Plotter):
             source_plane_line_colors=source_plane_line_colors,
             title_prefix=self.title_prefix,
             curves=curves,
+            family_index=family_index,
         )
 
     def fit_per_image(
-        self, fit_list, curves=None, solver=None, combined: bool = False, image=None
+        self,
+        fit_list,
+        curves=None,
+        solver=None,
+        combined: bool = False,
+        image=None,
+        family_index=None,
     ):
         """
         Output a cluster diagnostic per family for a combined fit, or the single dataset's
@@ -179,9 +190,10 @@ class PlotterPoint(Plotter):
             output_path=str(self.image_path),
             output_format=self.fmt,
             title_prefix=self.title_prefix,
+            family_index=family_index,
         )
 
-    def dataset_point_combined(self, dataset_list, solver=None):
+    def dataset_point_combined(self, dataset_list, solver=None, image_extent=None):
         """
         Output ``dataset_point.png`` of every point dataset of a multi-dataset (e.g. cluster) fit in one panel,
         controlled by ``point_dataset: subplot_dataset_combined``.
@@ -191,6 +203,7 @@ class PlotterPoint(Plotter):
         multi_source_plots.plot_dataset_positions(
             dataset_list,
             solver=solver,
+            image_extent=image_extent,
             output_path=str(self.image_path),
             output_format=self.fmt,
             title_prefix=self.title_prefix,
@@ -246,7 +259,7 @@ class PlotterPoint(Plotter):
             title_prefix=self.title_prefix,
         )
 
-    def point_solver(self, fit: FitPointDataset, image_plane_lines=None):
+    def point_solver(self, fit: FitPointDataset, image_plane_lines=None, family_index=None):
         """
         Output `point_solver.png`: how the `PointSolver` refines its triangles onto the images of the fit's model.
 
@@ -294,4 +307,5 @@ class PlotterPoint(Plotter):
             output_path=str(self.image_path),
             output_format=self.fmt,
             title_prefix=self.title_prefix,
+            family_index=family_index,
         )

@@ -41,7 +41,7 @@ class Family:
     marker: str
 
     @classmethod
-    def from_record(cls, record):
+    def from_record(cls, record, by_redshift=False):
         source = source_plane_data_from(record.fit.positions, numbers=record.numbers)
         terms, penalty, statistic = contribution_values(record)
         if source.presentation.is_source_plane:
@@ -68,7 +68,7 @@ class Family:
             data,
             predictions,
             np.asarray(footprints).reshape(-1, 3),
-            *family_style(record),
+            *((record.color, record.color, record.marker) if by_redshift else family_style(record)),
         )
 
     @property
@@ -377,9 +377,10 @@ def plot_family_fits(
 ):
     """Write each family's fit.png and, for more than six zooms, fit_page_02.png etc."""
     records = ps.records_from_fits(fits)
-    ps.assign_styles(records)
+    colormap = ps.assign_styles(records)
     families = [
-        Family.from_record(record) for record in records if len(record.observed)
+        Family.from_record(record, by_redshift=colormap is not None)
+        for record in records if len(record.observed)
     ]
     used = set()
     for family in families:

@@ -161,12 +161,47 @@ def test__plot_dataset_positions__all_sources_labelled_no_curves(cluster, figure
 
     ax = figures[0].fig.axes[0]
     assert figures[0].filename == "dataset_point"
-    assert ax.get_title() == "Dataset Positions"
+    assert ax.get_title() == "Cluster dataset overview"
     labels = _legend_labels(ax)
-    assert labels == ["point_0 (z = 1, σ = 0.005″)", "point_1 (z = 2, σ = 0.005″)"]
+    for dataset, label in zip(cluster.datasets, labels):
+        assert label == f"{dataset.name} (z = {dataset.redshift:g}, {len(dataset.positions)} images, σ = 0.005″)"
     texts = {t.get_text() for t in ax.texts}
     assert "0·1" in texts and "1·1" in texts
     assert len(ax.lines) == 0
+
+
+def test__twenty_family_dataset__all_entries_above_the_sky_map(figures):
+    datasets = [
+        al.PointDataset(
+            name=f"point_{k}",
+            redshift=1 + k / 10,
+            positions_noise_map=0.04,
+            positions=al.Grid2DIrregular(values=[(k - 10, 3), (10 - k, -3)]),
+        )
+        for k in range(20)
+    ]
+    image = al.Array2D.ones(shape_native=(80, 80), pixel_scales=1.0)
+    msp.plot_dataset_positions(datasets, image_extent=image.geometry.extent)
+    msp.plot_image_with_points(image, datasets=datasets)
+    for saved in figures:
+        fig = saved.fig
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+        ax = fig.axes[0]
+        assert ax.get_xlim() == ax.get_ylim() == (-30.0, 30.0)
+        legend = ax.get_legend()
+        assert legend.get_title().get_text() == "20 families    ·    40 observed images"
+        assert len(legend.get_texts()) == 20
+        assert {text.get_text() for text in ax.texts} == {
+            f"{k}·{n}" for k in range(20) for n in (1, 2)
+        }
+        assert (
+            legend.get_window_extent(renderer).y0 >= ax.get_window_extent(renderer).y1
+        )
+        boxes = [text.get_window_extent(renderer) for text in legend.get_texts()]
+        assert all(
+            not a.overlaps(b) for i, a in enumerate(boxes) for b in boxes[i + 1 :]
+        )
 
 
 def _assert_family_legend_labels(labels, fits, statistic):
@@ -308,7 +343,8 @@ def test__plot_image_with_points__fitted_sources_show_fit_statistic(
 
     ax = figures[0].fig.axes[0]
     if fits is None:
-        assert ax.get_legend() is None
+        assert len(_legend_labels(ax)) == len(cluster.datasets)
+        assert all("χ²" not in label for label in _legend_labels(ax))
         assert figures[0].filename == "image_with_points"
     else:
         _assert_family_legend_labels(_legend_labels(ax), fits, statistic)
@@ -497,6 +533,57 @@ def make_family_figures(monkeypatch):
 
     monkeypatch.setattr(Figure, "savefig", capture)
     return figures
+
+
+@pytest.mark.parametrize("family_index", [None, 1])
+def test__visualizer__single_analysis_legacy_figures_use_explicit_family_context(
+    cluster, family_figures, tmp_path, monkeypatch, family_index
+):
+    from autolens.point.model.plotter import PlotterPoint
+    from autolens.point.model.visualizer import VisualizerPoint
+
+    monkeypatch.setenv("PYAUTO_FAST_PLOTS", "1")
+    monkeypatch.setattr(PlotterPoint, "tracer", lambda *args, **kwargs: None)
+    monkeypatch.setattr(PlotterPoint, "galaxies", lambda *args, **kwargs: None)
+    dataset = cluster.datasets[1]
+    analysis = al.AnalysisPoint(
+        dataset=dataset,
+        solver=cluster.solver,
+        image=al.Array2D.ones(shape_native=(30, 30), pixel_scales=0.1),
+        fit_positions_cls=al.FitPositionsImagePair,
+        use_jax=False,
+    )
+    paths = SimpleNamespace(image_path=tmp_path, output_path=tmp_path)
+    instance = SimpleNamespace(galaxies=cluster.tracer.galaxies)
+
+    VisualizerPoint.visualize_before_fit(
+        analysis=analysis, paths=paths, model=None, family_index=family_index
+    )
+    VisualizerPoint.visualize(
+        analysis=analysis,
+        paths=paths,
+        instance=instance,
+        during_analysis=False,
+        family_index=family_index,
+    )
+
+    image_id = "1" if family_index is None else "1·1"
+    for filename in ("dataset_point", "fit", "image_with_points", "fit_image_with_points"):
+        ax = family_figures[tmp_path / f"{filename}.png"].axes[0]
+        assert image_id in {text.get_text() for text in ax.texts}
+        if family_index is not None:
+            color = "#5fe3ee" if "image_with_points" in filename else "#00778a"
+            assert any(
+                ring.get_edgecolors().size
+                and np.allclose(ring.get_edgecolors(), to_rgba(color))
+                and not ring.get_facecolors().size
+                for ring in ax.collections
+            )
+
+    ranking, image_plane, source_plane = family_figures[tmp_path / "fit_per_image.png"].axes
+    assert image_id in {tick.get_text() for tick in ranking.get_yticklabels()}
+    for ax in (image_plane, source_plane):
+        assert image_id in {text.get_text() for text in ax.texts}
 
 
 @pytest.mark.parametrize("with_image", [False, True])

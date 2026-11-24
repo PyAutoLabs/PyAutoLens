@@ -19,6 +19,7 @@ def subplot_fit(
     title_prefix: str = None,
     solver=None,
     curves=None,
+    family_index=None,
 ):
     """
     Produce ``fit.png`` of a `FitPointDataset`: the "Fit Positions" panel of
@@ -113,6 +114,7 @@ def subplot_fit(
         fit.tracer,
         title=f"{_prefix}Fit Positions ({fit.dataset.name})",
         colormap=colormap,
+        family_index=family_index,
     )
 
     if has_fluxes:
@@ -211,6 +213,7 @@ def plot_image_with_points(
     title_prefix: str = None,
     curves=None,
     solver=None,
+    family_index=None,
 ):
     """
     Plot an observed image of a lensed point source (e.g. a quasar) with its point-source positions overlaid.
@@ -257,4 +260,5 @@ def plot_image_with_points(
         title_prefix=title_prefix,
         image_plane_lines=image_plane_lines,
         image_plane_line_colors=image_plane_line_colors,
+        family_index=family_index,
     )

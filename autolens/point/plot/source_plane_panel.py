@@ -647,6 +647,7 @@ def plot_source_plane_panel(
     radial_caustics=None,
     point_colors=None,
     legend: bool = True,
+    point_marker: str = "o",
 ):
     """
     Draws the "Fit Source Plane" panel of a positions fit on ``ax`` (see the module docstring).
@@ -665,6 +666,8 @@ def plot_source_plane_panel(
         The colour of each traced position (black if ``None``), e.g. the per-image colours of ``fit_per_image.png``.
     legend
         Whether the panel draws its legend (``fit_per_image.png`` draws none).
+    point_marker
+        The marker shape for the traced positions.
     """
     from autoarray.plot.utils import apply_extent, apply_labels
 
@@ -688,7 +691,7 @@ def plot_source_plane_panel(
         traced[:, 0],
         s=110,
         c=pp.OBSERVED_COLOR if point_colors is None else list(point_colors),
-        marker="o",
+        marker=point_marker,
         edgecolors="k",
         linewidths=0.6,
         zorder=4,
