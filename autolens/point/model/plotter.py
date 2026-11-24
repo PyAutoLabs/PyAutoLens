@@ -149,18 +149,29 @@ class PlotterPoint(Plotter):
             curves=curves,
         )
 
-    def fit_per_image(self, fit_list, curves=None, solver=None, combined: bool = False):
+    def fit_per_image(
+        self, fit_list, curves=None, solver=None, combined: bool = False, image=None
+    ):
         """
-        Output ``fit_per_image.png``: one row per source of its residual ranking, image-plane zoom and source-plane
-        panel (beyond 8 sources, one file per source in ``fit_per_image/``).
-
-        Controlled by ``fit_point_dataset: fit_per_image`` for a single dataset and
-        ``fit_point_dataset: fit_per_image_combined`` for the all-sources figure of a multi-dataset (e.g. cluster)
-        fit, whose ranking range is shared by every source.
+        Output a cluster diagnostic per family for a combined fit, or the single dataset's
+        residual ranking, image-plane zoom and source-plane panel in ``fit_per_image.png``.
         """
         name = "fit_per_image_combined" if combined else "fit_per_image"
         if not _setting(["fit", "fit_point_dataset"], name):
             return
+        if combined:
+            from autolens.point.plot.family_fit_plots import plot_family_fits
+
+            return plot_family_fits(
+                fit_list,
+                image=image,
+                single_panel=_setting(
+                    ["fit", "fit_point_dataset"], "family_fit_single_panel", default=False
+                ),
+                output_path=str(self.image_path),
+                output_format=self.fmt,
+                title_prefix=self.title_prefix,
+            )
         multi_source_plots.subplot_fit_per_image(
             fit_list,
             curves=curves,

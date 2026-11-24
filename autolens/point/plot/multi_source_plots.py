@@ -423,14 +423,17 @@ def merit_label_from(records) -> Optional[str]:
     values = [r.chi_squared for r in records if r.chi_squared is not None]
     if not values:
         return None
-    name = "−2 ln L" if all(r.mixture for r in records if r.fit is not None) else "χ²"
+    kinds = {r.mixture for r in records if r.chi_squared is not None}
+    if len(kinds) > 1:
+        return None
+    name = "−2 ln L" if True in kinds else "χ²"
     return f"{name} = {spp._format_chi_squared(float(np.sum(values)))}"
 
 
 def observed_handles(records, edgecolor="k"):
     """
     One ``Observed (σ = …)`` entry for a single source or more than 8 sources; for 2-8 sources one entry per source,
-    ``point_k (z = …, σ = …)``.
+    report the family's redshift and fitted statistic, or its positional noise for dataset figures.
     """
     from matplotlib.lines import Line2D
 
@@ -439,6 +442,15 @@ def observed_handles(records, edgecolor="k"):
         handles = []
         for record in records:
             z = f"z = {record.redshift:g}, " if record.redshift is not None else ""
+            value = pp.sigma_label_from(record.sigma)
+            if record.chi_squared is not None:
+                from autolens.point.plot import source_plane_panel as spp
+
+                source_plane = spp.presentation_from(record.fit.positions).is_source_plane
+                statistic = "Source-plane χ²" if source_plane else "Image-plane χ²"
+                if record.mixture:
+                    statistic = "−2 ln L"
+                value = f"{statistic} = {spp._format_chi_squared(record.chi_squared)}"
             handles.append(
                 Line2D(
                     [],
@@ -449,7 +461,7 @@ def observed_handles(records, edgecolor="k"):
                     markeredgecolor=edgecolor,
                     markeredgewidth=0.6,
                     markersize=9,
-                    label=f"{record.name} ({z}{sigma_text})",
+                    label=f"{record.name} ({z}{value})",
                 )
             )
         return handles
@@ -1040,7 +1052,7 @@ def plot_image_with_points(
     ``fits`` the model positions, residual lines and each source's tangential critical curves at its own redshift are
     added (``fit_image_with_points.png``, so both figures coexist). Clusters (several sources, or an image wider than
     ``CLUSTER_IMAGE_WIDTH``) use a log10 colour scale (a bright BCG and faint arcs); a galaxy-scale lens keeps the
-    linear scale. There is no legend.
+    linear scale. Fitted clusters with up to eight families include a per-family merit legend.
 
     ``image_plane_lines`` (pre-computed last-plane curves) are drawn only when ``curves`` cannot be computed.
     """
@@ -1135,5 +1147,7 @@ def plot_image_with_points(
         shown,
         obstacles=np.vstack(models) if models else None,
     )
+    if is_fit and multi and not many:
+        ax.legend(handles=observed_handles(records, edgecolor="w"), loc="best", fontsize=10)
     filename = "fit_image_with_points" if is_fit else "image_with_points"
     save_figure(fig, path=output_path, filename=filename, format=output_format)

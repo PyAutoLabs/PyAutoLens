@@ -1,4 +1,3 @@
-import shutil
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -8,13 +7,14 @@ import pytest
 import autolens as al
 from autolens.point.plot import multi_source_plots as msp
 from autolens.point.plot import point_sources as ps
+from autolens.point.plot import source_plane_panel as spp
 
 directory = Path(__file__).resolve().parent
 
 
-def _tracer(n_sources=2):
+def _tracer(n_sources=2, first_centre=(0.05, 0.03)):
     redshifts = [1.0, 2.0, 1.5, 2.5, 3.0, 1.2, 1.8, 2.2, 2.8, 3.5][:n_sources]
-    centres = [(0.05, 0.03), (-0.04, 0.06), (0.02, -0.05), (0.0, 0.08), (-0.06, -0.02)]
+    centres = [first_centre, (-0.04, 0.06), (0.02, -0.05), (0.0, 0.08), (-0.06, -0.02)]
     sources = [
         al.Galaxy(
             redshift=z,
@@ -164,6 +164,15 @@ def test__plot_dataset_positions__all_sources_labelled_no_curves(cluster, figure
     assert len(ax.lines) == 0
 
 
+def _assert_family_legend_labels(labels, fits, statistic):
+    for fit in fits:
+        label = next(label for label in labels if label.startswith(fit.dataset.name))
+        value = spp._format_chi_squared(float(fit.positions.chi_squared))
+        assert f"z = {fit.dataset.redshift:g}" in label
+        assert f"{statistic} = {value}" in label
+        assert "σ" not in label
+
+
 def test__plot_fit_positions__global_figure(cluster, figures):
     msp.plot_fit_positions(cluster.fits["FitPositionsImagePair"], solver=cluster.solver)
 
@@ -171,7 +180,9 @@ def test__plot_fit_positions__global_figure(cluster, figures):
     assert figures[0].filename == "fit"
     assert ax.get_title() == "Fit Positions"
     labels = _legend_labels(ax)
-    assert "point_0 (z = 1, σ = 0.005″)" in labels
+    _assert_family_legend_labels(
+        labels, cluster.fits["FitPositionsImagePair"], "Image-plane χ²"
+    )
     assert "Critical curve (each source's z)" in labels
     assert any(label.startswith("χ² = ") for label in labels)
     # Residual lines are drawn at true length (observed -> model), never exaggerated.
@@ -189,6 +200,9 @@ def test__plot_fit_positions__mixture_shows_minus_two_ln_l(cluster, figures):
     )
 
     labels = _legend_labels(figures[0].fig.axes[0])
+    _assert_family_legend_labels(
+        labels, cluster.fits["FitPositionsImagePairAll"], "−2 ln L"
+    )
     assert any(label.startswith("−2 ln L = ") for label in labels)
     assert not any(label.startswith("χ²") for label in labels)
     assert "Residual (nearest, soft pairing)" in labels
@@ -263,32 +277,44 @@ def test__subplot_fit_per_image__many_sources_one_file_each(figures):
     assert all(str(f.path).endswith("fit_per_image") for f in figures)
 
 
-@pytest.mark.parametrize("with_fit", [False, True])
-def test__plot_image_with_points__all_sources_no_legend(cluster, figures, with_fit):
+@pytest.mark.parametrize(
+    ("fit_name", "statistic"),
+    [
+        (None, None),
+        ("FitPositionsImagePair", "Image-plane χ²"),
+        ("FitPositionsSource", "Source-plane χ²"),
+    ],
+)
+def test__plot_image_with_points__fitted_sources_show_fit_statistic(
+    cluster, figures, fit_name, statistic
+):
     image = al.Array2D.ones(shape_native=(30, 30), pixel_scales=0.1)
 
+    fits = cluster.fits.get(fit_name)
     msp.plot_image_with_points(
         image,
         datasets=cluster.datasets,
-        fits=cluster.fits["FitPositionsImagePair"] if with_fit else None,
+        fits=fits,
         solver=cluster.solver,
     )
 
     ax = figures[0].fig.axes[0]
-    assert ax.get_legend() is None
-    assert figures[0].filename == ("fit_image_with_points" if with_fit else "image_with_points")
+    if fits is None:
+        assert ax.get_legend() is None
+        assert figures[0].filename == "image_with_points"
+    else:
+        _assert_family_legend_labels(_legend_labels(ax), fits, statistic)
+        assert figures[0].filename == "fit_image_with_points"
     texts = {t.get_text() for t in ax.texts}
     assert "0·1" in texts and "1·1" in texts
 
 
 def test__visualizer__combined_figures_written_for_several_point_analyses(
-    cluster, plot_patch
+    cluster, plot_patch, monkeypatch, tmp_path
 ):
     from autolens.point.model.visualizer import VisualizerPoint
 
-    plot_path = directory / "files" / "plots" / "combined"
-    if plot_path.exists():
-        shutil.rmtree(plot_path)
+    plot_path = tmp_path / "combined"
 
     image = al.Array2D.ones(shape_native=(30, 30), pixel_scales=0.1)
     analyses = [
@@ -303,6 +329,17 @@ def test__visualizer__combined_figures_written_for_several_point_analyses(
     ]
     instance = SimpleNamespace(galaxies=cluster.tracer.galaxies)
     paths = SimpleNamespace(image_path=plot_path, output_path=plot_path)
+    solver_calls = []
+    solve = cluster.solver.solve
+
+    def track_solution(**kwargs):
+        solution = solve(**kwargs)
+        solver_calls.append(
+            (tuple(kwargs["source_plane_coordinate"]), kwargs["plane_redshift"])
+        )
+        return solution
+
+    monkeypatch.setattr(cluster.solver, "solve", track_solution)
 
     VisualizerPoint.visualize_combined(
         analyses=analyses,
@@ -313,12 +350,27 @@ def test__visualizer__combined_figures_written_for_several_point_analyses(
 
     for name in (
         "fit.png",
-        "fit_per_image.png",
+        "point_0/fit.png",
+        "point_1/fit.png",
         "fit_image_with_points.png",
         "dataset_point.png",
         "image_with_points.png",
     ):
         assert str(plot_path / name) in plot_patch.paths
+
+    assert str(plot_path / "fit_per_image.png") not in plot_patch.paths
+    assert solver_calls == [((0.05, 0.03), 1.0), ((-0.04, 0.06), 2.0)]
+
+    changed_centre = (0.07, -0.02)
+    changed = SimpleNamespace(galaxies=_tracer(first_centre=changed_centre).galaxies)
+    solver_calls.clear()
+    VisualizerPoint.visualize_combined(
+        analyses=analyses,
+        paths=paths,
+        instance=[changed, changed],
+        during_analysis=False,
+    )
+    assert solver_calls == [(changed_centre, 1.0), ((-0.04, 0.06), 2.0)]
 
     # A single point analysis has no combined figures (its own figures are output per analysis).
     plot_patch.paths.clear()
@@ -343,3 +395,144 @@ def test__plotter__fit_per_image_toggle(cluster, plot_patch, monkeypatch):
     monkeypatch.setattr(plotter_module, "plot_setting", lambda section, name: False)
     plotter.fit_per_image(fit_list=fits, curves={})
     assert plot_patch.paths == []
+
+
+@pytest.fixture(name="family_figures")
+def make_family_figures(monkeypatch):
+    from matplotlib.figure import Figure
+
+    figures = {}
+
+    def capture(fig, filename, **kwargs):
+        figures[Path(filename)] = fig
+
+    monkeypatch.setattr(Figure, "savefig", capture)
+    return figures
+
+
+@pytest.mark.parametrize("with_image", [False, True])
+def test__plot_family_fits__one_shared_detail_panel(
+    cluster, family_figures, tmp_path, monkeypatch, with_image
+):
+    from autolens.point.plot.family_fit_plots import plot_family_fits
+
+    monkeypatch.setenv("PYAUTO_FAST_PLOTS", "1")
+    fits = cluster.fits["FitPositionsImagePair"]
+    image = (
+        al.Array2D.ones(shape_native=(30, 30), pixel_scales=0.1)
+        if with_image
+        else None
+    )
+    plot_family_fits(
+        fits, image=image, single_panel=True, output_path=tmp_path, output_format="png"
+    )
+
+    assert set(family_figures) == {
+        tmp_path / "point_0" / "fit.png",
+        tmp_path / "point_1" / "fit.png",
+    }
+    for fig in family_figures.values():
+        fig.canvas.draw()
+        axes = {ax.get_title(): ax for ax in fig.axes}
+        assert "Cluster fit overview" in axes
+        ranking = axes["Per-image contribution"].get_window_extent()
+        source_plane = axes["All images in the source plane"].get_window_extent()
+        assert (ranking.width, ranking.height) == pytest.approx(
+            (source_plane.width, source_plane.height)
+        )
+        assert "All images in the image plane" in axes
+        assert not any(title.startswith("Image ") for title in axes)
+        assert any(ax.images for ax in fig.axes) == with_image
+
+
+@pytest.mark.parametrize(
+    ("n_images", "fit_positions_cls"),
+    [
+        (6, al.FitPositionsImagePair),
+        (7, al.FitPositionsImagePair),
+        (7, al.FitPositionsSource),
+    ],
+)
+def test__plot_family_fits__image_tiles_keep_absolute_centres_and_full_rankings(
+    cluster, family_figures, tmp_path, monkeypatch, n_images, fit_positions_cls
+):
+    from autolens.point.plot.family_fit_plots import plot_family_fits
+    from autolens.point.plot.positions_panel import image_numbers_from
+    from autolens.point.plot.source_plane_panel import source_plane_data_from
+
+    monkeypatch.setenv("PYAUTO_FAST_PLOTS", "1")
+    observed = [
+        (0.9, 0.7),
+        (-0.8, 0.6),
+        (0.7, -0.4),
+        (-0.5, -0.9),
+        (0.3, 0.4),
+        (-0.1, -0.3),
+        (0.2, -0.7),
+    ][:n_images]
+    dataset = al.PointDataset(
+        name="point_0",
+        positions=al.Grid2DIrregular(values=observed),
+        positions_noise_map=0.005,
+        redshift=1.0,
+    )
+    fit = al.FitPointDataset(
+        dataset=dataset,
+        tracer=cluster.tracer,
+        solver=cluster.solver,
+        fit_positions_cls=fit_positions_cls,
+    )
+    image = al.Array2D.ones(shape_native=(100, 100), pixel_scales=0.2)
+
+    plot_family_fits([fit], image=image, output_path=tmp_path, output_format="png")
+
+    pages = tmp_path / dataset.name
+    expected_paths = {pages / "fit.png"}
+    if n_images > 6:
+        expected_paths.add(pages / "fit_page_02.png")
+    assert set(family_figures) == expected_paths
+    numbers = image_numbers_from(dataset.positions)
+    centres = (
+        source_plane_data_from(fit.positions, numbers=numbers).traced
+        if fit_positions_cls is al.FitPositionsSource
+        else observed
+    )
+    centres_by_title = {
+        f"Image {number}": (y, x) for number, (y, x) in zip(numbers, centres)
+    }
+    terms = np.asarray(fit.positions.chi_squared_map.array)
+    ranked_numbers = [
+        number for number, _ in sorted(zip(numbers, terms), key=lambda row: (-row[1], row[0]))
+    ]
+    tile_order = sorted(numbers) if n_images == 6 else ranked_numbers
+    sizes = []
+    rankings = []
+    spans = []
+    for path, fig in family_figures.items():
+        fig.canvas.draw()
+        ranking = next(
+            ax for ax in fig.axes if ax.get_title() == "Per-image contribution"
+        )
+        ranked_ids = [tick.get_text() for tick in ranking.get_yticklabels()]
+        assert set(centres_by_title) <= set(ranked_ids)
+        rankings.append(ranked_ids)
+
+        page_tiles = []
+        for ax in fig.axes:
+            title = ax.get_title()
+            if title not in centres_by_title:
+                continue
+            page_tiles.append(title)
+            y, x = centres_by_title[title]
+            assert np.mean(ax.get_xlim()) == pytest.approx(x)
+            assert np.mean(ax.get_ylim()) == pytest.approx(y)
+            spans.append((np.ptp(ax.get_xlim()), np.ptp(ax.get_ylim())))
+            bounds = ax.get_window_extent()
+            sizes.append((bounds.width, bounds.height))
+
+        page_numbers = tile_order[:6] if path.name == "fit.png" else tile_order[6:]
+        assert page_tiles == [f"Image {number}" for number in page_numbers]
+
+    assert all(ranking == rankings[0] for ranking in rankings)
+    assert np.asarray(spans) == pytest.approx(np.broadcast_to(spans[0], (n_images, 2)))
+    assert np.asarray(sizes) == pytest.approx(np.broadcast_to(sizes[0], (n_images, 2)))

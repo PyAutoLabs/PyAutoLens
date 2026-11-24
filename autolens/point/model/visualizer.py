@@ -1,6 +1,9 @@
+from copy import copy
+
 import autofit as af
 
 from autolens.point.model.plotter import PlotterPoint
+from autolens.point.fit.positions.image.abstract import AbstractFitPositionsImagePair
 from autolens.lens.plot.critical_curves import critical_curve_grid_from
 from autolens.point.plot import point_sources as ps
 
@@ -160,8 +163,8 @@ class VisualizerPoint(af.Visualizer):
 
         - ``fit.png``: every source's observed and model positions and its critical curves at its own redshift
           (also output on a quick update);
-        - ``fit_per_image.png``: one row per source, with the residual ranking range shared by every source
-          (``fit_per_image/<name>.png`` beyond 8 sources);
+        - ``<family>/fit.png``: the cluster overview, per-image contributions, fitted-plane details and the
+          complete source-plane view. Additional groups of six zooms use ``fit_page_02.png``, etc.;
         - ``fit_image_with_points.png`` if an observed image was passed to an ``AnalysisPoint``;
         - the dataset figures of ``visualize_before_fit_combined`` (``dataset_point.png``,
           ``image_with_points.png``), as a factor-graph fit does not call that function.
@@ -182,7 +185,7 @@ class VisualizerPoint(af.Visualizer):
         )
 
         fit_list = [
-            analysis.fit_for_visualization(instance=single_instance)
+            _combined_plot_fit(analysis.fit_for_visualization(instance=single_instance))
             for analysis, single_instance in pairs
         ]
         solver = getattr(analyses[0], "solver", None) or getattr(
@@ -208,9 +211,22 @@ class VisualizerPoint(af.Visualizer):
             return
 
         plotter.fit_per_image(
-            fit_list=fit_list, curves=curves, solver=solver, combined=True
+            fit_list=fit_list, curves=curves, solver=solver, combined=True, image=image
         )
         _visualize_datasets_combined(plotter, analyses)
+
+
+def _combined_plot_fit(fit):
+    """Share a fixed image-plane solution across all panels of this visualization call."""
+    positions = fit.positions
+    if not isinstance(positions, AbstractFitPositionsImagePair):
+        return fit
+    if type(positions).model_data is not AbstractFitPositionsImagePair.model_data:
+        return fit
+    result = copy(fit)
+    result.positions = copy(positions)
+    result.positions._plot_model_data = positions.model_data
+    return result
 
 
 def _is_point_analysis(analysis) -> bool:
