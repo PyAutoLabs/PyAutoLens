@@ -110,3 +110,125 @@ def test__save_attributes__dataset_json_round_trips():
     )
 
     os.remove(paths._files_path / "dataset.json")
+
+
+# --- setup (likelihood lifecycle 5C-2) ---------------------------------------------------
+
+import json
+import logging
+
+import pytest
+
+from autonerves.environment import Environment
+
+from autolens import exc
+
+
+def _setup_environment(gpu=False, gpu_name=None, cores=64):
+    return Environment(
+        gpu=gpu,
+        gpu_name=gpu_name,
+        gpu_memory_gb=None,
+        cores=cores,
+        ram_gb=None,
+        numba=True,
+        nufftax=True,
+        site="local",
+    )
+
+
+@pytest.fixture(name="detect_many_core")
+def make_detect_many_core(monkeypatch):
+    monkeypatch.delenv("PYAUTO_SETUP", raising=False)
+    monkeypatch.delenv("PYAUTO_DISABLE_JAX", raising=False)
+    monkeypatch.setattr(
+        Environment, "detect", classmethod(lambda cls: _setup_environment(cores=64))
+    )
+
+
+def test__setup_key_from__weak_isothermal():
+    analysis = al.AnalysisWeak(dataset=_make_dataset())
+
+    assert analysis.setup_key_from(model=_lens_model()) == ("weak", "isothermal")
+
+
+def test__setup_auto__weak_isothermal__jax_dense__banner_and_setup_json(
+    detect_many_core, caplog, tmp_path
+):
+    pytest.importorskip("jax")
+    import jax.numpy as jnp
+
+    analysis = al.AnalysisWeak(dataset=_make_dataset(), setup="auto")
+
+    assert analysis._use_jax is False
+
+    with caplog.at_level(logging.INFO):
+        analysis.modify_before_fit(paths=af.DirectoryPaths(), model=_lens_model())
+
+    assert analysis.setup.setup_id == "jax_cpu_dense_fp64"
+    assert analysis.setup.rule_id == "weak-isothermal-standard-cpu-many-core"
+    assert analysis._use_jax is True
+    assert analysis._xp is jnp
+
+    banners = [r.message for r in caplog.records if r.message.startswith("Setup: ")]
+    assert len(banners) == 1
+    assert banners[0].startswith("Setup: jax/cpu/dense/fp64 (64 CPU cores) · rule weak-isothermal")
+
+    paths = af.DirectoryPaths(name="weak_setup", path_prefix=str(tmp_path))
+    analysis.save_attributes(paths=paths)
+
+    with open(paths._files_path / "setup.json") as f:
+        setup_dict = json.load(f)
+
+    assert setup_dict["setup_id"] == "jax_cpu_dense_fp64"
+    assert setup_dict["decision_id"] == "weak-isothermal-standard-cpu-many-core"
+    assert setup_dict["chosen_by"] == "auto"
+
+
+def test__setup_auto__pyauto_setup_env_wins__weak(detect_many_core, monkeypatch):
+    monkeypatch.setenv("PYAUTO_SETUP", "numba_cpu_dense_fp64")
+
+    analysis = al.AnalysisWeak(dataset=_make_dataset(), setup="auto", use_jax=True)
+    analysis.modify_before_fit(paths=af.DirectoryPaths(), model=_lens_model())
+
+    assert analysis.setup.setup_id == "numba_cpu_dense_fp64"
+    assert analysis.setup_chosen_by == "PYAUTO_SETUP"
+    assert analysis._use_jax is False
+    assert analysis._xp is np
+
+
+def test__no_setup__weak_unchanged(detect_many_core, caplog, tmp_path):
+    dataset = _make_dataset()
+
+    analysis = al.AnalysisWeak(dataset=dataset)
+
+    with caplog.at_level(logging.INFO):
+        analysis.modify_before_fit(paths=af.DirectoryPaths(), model=_lens_model())
+
+    assert analysis.setup is None
+    assert analysis._use_jax is False
+    assert analysis.dataset is dataset
+
+    lines = [r.message for r in caplog.records if r.message.startswith("Setup: ")]
+    assert lines == [
+        "Setup: auto would choose jax_cpu_dense_fp64 (rule "
+        'weak-isothermal-standard-cpu-many-core); pass setup="auto" to use it'
+    ]
+
+    paths = af.DirectoryPaths(name="weak_no_setup", path_prefix=str(tmp_path))
+    analysis.save_attributes(paths=paths)
+
+    assert not (paths._files_path / "setup.json").exists()
+
+
+def test__factor_graph__setup_raises_setup_exception__weak():
+    factor_graph = af.FactorGraphModel(
+        af.AnalysisFactor(
+            prior_model=_lens_model(),
+            analysis=al.AnalysisWeak(dataset=_make_dataset(), setup="auto"),
+        )
+    )
+    instance = factor_graph.global_prior_model.instance_from_unit_vector([])
+
+    with pytest.raises(exc.SetupException, match="factor graph"):
+        factor_graph.log_likelihood_function(instance)

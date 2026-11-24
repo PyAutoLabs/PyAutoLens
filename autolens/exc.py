@@ -64,3 +64,16 @@ class PointProfileMismatchException(Exception):
     absent dataset components (its long-standing name-pairing semantics), and profile/fit mismatches must never
     be silently skipped — they invalidate the composed model.
     """
+
+
+class SetupException(AnalysisException):
+    """
+    Raised when the compute `setup` of an analysis cannot be honoured, for example when an analysis given
+    `setup=` is fitted inside a factor graph, where its `modify_before_fit` (which resolves and applies the
+    setup) is never called.
+
+    Deliberately NOT a subclass of `af.exc.FitException`: it is a configuration error, so it must stop the
+    model-fit with a clear message rather than be swallowed into a resample on every likelihood call.
+    """
+
+    pass

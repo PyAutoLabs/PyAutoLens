@@ -66,6 +66,7 @@ class AnalysisDataset(AgAnalysisDataset, AnalysisLens):
         raise_inversion_positions_likelihood_exception: bool = True,
         title_prefix: str = None,
         use_jax: bool = True,
+        setup=None,
         **kwargs,
     ):
         """
@@ -99,6 +100,16 @@ class AnalysisDataset(AgAnalysisDataset, AnalysisLens):
             be inferred, in which case an Exception is raised before the model-fit begins to inform the user
             of this. This exception is not raised if this input is False, allowing the user to perform the model-fit
             anyway.
+        use_jax
+            Whether the likelihood is evaluated with JAX. It is honoured as given when `setup` is `None`; a
+            resolved `setup` sets the backend instead.
+        setup
+            The compute setup of the likelihood: `None` (the default, nothing changes), `"auto"` (the designated
+            setup for the likelihood and hardware, chosen at fit start from the model), an `aa.Setup` or a
+            setup_id string such as `"numba_cpu_sparse_fp64"`. It is resolved first in `modify_before_fit` by the
+            **PyAutoGalaxy** base class (see `autogalaxy.analysis.analysis.dataset.AnalysisDataset`). A setup is
+            not supported inside a factor graph, which does not call `modify_before_fit`: the likelihood raises
+            an `exc.SetupException` instead of fitting with the setup silently ignored.
         """
 
         super().__init__(
@@ -108,6 +119,7 @@ class AnalysisDataset(AgAnalysisDataset, AnalysisLens):
             settings=settings,
             title_prefix=title_prefix,
             use_jax=use_jax,
+            setup=setup,
             **kwargs,
         )
 
@@ -135,6 +147,10 @@ class AnalysisDataset(AgAnalysisDataset, AnalysisLens):
         before it begins.
 
         This function:
+
+        - Resolves and applies the compute `setup` (via the **PyAutoGalaxy** base class, which does this first,
+          before the grids are preloaded), keeping the backend (`_use_jax`, and `_xp`, which derives from it) in
+          step with the resolved setup.
 
         - Checks that the adapt-dataset is consistent with previous adapt-datasets if the model-fit is being
           resumed from a previous run.
