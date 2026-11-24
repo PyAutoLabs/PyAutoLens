@@ -28,6 +28,7 @@ import autogalaxy as ag
 from autogalaxy.analysis.analysis.dataset import AnalysisDataset as AgAnalysisDataset
 
 from autolens.analysis.analysis.lens import AnalysisLens
+from autolens.analysis.runtime_estimate import AnalysisRuntimeEstimate
 from autolens.analysis.result import ResultDataset
 from autolens.analysis.positions import PositionsLH
 
@@ -39,7 +40,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(level="INFO")
 
 
-class AnalysisDataset(AgAnalysisDataset, AnalysisLens):
+class AnalysisDataset(AnalysisRuntimeEstimate, AgAnalysisDataset, AnalysisLens):
     @staticmethod
     def _save_dataset_fits(paths: af.AbstractPaths, hdu_list: HDUList) -> None:
         """Save the dataset for directory and database aggregators."""

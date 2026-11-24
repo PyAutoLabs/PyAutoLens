@@ -23,13 +23,16 @@ from autolens.analysis.analysis.setup import (
     AnalysisSetupNoOperator,
     raise_if_setup_unresolved,
 )
+from autolens.analysis.runtime_estimate import AnalysisRuntimeEstimate
 from autolens.weak.dataset import WeakDataset
 from autolens.weak.fit import FitWeak
 from autolens.weak.model.result import ResultWeak
 from autolens.weak.model.visualizer import VisualizerWeak
 
 
-class AnalysisWeak(AnalysisSetupNoOperator, AgAnalysis, AnalysisLens):
+class AnalysisWeak(
+    AnalysisRuntimeEstimate, AnalysisSetupNoOperator, AgAnalysis, AnalysisLens
+):
     Visualizer = VisualizerWeak
     Result = ResultWeak
 
