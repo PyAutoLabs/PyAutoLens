@@ -1254,3 +1254,224 @@ def test__galaxy_image_dict__adds_ordinary_and_linear_light(
     np.testing.assert_allclose(
         adapt_image.array, np.maximum(expected.array, floor * np.max(expected.array))
     )
+
+
+# The lazy sparse operator (`dataset.sparse_operator_for`) reached through `fit.sparse_operator`, which
+# the lens fit passes to its `DatasetInterface` and to the profile-subtraction helpers.
+
+LAZY_ON = aa.Settings(lazy_sparse_operator="auto")
+
+
+@pytest.fixture(name="no_ambient_setup")
+def make_no_ambient_setup(monkeypatch):
+    # An ambient `PYAUTO_SETUP=auto` turns the lazy policy on; these tests set it explicitly.
+    monkeypatch.delenv("PYAUTO_SETUP", raising=False)
+
+
+def _lens_pixelized_source_tracer(lens_light: bool):
+    pixelization = al.Pixelization(
+        mesh=al.mesh.RectangularUniform(shape=(3, 3)),
+        regularization=al.reg.Constant(coefficient=1.0),
+    )
+
+    lens = al.Galaxy(
+        redshift=0.5,
+        bulge=(
+            al.lp.Sersic(intensity=0.1, centre=(0.05, 0.05)) if lens_light else None
+        ),
+        mass=al.mp.IsothermalSph(einstein_radius=0.2),
+    )
+    source = al.Galaxy(redshift=1.0, pixelization=pixelization)
+
+    return al.Tracer(galaxies=[lens, source])
+
+
+def test__sparse_operator__lazy_policy_off__dense_and_nothing_built(
+    interferometer_7, no_ambient_setup
+):
+    fit = al.FitInterferometer(
+        dataset=interferometer_7, tracer=_lens_pixelized_source_tracer(lens_light=False)
+    )
+
+    assert fit.sparse_operator is None
+    assert isinstance(fit.inversion, aa.InversionInterferometerMapping)
+    assert interferometer_7._lazy_sparse_operator is None
+
+
+def test__sparse_operator__lazy_policy_on__pixelized_source__matches_dense_built_once(
+    interferometer_7, no_ambient_setup
+):
+    pytest.importorskip("finufft")
+
+    tracer = _lens_pixelized_source_tracer(lens_light=False)
+
+    fit_dense = al.FitInterferometer(dataset=interferometer_7, tracer=tracer)
+
+    fit = al.FitInterferometer(
+        dataset=interferometer_7, tracer=tracer, settings=LAZY_ON
+    )
+
+    operator = fit.sparse_operator
+
+    assert operator is not None
+    assert interferometer_7.sparse_operator is None
+    assert interferometer_7._lazy_sparse_operator is operator
+    assert isinstance(fit.inversion, aa.InversionInterferometerSparse)
+    assert fit.inversion.dataset.sparse_operator is operator
+
+    # The lazily built operator is built from the dataset's own visibilities and noise-map, so its cached
+    # data term is valid and the inversion reads it instead of the visibilities.
+    assert fit._uses_precomputed_data_term
+    assert fit.inversion.dataset.data is None
+
+    assert fit.log_likelihood == pytest.approx(fit_dense.log_likelihood, rel=1.0e-8)
+    assert fit.figure_of_merit == pytest.approx(fit_dense.figure_of_merit, rel=1.0e-8)
+
+    fit_again = al.FitInterferometer(
+        dataset=interferometer_7, tracer=tracer, settings=LAZY_ON
+    )
+
+    assert fit_again.sparse_operator is operator
+
+
+def test__sparse_operator__lazy_policy_on__pixelized_source_and_lens_light__dirty_image_correction_matches_dense(
+    interferometer_7, no_ambient_setup
+):
+    pytest.importorskip("finufft")
+
+    tracer = _lens_pixelized_source_tracer(lens_light=True)
+
+    fit_dense = al.FitInterferometer(dataset=interferometer_7, tracer=tracer)
+
+    fit = al.FitInterferometer(
+        dataset=interferometer_7, tracer=tracer, settings=LAZY_ON
+    )
+
+    operator = fit.sparse_operator
+
+    assert operator is not None
+    assert isinstance(fit.inversion, aa.InversionInterferometerSparse)
+    assert fit.inversion.dataset.sparse_operator is operator
+
+    # The lens light is subtracted, so the inversion's dirty image is corrected (`d~ - W~ i_p`) with the
+    # same, lazily built, operator, and the array path is kept.
+    assert fit.inversion.dataset.sparse_dirty_image is not None
+    assert not fit._uses_precomputed_data_term
+    assert fit.inversion.dataset.data is not None
+
+    from autogalaxy.interferometer.fit_interferometer import sparse_dirty_image_from
+
+    expected_dirty_image = sparse_dirty_image_from(
+        dataset=interferometer_7,
+        galaxies=tracer.galaxies,
+        image=fit.profile_image,
+        sparse_operator=operator,
+    )
+
+    np.testing.assert_allclose(
+        fit.inversion.dataset.sparse_dirty_image, expected_dirty_image, rtol=1.0e-12
+    )
+
+    assert fit.log_likelihood == pytest.approx(fit_dense.log_likelihood, rel=1.0e-8)
+    assert fit.log_evidence == pytest.approx(fit_dense.log_evidence, rel=1.0e-8)
+
+    # The sparse chi-squared reads the same operator and is the dense residual chi-squared.
+    assert fit.sparse_chi_squared == pytest.approx(fit_dense.chi_squared, rel=1.0e-8)
+
+
+def test__sparse_operator__lazy_policy_on__parametric_and_mge_only_builds_nothing(
+    interferometer_7, no_ambient_setup, monkeypatch
+):
+    built = []
+    monkeypatch.setattr(
+        aa.Interferometer,
+        "apply_sparse_operator",
+        lambda self, **kwargs: built.append(1),
+    )
+
+    lens = al.Galaxy(
+        redshift=0.5,
+        bulge=al.lp.Sersic(intensity=0.1, centre=(0.05, 0.05)),
+        mass=al.mp.IsothermalSph(einstein_radius=0.2),
+    )
+    source_mge = al.Galaxy(
+        redshift=1.0,
+        bulge=al.lp_basis.Basis(
+            profile_list=[
+                al.lp_linear.Gaussian(sigma=0.5, centre=(0.05, 0.05)),
+                al.lp_linear.Gaussian(sigma=1.5, centre=(0.05, 0.05)),
+            ]
+        ),
+    )
+    source_parametric = al.Galaxy(redshift=1.0, bulge=al.lp.Sersic(intensity=0.1))
+
+    for source in (source_parametric, source_mge):
+        fit = al.FitInterferometer(
+            dataset=interferometer_7,
+            tracer=al.Tracer(galaxies=[lens, source]),
+            settings=LAZY_ON,
+        )
+
+        assert fit.sparse_operator is None
+        fit.figure_of_merit
+
+    assert built == []
+    assert interferometer_7._lazy_sparse_operator is None
+
+
+def test__sparse_operator__lazy_policy_on__jax_xp_builds_nothing(
+    interferometer_7, no_ambient_setup, monkeypatch
+):
+    pytest.importorskip("jax")
+
+    import jax.numpy as jnp
+
+    built = []
+    monkeypatch.setattr(
+        aa.Interferometer,
+        "apply_sparse_operator",
+        lambda self, **kwargs: built.append(1),
+    )
+
+    fit = al.FitInterferometer(
+        dataset=interferometer_7,
+        tracer=_lens_pixelized_source_tracer(lens_light=False),
+        settings=LAZY_ON,
+        xp=jnp,
+    )
+
+    assert fit.sparse_operator is None
+    assert built == []
+
+
+def test__sparse_operator__linear_light_only__attached_operator_unchanged(
+    interferometer_7, no_ambient_setup
+):
+    dataset_sparse = interferometer_7.apply_sparse_operator(use_jax=False)
+
+    lens = al.Galaxy(
+        redshift=0.5,
+        bulge=al.lp_linear.Gaussian(sigma=0.5, centre=(0.05, 0.05)),
+        mass=al.mp.IsothermalSph(einstein_radius=0.2),
+    )
+    source = al.Galaxy(
+        redshift=1.0, bulge=al.lp_linear.Gaussian(sigma=1.5, centre=(0.05, 0.05))
+    )
+
+    tracer = al.Tracer(galaxies=[lens, source])
+
+    for settings in (None, LAZY_ON):
+        fit = al.FitInterferometer(
+            dataset=dataset_sparse, tracer=tracer, settings=settings
+        )
+
+        assert fit.total_mappers == 0
+        assert fit.sparse_operator is dataset_sparse.sparse_operator
+        assert fit.inversion.dataset.sparse_operator is dataset_sparse.sparse_operator
+        assert fit._uses_precomputed_data_term
+
+        fit_dense = al.FitInterferometer(
+            dataset=interferometer_7, tracer=tracer, settings=settings
+        )
+
+        assert fit.log_likelihood == pytest.approx(fit_dense.log_likelihood, rel=1.0e-8)

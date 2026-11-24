@@ -188,7 +188,11 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
         `sparse_operator`; raises a `DatasetException` if the fit overrides an array-free dataset's data or
         noise-map. Every branch is structural, so it is safe under `jax.jit`.
         """
-        return sparse_chi_squared_from(fit=self, galaxies=self.tracer.galaxies)
+        return sparse_chi_squared_from(
+            fit=self,
+            galaxies=self.tracer.galaxies,
+            sparse_operator=self.sparse_operator,
+        )
 
     @property
     def _uses_precomputed_data_term(self) -> bool:
@@ -203,6 +207,7 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
             galaxies=self.tracer.galaxies,
             data=self.data,
             noise_map=self.noise_map,
+            sparse_operator=self.sparse_operator,
         )
 
     @property
@@ -235,6 +240,7 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
             galaxies=self.tracer.galaxies,
             image=self.profile_image,
             xp=self._xp,
+            sparse_operator=self.sparse_operator,
         )
 
         if self._uses_precomputed_data_term:
@@ -248,7 +254,7 @@ class FitInterferometer(aa.FitInterferometer, AbstractFitInversion):
             noise_map=self.noise_map,
             grids=self.grids,
             transformer=self.dataset.transformer,
-            sparse_operator=self.dataset.sparse_operator,
+            sparse_operator=self.sparse_operator,
             sparse_dirty_image=sparse_dirty_image,
             data_term=data_term,
         )

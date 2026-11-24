@@ -7,7 +7,8 @@ The imaging and interferometer analyses resolve their setup through the **PyAuto
 dataset (attaching the sparse operator it names). `AnalysisPoint` and `AnalysisWeak` do not fit an
 `aa.Imaging` / `aa.Interferometer`, so their setup has no operator to attach (operator `"na"` or
 `"dense"`); `AnalysisSetupNoOperator` resolves and applies the rest of it (backend, threads, banner,
-`files/setup.json`), reusing the helpers of `autogalaxy.analysis.setup_util`.
+`files/setup.json`) through PyAutoGalaxy's shared `AnalysisSetupMixin`
+(`autogalaxy.analysis.analysis.setup`).
 
 `raise_if_setup_unresolved` is called at the top of every lens `log_likelihood_function`. A setup is
 resolved in `modify_before_fit`, which a `FactorGraphModel` does not call on its factors, so a setup
@@ -20,7 +21,8 @@ from typing import Optional, Tuple
 import autofit as af
 import autoarray as aa
 
-from autogalaxy.analysis import setup_util
+from autogalaxy.analysis.analysis.setup import AnalysisSetupMixin
+from autogalaxy.analysis.setup_util import setup_environment  # noqa: F401 (kept importable from here)
 
 from autolens import exc
 
@@ -75,37 +77,18 @@ def raise_if_setup_unresolved(analysis):
     )
 
 
-def setup_environment():
-    """
-    The detected hardware (`autonerves.environment.Environment`), or `None` if detection fails.
-    """
-    try:
-        from autonerves.environment import Environment
-
-        return Environment.detect()
-    except Exception as e:
-        logger.debug(f"Setup: hardware detection failed: {e}")
-        return None
-
-
-class AnalysisSetupNoOperator:
+class AnalysisSetupNoOperator(AnalysisSetupMixin):
     """
     Mixin resolving the compute `setup` of an analysis whose dataset has no operator to attach
     (`AnalysisPoint`, `AnalysisWeak`).
 
-    The subclass calls `_init_setup(setup)` in its constructor, `resolve_setup(model)` first in its
+    It is a thin subclass of PyAutoGalaxy's `AnalysisSetupMixin`, which holds the one shared resolution
+    path (`_init_setup`, `resolve_setup`, `_log_setup_auto_would_choose`, `save_setup`). The subclass
+    calls `_init_setup(setup)` in its constructor, `resolve_setup(model)` first in its
     `modify_before_fit`, `save_setup(paths)` in its `save_attributes`, and implements `setup_key_from`
-    (the `(dataset_type, variant)` rule key of `aa.Setup.auto`).
+    (the `(dataset_type, variant)` rule key of `aa.Setup.auto`). There is no dataset operator to attach
+    or check, so `_apply_resolved_setup` keeps the mixin's do-nothing default and the banner has no note.
     """
-
-    def _init_setup(self, setup):
-        """
-        Store the normalised `setup` input (`None`, `"auto"` or an `aa.Setup`, see
-        `setup_util.setup_input_from`); the resolved setup is set by `resolve_setup`.
-        """
-        self.setup_input = setup_util.setup_input_from(setup)
-        self.setup = None
-        self.setup_chosen_by = None
 
     def setup_key_from(self, model: af.Collection) -> Tuple[str, str]:
         """
@@ -113,83 +96,10 @@ class AnalysisSetupNoOperator:
         """
         raise NotImplementedError
 
-    def resolve_setup(self, model: af.Collection):
+    def setup_key_and_note_from(
+        self, model: af.Collection
+    ) -> Tuple[Tuple[str, str], Optional[str]]:
         """
-        Resolve the `setup` input of the analysis against the model and apply it.
-
-        With no `setup` input nothing changes: one log line reports what `setup="auto"` would choose (any
-        error working that out is ignored).
-
-        With `setup="auto"` the setup is chosen by `aa.Setup.auto` from `setup_key_from(model)`;
-        `PYAUTO_SETUP=<setup_id>` overrides it. An explicit `aa.Setup` or setup_id is used as given. The
-        resolved setup then:
-
-        - sets the analysis backend (`_use_jax = setup.backend == "jax"`, falling back to numpy when JAX is
-          disabled or not installed, as `af.Analysis` does); `_xp` follows, as it derives from `_use_jax`;
-        - pins the thread pools (`setup.apply_threads()`);
-        - is logged as the setup banner line and stored as `self.setup`.
-
-        There is no dataset operator to attach or check.
+        The rule key of `setup_key_from(model)`, with no banner note.
         """
-        setup_input = getattr(self, "setup_input", None)
-
-        if setup_input is None:
-            self._log_setup_auto_would_choose(model=model)
-            return
-
-        environment = setup_environment()
-
-        if setup_input == setup_util.SETUP_AUTO:
-            setup = aa.Setup.auto(*self.setup_key_from(model), environment=environment)
-            chosen_by = setup_util.chosen_by_from(setup=setup, auto=True)
-        else:
-            setup = setup_input
-            chosen_by = setup_util.chosen_by_from(setup=setup, auto=False)
-
-        self._use_jax = setup_util.use_jax_from(setup.backend == "jax")
-
-        setup.apply_threads()
-
-        self.setup = setup
-        self.setup_chosen_by = chosen_by
-
-        logger.info(
-            setup_util.setup_banner_from(
-                setup=setup,
-                chosen_by=chosen_by,
-                environment=environment,
-            )
-        )
-
-    def _log_setup_auto_would_choose(self, model: af.Collection):
-        """
-        Log one line reporting the setup `setup="auto"` would choose, applying nothing.
-        """
-        try:
-            setup = aa.Setup.auto(
-                *self.setup_key_from(model), environment=setup_environment()
-            )
-        except Exception as e:
-            logger.debug(
-                f"Setup: could not work out what setup='auto' would choose: {e}"
-            )
-            return
-
-        logger.info(
-            f"Setup: auto would choose {setup.setup_id} (rule {setup.rule_id}); "
-            f'pass setup="auto" to use it'
-        )
-
-    def save_setup(self, paths: af.DirectoryPaths):
-        """
-        Write the resolved setup to `files/setup.json`, when a setup was resolved.
-        """
-        setup: Optional[aa.Setup] = getattr(self, "setup", None)
-
-        if setup is not None:
-            paths.save_json(
-                name="setup",
-                object_dict=setup_util.setup_dict_from(
-                    setup=setup, chosen_by=self.setup_chosen_by
-                ),
-            )
+        return self.setup_key_from(model), None
