@@ -24,6 +24,7 @@ import autogalaxy as ag
 from autogalaxy.interferometer.model.analysis import interferometer_hdu_list_from
 
 from autolens.analysis.analysis.dataset import AnalysisDataset
+from autolens.analysis.analysis.setup import raise_if_setup_unresolved
 from autolens.analysis.exceptions import raise_fit_exception
 from autolens.analysis.positions import PositionsLH
 from autolens.interferometer.model.result import ResultInterferometer
@@ -53,6 +54,7 @@ class AnalysisInterferometer(AnalysisDataset):
         title_prefix: str = None,
         use_jax: bool = True,
         shared_preloads: bool = False,
+        setup=None,
         **kwargs,
     ):
         """
@@ -95,6 +97,10 @@ class AnalysisInterferometer(AnalysisDataset):
         title_prefix
             A string that is added before the title of all figures output by visualization, for example to
             put the name of the dataset and galaxy in the title.
+        setup
+            The compute setup of the likelihood: `None` (default, nothing changes), `"auto"` (the designated
+            setup for the likelihood and hardware, chosen at fit start from the model), an `aa.Setup` or a
+            setup_id string. See `AnalysisDataset`.
         shared_preloads
             Opts this analysis into the cross-factor shared-state mechanism of a `FactorGraphModel` (see
             `shared_state_from`). Set this to `True` only when this analysis is one of many datacube channels
@@ -111,6 +117,7 @@ class AnalysisInterferometer(AnalysisDataset):
             raise_inversion_positions_likelihood_exception=raise_inversion_positions_likelihood_exception,
             title_prefix=title_prefix,
             use_jax=use_jax,
+            setup=setup,
             **kwargs,
         )
 
@@ -163,6 +170,8 @@ class AnalysisInterferometer(AnalysisDataset):
         float
             The log likelihood indicating how well this model instance fitted the interferometer data.
         """
+
+        raise_if_setup_unresolved(analysis=self)
 
         log_likelihood_penalty = self.log_likelihood_penalty_from(
             instance=instance,

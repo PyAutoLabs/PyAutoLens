@@ -27,6 +27,10 @@ import autogalaxy as ag
 from autogalaxy.analysis.analysis.analysis import Analysis as AgAnalysis
 
 from autolens.analysis.analysis.lens import AnalysisLens
+from autolens.analysis.analysis.setup import (
+    AnalysisSetupNoOperator,
+    raise_if_setup_unresolved,
+)
 from autolens.analysis.exceptions import raise_fit_exception
 from autolens.point.fit.positions.image.pair_all import FitPositionsImagePairAllSolved
 from autolens.point.fit.dataset import FitPointDataset
@@ -40,7 +44,7 @@ from autolens.point.solver import PointSolver
 logger = logging.getLogger(__name__)
 
 
-class AnalysisPoint(AgAnalysis, AnalysisLens):
+class AnalysisPoint(AnalysisSetupNoOperator, AgAnalysis, AnalysisLens):
     Visualizer = VisualizerPoint
     Result = ResultPoint
 
@@ -66,6 +70,7 @@ class AnalysisPoint(AgAnalysis, AnalysisLens):
         use_jax: bool = True,
         fit_flux_cls=FitFluxes,
         fit_time_delays_cls=FitTimeDelays,
+        setup=None,
         **kwargs,
     ):
         """
@@ -112,6 +117,17 @@ class AnalysisPoint(AgAnalysis, AnalysisLens):
         title_prefix
             A string that is added before the title of all figures output by visualization, for example to
             put the name of the dataset and galaxy in the title.
+        use_jax
+            Whether the likelihood is evaluated with JAX. It is honoured as given when `setup` is `None`; a
+            resolved `setup` sets the backend instead.
+        setup
+            The compute setup of the likelihood: `None` (the default, nothing changes), `"auto"`, an `aa.Setup`
+            or a setup_id string such as `"jax_cpu_na_fp64"`. It is resolved in `modify_before_fit`. With
+            `"auto"` the rule key is `point_source_source/source_plane` when `fit_positions_cls` is a
+            source-plane fit (`FitPositionsSource` or a subclass) and `point_source_image/image_plane` otherwise
+            (see `setup_key_from`). A resolved setup sets the backend, pins the thread pools, is logged as a
+            banner line and is written to `files/setup.json`; a point dataset has no operator to attach. A setup
+            is not supported inside a factor graph: the likelihood raises an `exc.SetupException` instead.
         """
         super().__init__(cosmology=cosmology, use_jax=use_jax, **kwargs)
 
@@ -128,7 +144,43 @@ class AnalysisPoint(AgAnalysis, AnalysisLens):
         self.fit_flux_cls = fit_flux_cls
         self.fit_time_delays_cls = fit_time_delays_cls
         self.title_prefix = title_prefix
+        self._init_setup(setup)
         self._check_solver_extent()
+
+    def setup_key_from(self, model: af.Collection = None):
+        """
+        The `(dataset_type, variant)` rule key of `aa.Setup.auto` for this point-source analysis.
+
+        The key follows the positions fit, which decides where the likelihood is evaluated:
+
+        - `("point_source_source", "source_plane")` when `fit_positions_cls` is a source-plane fit
+          (`FitPositionsSource`, `FitPositionsSourceSolved` or any other subclass of `FitPositionsSource`),
+          which traces the observed positions to the source plane and needs no `PointSolver`.
+        - `("point_source_image", "image_plane")` otherwise: the image-plane pair fits
+          (`AbstractFitPositionsImagePair` subclasses), which solve for the model image positions with the
+          `PointSolver`, and any custom or absent positions fit.
+
+        The model does not change the key (the rule table has one variant per point-source likelihood).
+        """
+        from autolens.point.fit.positions.source.separations import FitPositionsSource
+
+        fit_positions_cls = self.fit_positions_cls
+
+        if isinstance(fit_positions_cls, type) and issubclass(
+            fit_positions_cls, FitPositionsSource
+        ):
+            return ("point_source_source", "source_plane")
+
+        return ("point_source_image", "image_plane")
+
+    def modify_before_fit(self, paths: af.DirectoryPaths, model: af.Collection):
+        """
+        Called immediately before the non-linear search begins: resolves and applies the compute `setup`
+        (see `AnalysisSetupNoOperator.resolve_setup`), before any other preparation.
+        """
+        self.resolve_setup(model=model)
+
+        return super().modify_before_fit(paths=paths, model=model)
 
     def _check_solver_extent(self):
         """Diagnose observed-position coverage once, outside likelihood tracing.
@@ -239,6 +291,8 @@ class AnalysisPoint(AgAnalysis, AnalysisLens):
         float
             The log likelihood indicating how well this model instance fitted the imaging data.
         """
+        raise_if_setup_unresolved(analysis=self)
+
         if self._use_jax:
             return self.fit_from(instance=instance).log_likelihood
 
@@ -378,6 +432,7 @@ class AnalysisPoint(AgAnalysis, AnalysisLens):
         For this analysis, it uses the `AnalysisDataset` object's method to output the following:
 
         - The dataset's point source dataset as a readable .json file.
+        - The resolved compute setup (`setup.json`), when a `setup` was given.
 
         It is common for these attributes to be loaded by many of the template aggregator functions given in the
         `aggregator` modules. For example, when using the database tools to perform a fit, the default behaviour is for
@@ -394,3 +449,5 @@ class AnalysisPoint(AgAnalysis, AnalysisLens):
             obj=self.dataset,
             file_path=paths._files_path / "dataset.json",
         )
+
+        self.save_setup(paths=paths)

@@ -21,6 +21,7 @@ import autogalaxy as ag
 from autonerves.fitsable import hdu_list_for_output_from
 
 from autolens.analysis.analysis.dataset import AnalysisDataset
+from autolens.analysis.analysis.setup import raise_if_setup_unresolved
 from autolens.analysis.exceptions import raise_fit_exception
 from autolens.analysis.latent import LatentLens
 from autolens.imaging.model.result import ResultImaging
@@ -52,6 +53,7 @@ class AnalysisImaging(AnalysisDataset):
         title_prefix: str = None,
         use_jax: bool = True,
         shared_preloads: bool = False,
+        setup=None,
         **kwargs,
     ):
         """
@@ -60,6 +62,10 @@ class AnalysisImaging(AnalysisDataset):
 
         Parameters
         ----------
+        setup
+            The compute setup of the likelihood: `None` (default, nothing changes), `"auto"` (the designated
+            setup for the likelihood and hardware, chosen at fit start from the model), an `aa.Setup` or a
+            setup_id string. See `AnalysisDataset`.
         shared_preloads
             Opts this analysis into the cross-factor shared-state mechanism of a `FactorGraphModel`
             (see `shared_state_from`). Set this to `True` only when this analysis is one of many
@@ -77,6 +83,7 @@ class AnalysisImaging(AnalysisDataset):
             raise_inversion_positions_likelihood_exception=raise_inversion_positions_likelihood_exception,
             title_prefix=title_prefix,
             use_jax=use_jax,
+            setup=setup,
             **kwargs,
         )
 
@@ -125,6 +132,8 @@ class AnalysisImaging(AnalysisDataset):
         float
             The log likelihood indicating how well this model instance fitted the imaging data.
         """
+
+        raise_if_setup_unresolved(analysis=self)
 
         log_likelihood_penalty = self.log_likelihood_penalty_from(
             instance=instance,

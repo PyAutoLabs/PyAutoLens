@@ -397,3 +397,136 @@ def test__save_attributes__registers_dataset_fits_in_database(
             database_dataset.uv_wavelengths, directory_dataset.uv_wavelengths
         )
         assert type(database_dataset.transformer) is type(directory_dataset.transformer)
+
+
+# --- setup (likelihood lifecycle 5C-2) ---------------------------------------------------
+
+import numpy as np
+
+from autonerves.environment import Environment
+
+
+def _setup_environment(gpu=False, gpu_name=None, cores=64):
+    return Environment(
+        gpu=gpu,
+        gpu_name=gpu_name,
+        gpu_memory_gb=None,
+        cores=cores,
+        ram_gb=None,
+        numba=True,
+        nufftax=True,
+        site="local",
+    )
+
+
+@pytest.fixture(name="unset_setup_env")
+def make_unset_setup_env(monkeypatch):
+    monkeypatch.delenv("PYAUTO_SETUP", raising=False)
+    monkeypatch.delenv("PYAUTO_DISABLE_JAX", raising=False)
+    monkeypatch.delenv("PYAUTO_RAISE_ANALYSIS_EXCEPTIONS", raising=False)
+
+
+def _light_model():
+    return af.Collection(
+        galaxies=af.Collection(
+            lens=al.Galaxy(redshift=0.5, light=al.lp.Sersic(intensity=0.1))
+        )
+    )
+
+
+def test__setup_kwarg__threaded_to_galaxy_base(interferometer_7, unset_setup_env):
+    assert (
+        al.AnalysisInterferometer(dataset=interferometer_7).setup_input is None
+    )
+
+    analysis = al.AnalysisInterferometer(
+        dataset=interferometer_7, setup="auto", shared_preloads=False
+    )
+
+    assert analysis.setup_input == "auto"
+    assert analysis.setup is None
+
+
+def test__setup_auto__a100_mge__jax_dense_nufft__jax_xp(
+    interferometer_7, unset_setup_env, monkeypatch
+):
+    pytest.importorskip("jax")
+    import jax.numpy as jnp
+
+    monkeypatch.setattr(
+        Environment,
+        "detect",
+        classmethod(
+            lambda cls: _setup_environment(gpu=True, gpu_name="NVIDIA A100-SXM4-80GB")
+        ),
+    )
+
+    model = af.Collection(
+        galaxies=af.Collection(
+            lens=af.Model(al.Galaxy, redshift=0.5, light=al.lp.Sersic)
+        )
+    )
+
+    analysis = al.AnalysisInterferometer(
+        dataset=interferometer_7, setup="auto", use_jax=False
+    )
+    analysis.modify_before_fit(paths=af.DirectoryPaths(), model=model)
+
+    assert analysis.setup.setup_id == "jax_gpu_dense_fp64_nufft"
+    assert analysis._use_jax is True
+    assert analysis._xp is jnp
+    assert isinstance(analysis.dataset.transformer, al.TransformerNUFFT)
+
+
+def test__explicit_setup__numba__numpy_xp(interferometer_7, unset_setup_env, monkeypatch):
+    monkeypatch.setattr(
+        Environment, "detect", classmethod(lambda cls: _setup_environment(cores=64))
+    )
+
+    analysis = al.AnalysisInterferometer(
+        dataset=interferometer_7, setup="numba_cpu_dense_fp64", use_jax=True
+    )
+    analysis.modify_before_fit(paths=af.DirectoryPaths(), model=_light_model())
+
+    assert analysis.setup.setup_id == "numba_cpu_dense_fp64"
+    assert analysis.setup_chosen_by == "explicit"
+    assert analysis._use_jax is False
+    assert analysis._xp is np
+
+
+def test__no_setup__interferometer_unchanged(interferometer_7, unset_setup_env, monkeypatch):
+    monkeypatch.setattr(
+        Environment, "detect", classmethod(lambda cls: _setup_environment(cores=64))
+    )
+
+    analysis = al.AnalysisInterferometer(dataset=interferometer_7, use_jax=False)
+    analysis.modify_before_fit(paths=af.DirectoryPaths(), model=_light_model())
+
+    assert analysis.dataset is interferometer_7
+    assert analysis._use_jax is False
+    assert analysis.setup is None
+
+
+def test__factor_graph__setup_raises_setup_exception__interferometer(
+    interferometer_7, unset_setup_env
+):
+    factor_graph = af.FactorGraphModel(
+        *[
+            af.AnalysisFactor(
+                prior_model=_light_model(),
+                analysis=al.AnalysisInterferometer(
+                    dataset=interferometer_7,
+                    setup="numba_cpu_dense_fp64",
+                    use_jax=False,
+                ),
+            )
+            for _ in range(2)
+        ]
+    )
+    instance = factor_graph.global_prior_model.instance_from_unit_vector([])
+
+    with pytest.raises(exc.SetupException, match="factor graph") as e:
+        factor_graph.log_likelihood_function(instance)
+
+    assert not isinstance(e.value, af.exc.FitException)
+    assert "numba_cpu_dense_fp64" in str(e.value)

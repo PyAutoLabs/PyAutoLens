@@ -19,13 +19,17 @@ import autogalaxy as ag
 from autogalaxy.analysis.analysis.analysis import Analysis as AgAnalysis
 
 from autolens.analysis.analysis.lens import AnalysisLens
+from autolens.analysis.analysis.setup import (
+    AnalysisSetupNoOperator,
+    raise_if_setup_unresolved,
+)
 from autolens.weak.dataset import WeakDataset
 from autolens.weak.fit import FitWeak
 from autolens.weak.model.result import ResultWeak
 from autolens.weak.model.visualizer import VisualizerWeak
 
 
-class AnalysisWeak(AgAnalysis, AnalysisLens):
+class AnalysisWeak(AnalysisSetupNoOperator, AgAnalysis, AnalysisLens):
     Visualizer = VisualizerWeak
     Result = ResultWeak
 
@@ -35,6 +39,7 @@ class AnalysisWeak(AgAnalysis, AnalysisLens):
         cosmology: ag.cosmo.LensingCosmology = None,
         title_prefix: str = None,
         use_jax: bool = False,
+        setup=None,
         **kwargs,
     ):
         """
@@ -65,6 +70,16 @@ class AnalysisWeak(AgAnalysis, AnalysisLens):
         title_prefix
             A string that is added before the title of all figures output by visualization, for example to
             put the name of the dataset and galaxy in the title.
+        use_jax
+            Whether the likelihood is evaluated with JAX. It is honoured as given when `setup` is `None`; a
+            resolved `setup` sets the backend instead.
+        setup
+            The compute setup of the likelihood: `None` (the default, nothing changes), `"auto"`, an `aa.Setup`
+            or a setup_id string such as `"jax_cpu_dense_fp64"`. It is resolved in `modify_before_fit`; with
+            `"auto"` the rule key is `weak/isothermal` (see `setup_key_from`). A resolved setup sets the backend,
+            pins the thread pools, is logged as a banner line and is written to `files/setup.json`; a shear
+            catalogue has no operator to attach. A setup is not supported inside a factor graph: the likelihood
+            raises an `exc.SetupException` instead.
         """
         super().__init__(cosmology=cosmology, use_jax=use_jax, **kwargs)
 
@@ -76,6 +91,25 @@ class AnalysisWeak(AgAnalysis, AnalysisLens):
         self.dataset = dataset
 
         self.title_prefix = title_prefix
+
+        self._init_setup(setup)
+
+    def setup_key_from(self, model: af.Collection = None):
+        """
+        The `(dataset_type, variant)` rule key of `aa.Setup.auto` for this weak-lensing analysis:
+        `("weak", "isothermal")`, the one weak-lensing likelihood the rule table designates so far. It is used
+        for every lens mass model; the setup decides only how the likelihood is computed, never the model.
+        """
+        return ("weak", "isothermal")
+
+    def modify_before_fit(self, paths: af.DirectoryPaths, model: af.Collection):
+        """
+        Called immediately before the non-linear search begins: resolves and applies the compute `setup`
+        (see `AnalysisSetupNoOperator.resolve_setup`), before any other preparation.
+        """
+        self.resolve_setup(model=model)
+
+        return super().modify_before_fit(paths=paths, model=model)
 
     def log_likelihood_function(self, instance):
         """
@@ -106,6 +140,8 @@ class AnalysisWeak(AgAnalysis, AnalysisLens):
         float
             The log likelihood indicating how well this model instance fitted the weak-lensing data.
         """
+        raise_if_setup_unresolved(analysis=self)
+
         return self.fit_from(instance=instance).log_likelihood
 
     def fit_from(self, instance) -> FitWeak:
@@ -165,6 +201,7 @@ class AnalysisWeak(AgAnalysis, AnalysisLens):
         For this analysis, it outputs the following:
 
         - The weak-lensing shear catalogue as a readable .json file.
+        - The resolved compute setup (`setup.json`), when a `setup` was given.
 
         It is common for these attributes to be loaded by many of the template aggregator functions given in the
         `aggregator` modules. For example, when using the database tools to perform a fit, the default behaviour is for
@@ -181,3 +218,5 @@ class AnalysisWeak(AgAnalysis, AnalysisLens):
             obj=self.dataset,
             file_path=paths._files_path / "dataset.json",
         )
+
+        self.save_setup(paths=paths)
