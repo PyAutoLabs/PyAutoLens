@@ -6,7 +6,10 @@ from matplotlib.colors import AsinhNorm, to_hex
 from autoarray.plot.utils import _arcsec_labels, apply_extent, apply_labels
 
 
-_FAMILY_ACCENTS = (("#ffbc53", "#a15b0c", "o"), ("#5fe3ee", "#00778a", "D"))
+AMBER_ON_IMAGE = "#ffbc53"
+AMBER_ON_WHITE = "#a15b0c"
+
+_FAMILY_ACCENTS = ((AMBER_ON_IMAGE, AMBER_ON_WHITE, "o"), ("#5fe3ee", "#00778a", "D"))
 
 
 def family_style(record):

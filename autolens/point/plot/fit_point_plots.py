@@ -27,7 +27,7 @@ def subplot_fit(
     panel when the dataset has fluxes.
 
     The "Fit Positions" panel is drawn on the ``PointSolver`` grid extent with no axis labels. It shows the observed
-    positions (black dots, σ circles, σ in the legend) numbered 1..N as on every point-source figure; for an
+    positions (outlined amber circles, σ circles, σ in the legend) numbered 1..N as on every point-source figure; for an
     image-plane fit the model positions (red ✕) at their true position, each joined to its observed image by a
     true-length residual line of the fit's own pairing (solid for hard pairing, dashed for the soft all-pairs
     mixture), and unmatched model images (hollow ✕); the critical curves of the plane the point source is in (dark
@@ -219,7 +219,7 @@ def plot_image_with_points(
     Plot an observed image of a lensed point source (e.g. a quasar) with its point-source positions overlaid.
 
     This is :func:`~autolens.point.plot.multi_source_plots.plot_image_with_points` for one source: the observed
-    positions in the symbols of the positions figures (a white-edged black dot), numbered; with a fit, the model
+    positions as outlined amber circles on the grayscale observed image, numbered; with a fit, the model
     positions (red ✕, image-plane fits only, as a source-plane fit's model data lie in the source plane) joined to
     their observed image by residual lines and the critical curves of the point source's own plane. There is no
     legend.

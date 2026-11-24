@@ -571,14 +571,19 @@ def test__visualizer__single_analysis_legacy_figures_use_explicit_family_context
     for filename in ("dataset_point", "fit", "image_with_points", "fit_image_with_points"):
         ax = family_figures[tmp_path / f"{filename}.png"].axes[0]
         assert image_id in {text.get_text() for text in ax.texts}
-        if family_index is not None:
-            color = "#5fe3ee" if "image_with_points" in filename else "#00778a"
-            assert any(
-                ring.get_edgecolors().size
-                and np.allclose(ring.get_edgecolors(), to_rgba(color))
-                and not ring.get_facecolors().size
-                for ring in ax.collections
-            )
+        on_image = "image_with_points" in filename
+        if on_image:
+            assert ax.images[0].get_cmap().name == "gray"
+        if family_index is None:
+            color = "#ffbc53" if on_image else "#a15b0c"
+        else:
+            color = "#5fe3ee" if on_image else "#00778a"
+        assert any(
+            ring.get_edgecolors().size
+            and np.allclose(ring.get_edgecolors(), to_rgba(color))
+            and not ring.get_facecolors().size
+            for ring in ax.collections
+        )
 
     ranking, image_plane, source_plane = family_figures[tmp_path / "fit_per_image.png"].axes
     assert image_id in {tick.get_text() for tick in ranking.get_yticklabels()}

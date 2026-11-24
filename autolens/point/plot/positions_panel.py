@@ -7,7 +7,7 @@ Both panels are drawn on the same frame:
   which the model can find images. Without a solver it falls back to the critical-curve region of
   :func:`~autolens.lens.plot.critical_curves.critical_curve_grid_from` (a square of twice the half-span of the
   positions, plus a buffer), which contains every position.
-- **Markers.** Large filled markers for the observed positions, with a circle of radius equal to each position's
+- **Markers.** Outlined amber circles for the observed positions, with a circle of radius equal to each position's
   noise-map value (one isotropic sigma per position) and the sigma always stated in the legend. The circle is drawn
   at its true radius and is never inflated, so at high-resolution noise and a large solver extent it is sub-pixel.
 - **No axis labels**, so the arc-second tick labels are not overlapped.
@@ -31,7 +31,7 @@ UNMATCHED_COLOR = "0.45"
 MASS_CENTRE_COLOR = "tab:green"
 
 # The model cross is thinner and smaller than the observed marker (``s=110``), so under an exact fit the observed
-# dot stays visible around it rather than being hidden.
+# outline stays visible around it rather than being hidden.
 MODEL_MARKER_SIZE = 60
 MODEL_MARKER_LINEWIDTH = 1.2
 
@@ -155,10 +155,11 @@ def sigma_label_from(noise_map) -> str:
 
 def plot_observed_positions(ax, positions, noise_map):
     """
-    Draws the observed positions as large filled markers, each with a circle of radius equal to its noise-map
+    Draws the observed positions as outlined amber circles, each with a circle of radius equal to its noise-map
     value (never inflated), labelled ``Observed (σ = ...)`` in the legend.
     """
     from matplotlib.patches import Circle
+    from autolens.point.plot.cluster_sky import AMBER_ON_WHITE
 
     positions = _np_grid(positions)
     noise = np.broadcast_to(
@@ -172,7 +173,9 @@ def plot_observed_positions(ax, positions, noise_map):
         positions[:, 1],
         positions[:, 0],
         s=110,
-        c=OBSERVED_COLOR,
+        facecolors="none",
+        edgecolors=AMBER_ON_WHITE,
+        linewidths=1.8,
         marker="o",
         zorder=4,
         label=f"Observed ({sigma_label_from(noise_map)})",

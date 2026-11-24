@@ -48,6 +48,8 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 
+from autolens.point.plot.cluster_sky import AMBER_ON_WHITE
+
 from autolens.point.plot.positions_panel import (
     CRITICAL_CURVE_COLOR_MAP,
     CRITICAL_CURVE_LINEWIDTH,
@@ -66,7 +68,7 @@ REJECTED_COLOR = "#9db7d9"
 UP_SAMPLED_COLOR = "#2e9e5b"
 CRITICAL_CURVE_COLOR = CRITICAL_CURVE_COLOR_MAP["white"]
 RADIAL_CRITICAL_CURVE_COLOR = CRITICAL_CURVE_COLOR_MAP["yellow"]
-OBSERVED_COLOR = "k"
+OBSERVED_COLOR = AMBER_ON_WHITE
 SOLVED_COLOR = "r"
 REJECTED_LABEL_COLOR = UNMATCHED_COLOR
 

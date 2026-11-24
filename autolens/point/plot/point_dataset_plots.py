@@ -19,7 +19,7 @@ def subplot_dataset(
     measurements are present:
 
     * **Positions panel** (always shown), titled ``Dataset Positions (<name>)``:
-      the observed point-source positions as large filled markers, each with a
+      the observed point-source positions as outlined amber circles, each with a
       circle at its noise-map radius (never inflated, so it may be sub-pixel)
       and the sigma stated in the legend, e.g. ``Observed (σ = 0.005″)``. The
       panel extent is the ``PointSolver`` grid extent when ``solver`` is given

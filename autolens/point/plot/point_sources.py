@@ -12,7 +12,7 @@ This module holds:
 - :class:`SourceRecord`: the observed positions, noise, image numbers and (for a fit) the model positions and the
   fit's own pairing of a single source, built by :func:`source_record_from_dataset` or
   :func:`source_record_from_fit` from the helpers of :mod:`autolens.point.plot.positions_panel`.
-- :func:`assign_styles`: the colour and marker of every source. Source 0 is the library's black dot; sources 1 to 7
+- :func:`assign_styles`: the colour and marker of every source. Source 0 has a black base colour (overridden by the observed-position style); sources 1 to 7
   step through an Okabe-Ito colour AND a marker shape. Beyond 8 sources hue cannot carry identity, so the colour
   follows the source redshift (a perceptually uniform map with a colourbar) and identity is carried by the ``k·i``
   labels.

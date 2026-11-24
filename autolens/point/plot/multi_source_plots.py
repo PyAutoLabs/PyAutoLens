@@ -33,6 +33,7 @@ import numpy as np
 
 from autoarray.plot.utils import save_figure, subplots
 
+from autolens.point.plot.cluster_sky import AMBER_ON_IMAGE, AMBER_ON_WHITE
 from autolens.point.plot import positions_panel as pp
 from autolens.point.plot import point_sources as ps
 
@@ -292,7 +293,29 @@ def legend_location_from(extent, points) -> str:
 # ---------------------------------------------------------------------------
 
 
-def scatter_sources(ax, records, edgecolor="k", edgewidth=0.6):
+def scatter_sources(ax, records, edgecolor=None, edgewidth=None, *, on_image=False):
+    if len(records) == 1:
+        record = records[0]
+        if edgecolor is None:
+            edgecolor = AMBER_ON_IMAGE if on_image else AMBER_ON_WHITE
+        observed = ax.scatter(
+            *record.observed.T[::-1],
+            s=marker_size_from("o"),
+            marker="o",
+            facecolors="none",
+            edgecolors=edgecolor,
+            linewidths=1.8 if edgewidth is None else edgewidth,
+            zorder=5,
+            label="Observed",
+        )
+        if on_image:
+            from matplotlib import patheffects
+
+            observed.set_path_effects(
+                [patheffects.withStroke(linewidth=3, foreground="#303038")]
+            )
+        return
+
     for record in records:
         if len(record.observed) == 0:
             continue
@@ -302,8 +325,8 @@ def scatter_sources(ax, records, edgecolor="k", edgewidth=0.6):
             s=marker_size_from(record.marker),
             c=[record.color],
             marker=record.marker,
-            edgecolors=edgecolor,
-            linewidths=edgewidth,
+            edgecolors="k" if edgecolor is None else edgecolor,
+            linewidths=0.6 if edgewidth is None else edgewidth,
             zorder=5,
             label="Observed",
         )
@@ -469,15 +492,16 @@ def observed_handles(records, edgecolor="k"):
                 )
             )
         return handles
-    face = "k" if len(records) == 1 else "0.6"
+    single = len(records) == 1
     return [
         Line2D(
             [],
             [],
             linestyle="none",
             marker="o",
-            markerfacecolor=face,
-            markeredgecolor=edgecolor,
+            markerfacecolor="none" if single else "0.6",
+            markeredgecolor=AMBER_ON_WHITE if single else edgecolor,
+            markeredgewidth=1.8 if single else 1.0,
             markersize=9,
             label=f"Observed ({sigma_text})",
         )
@@ -1501,7 +1525,9 @@ def plot_image_with_points(
     title = f"{_prefix(title_prefix)}{name}" + (f" ({records[0].name})" if not multi else "")
 
     fig, ax = subplots(1, 1, figsize=figsize_from(records))
-    plot_array(array=image, ax=ax, use_log10=use_log10_from(image, multi), title=title)
+    plot_array(
+        array=image, ax=ax, colormap="gray", use_log10=use_log10_from(image, multi), title=title
+    )
     scale_fonts(ax, scale)
     for other in fig.axes[1:]:
         for tick in other.get_yticklabels():
@@ -1556,7 +1582,7 @@ def plot_image_with_points(
                 line = _yx(line)
                 ax.plot(line[:, 1], line[:, 0], color="w", linewidth=curve_width, zorder=3)
 
-    scatter_sources(ax, shown, edgecolor="w", edgewidth=1.0)
+    scatter_sources(ax, shown, on_image=True)
     if is_fit:
         draw_model_and_residuals(ax, shown, model_size_from(records), unmatched_color="0.85")
 
