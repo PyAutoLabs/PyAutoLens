@@ -139,6 +139,10 @@ from .weak.fit import FitWeak
 from .weak.model.analysis import AnalysisWeak
 from .weak.simulator import SimulatorShearYX
 
+from autoarray.setup.setup import Setup
+from .analysis.runtime_estimate import RuntimeEstimate
+from .analysis.runtime_estimate import estimate_runtime
+
 from . import exc
 from . import mock as m
 from . import util

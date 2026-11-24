@@ -32,6 +32,7 @@ from autolens.analysis.analysis.setup import (
     raise_if_setup_unresolved,
 )
 from autolens.analysis.exceptions import raise_fit_exception
+from autolens.analysis.runtime_estimate import AnalysisRuntimeEstimate
 from autolens.point.fit.positions.image.pair_all import FitPositionsImagePairAllSolved
 from autolens.point.fit.dataset import FitPointDataset
 from autolens.point.fit.fluxes import FitFluxes
@@ -44,7 +45,9 @@ from autolens.point.solver import PointSolver
 logger = logging.getLogger(__name__)
 
 
-class AnalysisPoint(AnalysisSetupNoOperator, AgAnalysis, AnalysisLens):
+class AnalysisPoint(
+    AnalysisRuntimeEstimate, AnalysisSetupNoOperator, AgAnalysis, AnalysisLens
+):
     Visualizer = VisualizerPoint
     Result = ResultPoint
 
