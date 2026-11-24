@@ -116,11 +116,16 @@ class AbstractFitPositionsImagePair(AbstractFitPositions, ABC):
         """
         return (coord1[0] - coord2[0]) ** 2 + (coord1[1] - coord2[1]) ** 2
 
+    # Only a visualizer's private copy sets this. A live fit always calls its solver.
+    _plot_model_data = None
+
     @property
     def model_data(self) -> aa.Grid2DIrregular:
         """
         Returns the model positions, which are computed via the point solver.
         """
+        if self._plot_model_data is not None:
+            return self._plot_model_data
         return self.solver.solve(
             tracer=self.tracer,
             source_plane_coordinate=self.source_plane_coordinate,

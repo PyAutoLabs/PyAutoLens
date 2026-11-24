@@ -3,12 +3,13 @@ The point-source positions figures for any number of point sources (one for a ga
 cluster), drawn in one visual language:
 
 - ``dataset_point.png`` (:func:`plot_dataset_positions`): "Dataset Positions": every source's observed positions.
-  Source 0 is a black dot, further sources step through colour and marker shape; images are labelled ``i`` (one
-  source) or ``k·i`` (source ``k``, image ``i``). No critical curves.
+  Cluster maps use an outlined marker for each family and label its images ``k·i`` (family ``k``, image ``i``).
+  The top legend gives each family’s image count and redshift when available.
 - ``fit.png`` (:func:`plot_fit_positions`): "Fit Positions": the observed positions, the model positions (red ✕) at
   their true position joined to their observed image by a true-length residual line (solid for hard pairing, dashed
   for the soft all-pairs mixture), unmatched model images, and each source's critical curves at its OWN redshift in
-  its colour (darker), over the solver extent. The legend gives the σ of each source (2-8 sources) and the fit's
+  its colour. Cluster overviews frame the observed and model positions in the same square cutout. The legend
+  gives the fitted statistic of each source and the fit's
   figure of merit: ``χ² = …``, or ``−2 ln L = …`` for the all-pairs mixture (``FitPositionsImagePairAll``), whose
   value is a mixture log likelihood, not a chi-squared. Beyond 8 sources colour follows redshift (colourbar) and the
   model ✕ is smaller.
@@ -19,7 +20,7 @@ cluster), drawn in one visual language:
   per image across all three panels. Source-plane fits rank by the fit's own per-image chi. Beyond 8 sources each
   source is written to its own file, ``fit_per_image/<name>.png``, with the ranking range still shared.
 - ``image_with_points.png`` / ``fit_image_with_points.png`` (:func:`plot_image_with_points`): the observed image with
-  every source's positions in the same symbols (white-edged so source 0's black dot shows on the image), ``k·i``
+  every source's positions in the same symbols as the sky map, ``k·i``
   labels and, for the fit, the model ✕ / residual lines and each source's tangential critical curves in its colour.
 
 The per-image figures carry no legends: the symbols are those of the dataset and fit figures.
@@ -32,6 +33,7 @@ import numpy as np
 
 from autoarray.plot.utils import save_figure, subplots
 
+from autolens.point.plot.cluster_sky import AMBER_ON_IMAGE, AMBER_ON_WHITE
 from autolens.point.plot import positions_panel as pp
 from autolens.point.plot import point_sources as ps
 
@@ -157,6 +159,8 @@ def place_labels(
     obstacles=None,
     fontsize: float = pp.FIT_NUMBER_FONTSIZE,
     marker_radius: float = 7.0,
+    label_colors=None,
+    halo_color=None,
 ):
     """
     Labels every point, beside its own marker when a free spot exists, otherwise pushed further out with a thin
@@ -229,7 +233,7 @@ def place_labels(
     for i, ((c, ring), text) in enumerate(zip(results, labels)):
         y, x = points[i]
         dx, dy = c - markers[i]
-        ax.annotate(
+        annotation = ax.annotate(
             text,
             (x, y),
             xytext=(dx, dy),
@@ -238,15 +242,19 @@ def place_labels(
             va="center",
             fontsize=fontsize,
             weight="bold",
-            color="k",
+            color=label_colors[i] if label_colors is not None else "k",
             zorder=10,
-            bbox=LABEL_BBOX,
+            bbox=LABEL_BBOX if halo_color is None else None,
             arrowprops=(
                 dict(arrowstyle="-", color="0.45", lw=0.6, shrinkA=0, shrinkB=3)
                 if ring > 0
                 else None
             ),
         )
+        if halo_color is not None:
+            from matplotlib import patheffects
+
+            annotation.set_path_effects([patheffects.withStroke(linewidth=2.5, foreground=halo_color)])
 
 
 def label_records(ax, extent, records, extra_points=(), extra_labels=(), obstacles=None):
@@ -285,7 +293,29 @@ def legend_location_from(extent, points) -> str:
 # ---------------------------------------------------------------------------
 
 
-def scatter_sources(ax, records, edgecolor="k", edgewidth=0.6):
+def scatter_sources(ax, records, edgecolor=None, edgewidth=None, *, on_image=False):
+    if len(records) == 1:
+        record = records[0]
+        if edgecolor is None:
+            edgecolor = AMBER_ON_IMAGE if on_image else AMBER_ON_WHITE
+        observed = ax.scatter(
+            *record.observed.T[::-1],
+            s=marker_size_from("o"),
+            marker="o",
+            facecolors="none",
+            edgecolors=edgecolor,
+            linewidths=1.8 if edgewidth is None else edgewidth,
+            zorder=5,
+            label="Observed",
+        )
+        if on_image:
+            from matplotlib import patheffects
+
+            observed.set_path_effects(
+                [patheffects.withStroke(linewidth=3, foreground="#303038")]
+            )
+        return
+
     for record in records:
         if len(record.observed) == 0:
             continue
@@ -295,8 +325,8 @@ def scatter_sources(ax, records, edgecolor="k", edgewidth=0.6):
             s=marker_size_from(record.marker),
             c=[record.color],
             marker=record.marker,
-            edgecolors=edgecolor,
-            linewidths=edgewidth,
+            edgecolors="k" if edgecolor is None else edgecolor,
+            linewidths=0.6 if edgewidth is None else edgewidth,
             zorder=5,
             label="Observed",
         )
@@ -423,14 +453,17 @@ def merit_label_from(records) -> Optional[str]:
     values = [r.chi_squared for r in records if r.chi_squared is not None]
     if not values:
         return None
-    name = "−2 ln L" if all(r.mixture for r in records if r.fit is not None) else "χ²"
+    kinds = {r.mixture for r in records if r.chi_squared is not None}
+    if len(kinds) > 1:
+        return None
+    name = "−2 ln L" if True in kinds else "χ²"
     return f"{name} = {spp._format_chi_squared(float(np.sum(values)))}"
 
 
 def observed_handles(records, edgecolor="k"):
     """
     One ``Observed (σ = …)`` entry for a single source or more than 8 sources; for 2-8 sources one entry per source,
-    ``point_k (z = …, σ = …)``.
+    report the family's redshift and fitted statistic, or its positional noise for dataset figures.
     """
     from matplotlib.lines import Line2D
 
@@ -439,6 +472,12 @@ def observed_handles(records, edgecolor="k"):
         handles = []
         for record in records:
             z = f"z = {record.redshift:g}, " if record.redshift is not None else ""
+            value = pp.sigma_label_from(record.sigma)
+            if record.chi_squared is not None:
+                from autolens.point.plot import source_plane_panel as spp
+
+                statistic = _cluster_statistic(record)
+                value = f"{statistic} = {spp._format_chi_squared(record.chi_squared)}"
             handles.append(
                 Line2D(
                     [],
@@ -449,26 +488,27 @@ def observed_handles(records, edgecolor="k"):
                     markeredgecolor=edgecolor,
                     markeredgewidth=0.6,
                     markersize=9,
-                    label=f"{record.name} ({z}{sigma_text})",
+                    label=f"{record.name} ({z}{value})",
                 )
             )
         return handles
-    face = "k" if len(records) == 1 else "0.6"
+    single = len(records) == 1
     return [
         Line2D(
             [],
             [],
             linestyle="none",
             marker="o",
-            markerfacecolor=face,
-            markeredgecolor=edgecolor,
+            markerfacecolor="none" if single else "0.6",
+            markeredgecolor=AMBER_ON_WHITE if single else edgecolor,
+            markeredgewidth=1.8 if single else 1.0,
             markersize=9,
             label=f"Observed ({sigma_text})",
         )
     ]
 
 
-def fit_handles(records, model_size, has_curves: bool, has_mass_centres: bool):
+def fit_handles(records, model_size, has_curves: bool, has_mass_centres: bool, curve_label=None):
     from matplotlib.lines import Line2D
 
     first = records[0]
@@ -532,7 +572,7 @@ def fit_handles(records, model_size, has_curves: bool, has_mass_centres: bool):
                 [],
                 color=CURVE_COLOR if not multi else "0.35",
                 linewidth=CURVE_LINEWIDTH,
-                label="Critical curve (each source's z)" if multi else "Critical curve",
+                label=curve_label or ("Critical curve (each source's z)" if multi else "Critical curve"),
             )
         )
     if has_mass_centres:
@@ -569,11 +609,11 @@ def add_colourbar(fig, ax, colormap, records, scale: float = 1.0):
     cax = fig.add_axes([position.x1 + 0.015, position.y0, 0.025, position.height])
     colorbar = fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax)
     fontsize = conf_mat_plot_fontsize("yticks", 22) * 0.8 * scale
-    colorbar.set_label("source redshift", fontsize=fontsize)
+    by_redshift = all(r.redshift is not None and np.isfinite(r.redshift) for r in records)
+    colorbar.set_label("source redshift" if by_redshift else "family index", fontsize=fontsize)
     colorbar.ax.tick_params(labelsize=fontsize)
     for record in records:
-        if record.redshift is not None:
-            cax.axhline(record.redshift, color="k", linewidth=0.5, alpha=0.6)
+        cax.axhline(record.redshift if by_redshift else record.k, color="k", linewidth=0.5, alpha=0.6)
     return cax
 
 
@@ -593,17 +633,45 @@ def _curve_points(records, curves) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 
-def draw_dataset_positions(ax, records, extent, title: str, scale: float = 1.0):
+def draw_dataset_positions(
+    ax, records, extent, title: str, scale: float = 1.0, family_index=None
+):
     """
     Draws the "Dataset Positions" panel of ``records`` on ``ax`` (styles must be assigned).
     """
-    scatter_sources(ax, records)
+    if family_index is None:
+        scatter_sources(ax, records)
+        handles = observed_handles(records)
+    else:
+        from autolens.point.plot.cluster_sky import indexed_family_style
+
+        record = records[0]
+        _, record.color, record.marker = indexed_family_style(family_index)
+        ax.scatter(
+            *record.observed.T[::-1],
+            marker=record.marker,
+            facecolors="none",
+            edgecolors=[record.color],
+            linewidths=1.8,
+            s=85,
+        )
+        handles = [_cluster_family_handle(record, record.color, False)]
     draw_noise_circles(ax, records)
     finish_panel(ax, title, extent, scale)
-    label_records(ax, extent, records)
+    if family_index is None:
+        label_records(ax, extent, records)
+    else:
+        place_labels(
+            ax,
+            extent,
+            record.observed,
+            [f"{family_index}·{n}" for n in record.numbers],
+            label_colors=[record.color] * len(record.numbers),
+            halo_color="white",
+        )
     observed = np.vstack([r.observed for r in records])
     ax.legend(
-        handles=observed_handles(records),
+        handles=handles,
         loc=legend_location_from(extent, observed) if len(records) == 1 else "best",
         fontsize=LEGEND_KWARGS["fontsize"] * scale,
         framealpha=LEGEND_KWARGS["framealpha"],
@@ -624,13 +692,14 @@ def plot_dataset_positions(
     output_format: str = None,
     filename: str = "dataset_point",
     title_prefix: str = None,
+    image_extent=None,
+    family_index=None,
 ):
     """
     Plots ``dataset_point.png`` ("Dataset Positions") of one or many ``PointDataset`` objects on the solver extent.
 
-    Source 0 is a black dot, further sources step through colour and marker shape (colour by redshift with a
-    colourbar beyond 8 sources); images are labelled ``i`` for one source and ``k·i`` for several. No critical
-    curves are drawn on a dataset figure.
+    Cluster families use outlined markers and family·image labels on the same sky field as the image
+    overlay when an image extent is supplied. A standalone point dataset uses its own image numbers.
     """
 
     datasets = list(datasets)
@@ -638,15 +707,24 @@ def plot_dataset_positions(
     colormap = ps.assign_styles(records)
     extent = ps.union_extent_from(records, solver=solver)
 
-    fig, ax = subplots(1, 1, figsize=figsize_from(records))
-    draw_dataset_positions(
-        ax,
-        records,
-        extent,
-        title=dataset_title_from(records, title_prefix),
-        scale=font_scale_from(records),
-    )
-    add_colourbar(fig, ax, colormap, records, font_scale_from(records))
+    if len(records) > 1 or family_index is not None:
+        fig = _cluster_overview(
+            records,
+            {},
+            image_extent if image_extent is not None else extent,
+            colormap,
+            title_prefix,
+            family_index=family_index,
+        )
+    else:
+        fig, ax = subplots(1, 1, figsize=figsize_from(records))
+        draw_dataset_positions(
+            ax,
+            records,
+            extent,
+            title=dataset_title_from(records, title_prefix),
+            scale=font_scale_from(records),
+        )
     save_figure(fig, path=output_path, filename=filename, format=output_format)
 
 
@@ -665,6 +743,7 @@ def draw_fit_positions(
     scale: float = 1.0,
     legend: str = "inside",
     colormap=None,
+    family_index=None,
 ):
     """
     Draws the "Fit Positions" panel of ``records`` (with fits) on ``ax``; ``legend`` is ``"inside"`` (the emptiest
@@ -680,7 +759,22 @@ def draw_fit_positions(
         pp.plot_mass_centres(
             ax, tracer, size=70 if not many else 50, linewidths=1.4
         )
-    scatter_sources(ax, records)
+    if family_index is None:
+        scatter_sources(ax, records)
+    else:
+        from autolens.point.plot.cluster_sky import indexed_family_style
+
+        _, family_color, family_marker = indexed_family_style(family_index)
+        (record,) = records
+        ax.scatter(
+            *record.observed.T[::-1],
+            s=marker_size_from(family_marker),
+            marker=family_marker,
+            facecolors="none",
+            edgecolors=family_color,
+            linewidths=1.8,
+            zorder=5,
+        )
     draw_noise_circles(ax, records)
     draw_model_and_residuals(ax, records, model_size)
     finish_panel(ax, title, extent, scale)
@@ -692,7 +786,20 @@ def draw_fit_positions(
             extra_labels.append(f"{record.k}·{letter}" if multi else letter)
     models = [r.model for r in records if r.has_model]
     obstacles = np.vstack(models + [mass_centres]) if models else mass_centres
-    label_records(ax, extent, records, extra_points, extra_labels, obstacles=obstacles)
+    if family_index is None:
+        label_records(ax, extent, records, extra_points, extra_labels, obstacles=obstacles)
+    else:
+        labels = [f"{family_index}·{n}" for n in [*record.numbers, *extra_labels]]
+        place_labels(
+            ax,
+            extent,
+            [*record.observed, *extra_points],
+            labels,
+            obstacles=obstacles,
+            fontsize=label_fontsize_from(records),
+            label_colors=[family_color] * len(labels),
+            halo_color="white",
+        )
 
     handles = observed_handles(records) + fit_handles(
         records,
@@ -700,6 +807,11 @@ def draw_fit_positions(
         has_curves=bool(_curve_points(records, curves).size),
         has_mass_centres=bool(len(mass_centres)),
     )
+    if family_index is not None:
+        handles[0].set_marker(family_marker)
+        handles[0].set_markerfacecolor("none")
+        handles[0].set_markeredgecolor(family_color)
+        handles[0].set_markeredgewidth(1.8)
     kwargs = dict(
         fontsize=LEGEND_KWARGS["fontsize"] * scale,
         framealpha=LEGEND_KWARGS["framealpha"],
@@ -722,6 +834,263 @@ def draw_fit_positions(
         ax.legend(handles=handles, loc=legend_location_from(extent, drawn), **kwargs)
 
 
+def _cluster_curves(ax, records, curves, on_image, fallback_lines):
+    """Return the curve key for the curves actually drawn on this map."""
+    has_curves = False
+    for r in records:
+        own = r.curves_from(curves)
+        if own is None and curves:
+            own = curves.get(("source", r.k))
+        if own is not None:
+            for line in own.tangential:
+                ax.plot(
+                    line[:, 1], line[:, 0], color=r.color, lw=0.95, alpha=0.8, zorder=2
+                )
+                has_curves = True
+            if not on_image and not is_many(records):
+                for line in own.radial:
+                    ax.plot(
+                        line[:, 1],
+                        line[:, 0],
+                        color=r.color,
+                        lw=0.85,
+                        ls=":",
+                        alpha=0.8,
+                        zorder=2,
+                    )
+                    has_curves = True
+    if has_curves:
+        return "Critical curve (each source's z)"
+    if fallback_lines is not None and len(fallback_lines):
+        for line in fallback_lines:
+            line = np.asarray(line)
+            ax.plot(line[:, 1], line[:, 0], color="white", lw=0.95, zorder=2)
+        return "Critical curve (last source plane)"
+    return None
+
+
+def _cluster_statistic(record):
+    from autolens.point.plot import source_plane_panel as spp
+
+    if record.mixture:
+        return "−2 ln L"
+    plane = spp.presentation_from(record.fit.positions)
+    return "Source-plane χ²" if plane.is_source_plane else "Image-plane χ²"
+
+
+def _cluster_family_handle(record, ink, compact, mixed_statistics=False):
+    from matplotlib.lines import Line2D
+    from autolens.point.plot import source_plane_panel as spp
+
+    details = []
+    equals = "=" if compact else " = "
+    if record.redshift is not None:
+        details.append(f"z{equals}{record.redshift:g}")
+    if record.chi_squared is not None:
+        statistic = _cluster_statistic(record)
+        if compact and not record.mixture and not mixed_statistics:
+            statistic = "χ²"
+        details.append(
+            f"{statistic}{equals}{spp._format_chi_squared(record.chi_squared)}"
+        )
+    else:
+        count = len(record.observed)
+        details.append(f"{count} image" if count == 1 else f"{count} images")
+        if not compact and record.fit is None:
+            details.append(pp.sigma_label_from(record.sigma))
+    label = (
+        f"{record.name}  " + "  ".join(details)
+        if compact
+        else f"{record.name} ({', '.join(details)})"
+    )
+    return Line2D(
+        [],
+        [],
+        linestyle="none",
+        marker=record.marker,
+        markersize=8,
+        markerfacecolor="none",
+        markeredgecolor=ink,
+        markeredgewidth=1.8,
+        label=label,
+    )
+
+
+def _cluster_overview(
+    records,
+    curves,
+    field_extent,
+    colormap,
+    title_prefix,
+    image=None,
+    fallback_lines=None,
+    family_index=None,
+):
+    """Draw a cluster dataset or fit on one shared sky field, with family and symbol keys outside the data."""
+    from matplotlib import patheffects
+    from autolens.point.plot.cluster_sky import (
+        angular_axes,
+        cluster_field,
+        draw_cluster_image,
+        family_style,
+        indexed_family_style,
+    )
+
+    on_image = image is not None
+    is_fit = records[0].fit is not None
+    many = is_many(records)
+    models = [r.model for r in records if r.has_model]
+    centre, half = cluster_field(
+        field_extent, np.vstack([r.observed for r in records] + models)
+    )
+    # Leave one line per family above the map, and space below it for the fit symbols.
+    statistics = {_cluster_statistic(r) for r in records if r.chi_squared is not None}
+    mixed_statistics = len(statistics) > 1
+    family_columns = 1
+    if len(records) > 4:
+        family_columns = 4 if many and not mixed_statistics else 2
+    family_rows = (len(records) + family_columns - 1) // family_columns
+    side = 9.0 if many else 6.8
+    header = 0.52 + 0.25 * family_rows + (0.24 if many else 0)
+    footer = 1.05 if is_fit else 0.58
+    height = side + header + footer
+    width = side + (1.75 if many else 0.9)
+    fig, ax = subplots(figsize=(width, height))
+    fig.subplots_adjust(
+        left=0.57 / width,
+        right=(0.57 + side) / width,
+        top=(footer + side) / height,
+        bottom=footer / height,
+    )
+    if on_image:
+        draw_cluster_image(ax, image)
+    angular_axes(ax, centre, half)
+    extent = [*ax.get_xlim(), *ax.get_ylim()]
+    title = "Cluster fit on the observed image" if on_image else "Cluster fit overview"
+    if not is_fit:
+        title = (
+            "Cluster positions on the observed image"
+            if on_image
+            else "Cluster dataset overview"
+        )
+    ax.set_title(
+        f"{_prefix(title_prefix)}{title}",
+        x=0,
+        ha="left",
+        y=1 + (0.23 * family_rows + 0.17 + (0.12 if many else 0)) / side,
+        fontsize=19,
+        weight="bold",
+        color="#172f49",
+    )
+    points, labels, colors, handles = [], [], [], []
+    for r in records:
+        if many:
+            ink = r.color
+        else:
+            bright, ink, r.marker = (
+                family_style(r)
+                if family_index is None
+                else indexed_family_style(family_index)
+            )
+            r.color = bright if on_image else ink
+        label_index = r.k if family_index is None else family_index
+        handles.append(_cluster_family_handle(r, ink, many, mixed_statistics))
+        observed = ax.scatter(
+            *r.observed.T[::-1],
+            s=marker_size_from(r.marker, base=85),
+            marker=r.marker,
+            facecolors="none",
+            edgecolors=[r.color],
+            linewidths=1.8,
+            label="Observed",
+            zorder=5,
+        )
+        if on_image:
+            observed.set_path_effects(
+                [patheffects.withStroke(linewidth=3, foreground="#303038")]
+            )
+        points.extend(r.observed)
+        labels.extend(f"{label_index}·{n}" for n in r.numbers)
+        colors.extend([r.color] * len(r.numbers))
+        points.extend(r.model[r.unmatched])
+        labels.extend(f"{label_index}·{letter}" for letter in r.unmatched_labels)
+        colors.extend([r.color] * len(r.unmatched_labels))
+    curve_key = (
+        _cluster_curves(ax, records, curves, on_image, fallback_lines)
+        if is_fit
+        else None
+    )
+
+    centres = np.empty((0, 2))
+    if is_fit and not on_image:
+        tracer = records[0].fit.tracer
+        centres = pp.mass_centres_from(tracer)
+        pp.plot_mass_centres(ax, tracer, size=40, linewidths=1)
+    if not on_image:
+        draw_noise_circles(ax, records)
+    size = model_size_from(records)
+    draw_model_and_residuals(
+        ax, records, size, unmatched_color=".80" if on_image else pp.UNMATCHED_COLOR
+    )
+    place_labels(
+        ax,
+        extent,
+        points,
+        labels,
+        obstacles=np.vstack([centres] + models),
+        fontsize=9 if many else 10,
+        label_colors=(
+            ["white" if on_image else "#172f49"] * len(labels) if many else colors
+        ),
+        halo_color="#23282d" if on_image else "white",
+    )
+
+    legend_title = None
+    highlight = None
+    if many:
+        image_count = sum(len(r.observed) for r in records)
+        legend_title = f"{len(records)} families    ·    {image_count} observed images"
+        if len(statistics) == 1:
+            legend_title = f"{next(iter(statistics))}    ·    {legend_title}"
+            finite = [
+                i for i, r in enumerate(records)
+                if r.chi_squared is not None and np.isfinite(r.chi_squared)
+            ]
+            if finite:
+                highlight = max(finite, key=lambda i: records[i].chi_squared)
+    legend = ax.legend(
+        handles=handles,
+        loc="lower left",
+        bbox_to_anchor=(0, 1.006, 1, 0),
+        mode="expand" if many else None,
+        title=legend_title,
+        alignment="left",
+        frameon=False,
+        borderaxespad=0,
+        fontsize=9 if many else 10,
+        handletextpad=0.4 if many else 0.8,
+        handlelength=1.25,
+        ncol=family_columns,
+    )
+    if highlight is not None:
+        legend.get_texts()[highlight].set_weight("bold")
+    if is_fit:
+        symbols = fit_handles(
+            records, size, bool(curve_key), bool(len(centres)), curve_label=curve_key
+        )
+        fig.legend(
+            handles=symbols,
+            loc="upper center",
+            bbox_to_anchor=((0.57 + side / 2) / width, (footer - 0.33) / height),
+            ncol=min(3, len(symbols)) or 1,
+            fontsize=9,
+            frameon=False,
+            columnspacing=1.4,
+        )
+    add_colourbar(fig, ax, colormap, records, 0.65)
+    return fig
+
+
 def plot_fit_positions(
     fits,
     solver=None,
@@ -730,11 +1099,13 @@ def plot_fit_positions(
     output_format: str = None,
     filename: str = "fit",
     title_prefix: str = None,
+    image_extent=None,
 ):
     """
     Plots ``fit.png`` ("Fit Positions") of one or many ``FitPointDataset`` objects of the same lens model on the
     solver extent (see the module docstring). ``curves`` are the per-plane curves of
     :func:`~autolens.point.plot.point_sources.curves_for_planes`, computed if ``None``.
+    For a cluster, pass ``image_extent`` to match the image-backed overview's sky field.
     """
 
     fits = list(fits)
@@ -746,19 +1117,24 @@ def plot_fit_positions(
     if curves is None:
         curves = ps.curves_for_fits(fits, records, extent)
 
-    fig, ax = subplots(1, 1, figsize=figsize_from(records))
-    draw_fit_positions(
-        ax,
-        records,
-        curves,
-        extent,
-        tracer,
-        title=f"{_prefix(title_prefix)}Fit Positions",
-        scale=font_scale_from(records),
-        legend="outside" if len(records) > 1 else "inside",
-        colormap=colormap,
-    )
-    add_colourbar(fig, ax, colormap, records, font_scale_from(records))
+    if len(records) > 1:
+        fig = _cluster_overview(
+            records,
+            curves,
+            image_extent if image_extent is not None else extent,
+            colormap,
+            title_prefix,
+        )
+    else:
+        fig, ax = subplots(1, 1, figsize=figsize_from(records))
+        draw_fit_positions(
+            ax,
+            records,
+            curves,
+            extent,
+            tracer,
+            title=f"{_prefix(title_prefix)}Fit Positions",
+        )
     save_figure(fig, path=output_path, filename=filename, format=output_format)
 
 
@@ -784,7 +1160,9 @@ def _format_sigma(value: float) -> str:
     return f"{value:.1f}σ" if value >= 1 else f"{value:.2f}σ"
 
 
-def draw_ranking_panel(ax, record, scales: ps.RankingScales, title: str):
+def draw_ranking_panel(
+    ax, record, scales: ps.RankingScales, title: str, family_index=None
+):
     """
     The residual ranking of one source: a dot per image (worst first) at Δ/σ on the shared linear range, its value
     printed to its right; an off-scale image is a ▸ at the edge with its value in bold. Unmatched model images are
@@ -792,6 +1170,11 @@ def draw_ranking_panel(ax, record, scales: ps.RankingScales, title: str):
     """
     from autoarray.plot.utils import apply_labels
 
+    family_color, family_marker = None, "o"
+    if family_index is not None:
+        from autolens.point.plot.cluster_sky import indexed_family_style
+
+        _, family_color, family_marker = indexed_family_style(family_index)
     xmax, n_slots = scales.xmax, scales.n_slots
     rows = ps.ranking_rows_from(record)
     right = 1.32 * xmax
@@ -813,13 +1196,22 @@ def draw_ranking_panel(ax, record, scales: ps.RankingScales, title: str):
             continue
         if not np.isfinite(value):
             continue
-        color = ps.image_color(record.numbers[i])
+        color = family_color or ps.image_color(record.numbers[i])
         x = min(value, xmax)
         ax.hlines(y, 0, x, color="0.85", linewidth=1.4, zorder=1)
         if value > xmax:
             ax.scatter(xmax, y, s=150, c=[color], marker=">", edgecolors="k", linewidths=0.6, zorder=4)
         else:
-            ax.scatter(x, y, s=120, c=[color], edgecolors="k", linewidths=0.6, zorder=4)
+            ax.scatter(
+                x,
+                y,
+                s=120,
+                c=[color],
+                marker=family_marker,
+                edgecolors="k",
+                linewidths=0.6,
+                zorder=4,
+            )
         if kind == "nomodel":
             ax.scatter(x, y, zorder=3, **{**NO_MODEL_RING, "s": 380})
         ax.text(
@@ -836,7 +1228,10 @@ def draw_ranking_panel(ax, record, scales: ps.RankingScales, title: str):
     ax.set_xlim(-0.04 * right, right)
     ax.set_ylim(-0.7, n_slots - 0.3)
     apply_labels(ax, title=title, xlabel="", ylabel="")
-    labels = [t[1] for t in rows] + [""] * (n_slots - len(rows))
+    labels = [t[1] for t in rows]
+    if family_index is not None:
+        labels = [f"{family_index}·{label}" for label in labels]
+    labels += [""] * (n_slots - len(rows))
     ax.set_yticks(np.arange(n_slots)[::-1])
     ax.set_yticklabels(labels, fontweight="bold")
     ax.tick_params(axis="y", labelrotation=0, length=0)
@@ -847,7 +1242,7 @@ def draw_ranking_panel(ax, record, scales: ps.RankingScales, title: str):
     ax.set_box_aspect(1)
 
 
-def draw_image_plane_panel(ax, record, curves, tracer, title: str):
+def draw_image_plane_panel(ax, record, curves, tracer, title: str, family_index=None):
     """
     The image-plane zoom of one source: its own critical curves (dark grey, radial dotted olive), the mass centres,
     its observed images coloured by image with their σ circles, the model ✕ and residual lines and its image numbers
@@ -869,16 +1264,20 @@ def draw_image_plane_panel(ax, record, curves, tracer, title: str):
             )
     if tracer is not None:
         pp.plot_mass_centres(ax, tracer, size=80, linewidths=1.5)
-    colors = [ps.image_color(n) for n in record.numbers]
-    ax.scatter(
-        record.observed[:, 1],
-        record.observed[:, 0],
-        s=MARKER_SIZE,
-        c=colors,
-        edgecolors="k",
-        linewidths=0.6,
-        zorder=5,
-    )
+    if family_index is None:
+        marker_style = dict(
+            c=[ps.image_color(n) for n in record.numbers],
+            edgecolors="k",
+            linewidths=0.6,
+        )
+    else:
+        from autolens.point.plot.cluster_sky import indexed_family_style
+
+        _, color, marker = indexed_family_style(family_index)
+        marker_style = dict(
+            marker=marker, facecolors="none", edgecolors=color, linewidths=1.8
+        )
+    ax.scatter(*record.observed.T[::-1], s=MARKER_SIZE, zorder=5, **marker_style)
     draw_noise_circles(ax, [record])
     draw_model_and_residuals(ax, [record])
     finish_panel(ax, title, extent)
@@ -887,6 +1286,8 @@ def draw_image_plane_panel(ax, record, curves, tracer, title: str):
     if np.any(record.unmatched):
         points += list(record.model[record.unmatched])
         labels += record.unmatched_labels
+    if family_index is not None:
+        labels = [f"{family_index}·{label}" for label in labels]
     place_labels(
         ax,
         extent,
@@ -894,13 +1295,24 @@ def draw_image_plane_panel(ax, record, curves, tracer, title: str):
         labels,
         obstacles=record.model if record.has_model else None,
         fontsize=pp.FIT_NUMBER_FONTSIZE,
+        label_colors=None if family_index is None else [color] * len(labels),
+        halo_color=None if family_index is None else "white",
     )
 
 
-def draw_source_plane_panel(ax, record, curves, title: str):
+def draw_source_plane_panel(ax, record, curves, title: str, family_index=None):
     from autolens.point.plot import source_plane_panel as spp
 
-    data = spp.source_plane_data_from(record.fit.positions, numbers=record.numbers)
+    numbers = record.numbers
+    colors = [ps.image_color(n) for n in numbers]
+    marker = "o"
+    if family_index is not None:
+        from autolens.point.plot.cluster_sky import indexed_family_style
+
+        _, color, marker = indexed_family_style(family_index)
+        colors = [color] * len(numbers)
+        numbers = [f"{family_index}·{n}" for n in numbers]
+    data = spp.source_plane_data_from(record.fit.positions, numbers=numbers)
     plane_curves = record.curves_from(curves)
     spp.plot_source_plane_panel(
         ax,
@@ -908,7 +1320,8 @@ def draw_source_plane_panel(ax, record, curves, title: str):
         title=title,
         tangential_caustics=plane_curves.tangential_caustics if plane_curves else None,
         radial_caustics=plane_curves.radial_caustics if plane_curves else None,
-        point_colors=[ps.image_color(n) for n in record.numbers],
+        point_colors=colors,
+        point_marker=marker,
         legend=False,
     )
 
@@ -929,7 +1342,9 @@ def _shrink_titles_to_fit(fig, axes):
             title.set_fontsize(title.get_fontsize() - 1)
 
 
-def _fit_per_image_figure(records, curves, tracer, scales, title_prefix=None):
+def _fit_per_image_figure(
+    records, curves, tracer, scales, title_prefix=None, family_index=None
+):
     from autoarray.plot.utils import conf_subplot_figsize
 
     n = len(records)
@@ -937,10 +1352,29 @@ def _fit_per_image_figure(records, curves, tracer, scales, title_prefix=None):
     prefix = _prefix(title_prefix)
     for row, record in enumerate(records):
         tag = f"({record.name}{_redshift_text(record)})"
-        draw_ranking_panel(axes[row, 0], record, scales, title=f"{prefix}Residuals {tag}")
-        draw_image_plane_panel(axes[row, 1], record, curves, tracer, title=f"{prefix}IP {tag}")
+        draw_ranking_panel(
+            axes[row, 0],
+            record,
+            scales,
+            title=f"{prefix}Residuals {tag}",
+            family_index=family_index,
+        )
+        draw_image_plane_panel(
+            axes[row, 1],
+            record,
+            curves,
+            tracer,
+            title=f"{prefix}IP {tag}",
+            family_index=family_index,
+        )
         try:
-            draw_source_plane_panel(axes[row, 2], record, curves, title=f"{prefix}SP {tag}")
+            draw_source_plane_panel(
+                axes[row, 2],
+                record,
+                curves,
+                title=f"{prefix}SP {tag}",
+                family_index=family_index,
+            )
         except Exception:
             logger.warning(
                 "The source-plane panel of fit_per_image.png could not be drawn; it is left empty.",
@@ -965,6 +1399,7 @@ def subplot_fit_per_image(
     filename: str = "fit_per_image",
     title_prefix: str = None,
     scales: Optional[ps.RankingScales] = None,
+    family_index=None,
 ):
     """
     Plots ``fit_per_image.png``: one row per source of "Residuals", "IP" and "SP" panels (see the module docstring).
@@ -986,7 +1421,9 @@ def subplot_fit_per_image(
         )
 
     if not is_many(records):
-        fig = _fit_per_image_figure(records, curves, tracer, scales, title_prefix)
+        fig = _fit_per_image_figure(
+            records, curves, tracer, scales, title_prefix, family_index
+        )
         save_figure(fig, path=output_path, filename=filename, format=output_format)
         return
 
@@ -1032,15 +1469,16 @@ def plot_image_with_points(
     title_prefix: str = None,
     image_plane_lines=None,
     image_plane_line_colors=None,
+    family_index=None,
 ):
     """
     Plots the observed image with every source's positions overlaid, in the symbols of the positions figures.
 
     With ``fits=None`` only the observed positions of ``datasets`` are drawn (``image_with_points.png``); with
     ``fits`` the model positions, residual lines and each source's tangential critical curves at its own redshift are
-    added (``fit_image_with_points.png``, so both figures coexist). Clusters (several sources, or an image wider than
-    ``CLUSTER_IMAGE_WIDTH``) use a log10 colour scale (a bright BCG and faint arcs); a galaxy-scale lens keeps the
-    linear scale. There is no legend.
+    added (``fit_image_with_points.png``, so both figures coexist). Cluster overviews use a grayscale asinh
+    stretch and an external legend for every family.
+    Standalone images use the point-source intensity scale.
 
     ``image_plane_lines`` (pre-computed last-plane curves) are drawn only when ``curves`` cannot be computed.
     """
@@ -1053,7 +1491,7 @@ def plot_image_with_points(
         records = ps.records_from_fits(fits)
     else:
         records = ps.records_from_datasets(list(datasets))
-    ps.assign_styles(records)
+    colormap = ps.assign_styles(records)
     multi = len(records) > 1
     many = is_many(records)
     scale = font_scale_from(records)
@@ -1064,11 +1502,32 @@ def plot_image_with_points(
             fits, records, ps.union_extent_from(records, solver=solver)
         )
 
+    if multi or family_index is not None:
+        fig = _cluster_overview(
+            records,
+            curves,
+            image.geometry.extent,
+            colormap,
+            title_prefix,
+            image=image,
+            fallback_lines=image_plane_lines,
+            family_index=family_index,
+        )
+        save_figure(
+            fig,
+            path=output_path,
+            filename="fit_image_with_points" if is_fit else "image_with_points",
+            format=output_format,
+        )
+        return
+
     name = "Fit Image With Points" if is_fit else "Image With Points"
     title = f"{_prefix(title_prefix)}{name}" + (f" ({records[0].name})" if not multi else "")
 
     fig, ax = subplots(1, 1, figsize=figsize_from(records))
-    plot_array(array=image, ax=ax, use_log10=use_log10_from(image, multi), title=title)
+    plot_array(
+        array=image, ax=ax, colormap="gray", use_log10=use_log10_from(image, multi), title=title
+    )
     scale_fonts(ax, scale)
     for other in fig.axes[1:]:
         for tick in other.get_yticklabels():
@@ -1123,7 +1582,7 @@ def plot_image_with_points(
                 line = _yx(line)
                 ax.plot(line[:, 1], line[:, 0], color="w", linewidth=curve_width, zorder=3)
 
-    scatter_sources(ax, shown, edgecolor="w", edgewidth=1.0)
+    scatter_sources(ax, shown, on_image=True)
     if is_fit:
         draw_model_and_residuals(ax, shown, model_size_from(records), unmatched_color="0.85")
 

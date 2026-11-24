@@ -10,6 +10,7 @@ def subplot_dataset(
     output_format: str = None,
     title_prefix: str = None,
     solver=None,
+    family_index=None,
 ):
     """
     Produce a subplot visualising a `PointDataset`.
@@ -18,7 +19,7 @@ def subplot_dataset(
     measurements are present:
 
     * **Positions panel** (always shown), titled ``Dataset Positions (<name>)``:
-      the observed point-source positions as large filled markers, each with a
+      the observed point-source positions as outlined amber circles, each with a
       circle at its noise-map radius (never inflated, so it may be sub-pixel)
       and the sigma stated in the legend, e.g. ``Observed (σ = 0.005″)``. The
       panel extent is the ``PointSolver`` grid extent when ``solver`` is given
@@ -58,6 +59,7 @@ def subplot_dataset(
             output_format=output_format,
             filename="dataset_point",
             title_prefix=title_prefix,
+            family_index=family_index,
         )
         return
 
@@ -69,7 +71,11 @@ def subplot_dataset(
     axes_flat = list(np.array(axes).flatten())
 
     msp.draw_dataset_positions(
-        axes_flat[0], records, extent, title=msp.dataset_title_from(records, title_prefix)
+        axes_flat[0],
+        records,
+        extent,
+        title=msp.dataset_title_from(records, title_prefix),
+        family_index=family_index,
     )
 
     _prefix = f"{title_prefix.rstrip()} " if title_prefix else ""

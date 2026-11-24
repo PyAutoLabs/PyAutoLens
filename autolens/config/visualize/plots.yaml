@@ -65,7 +65,8 @@ fit_point_dataset:                         # Settings for plots of fits to point
   fit_image_with_points: true              # Plot the observed image (if passed to AnalysisPoint) with observed and model positions and critical curves over it (fit_image_with_points.png)?
   subplot_point_solver: false              # Plot how the PointSolver refines its triangles onto the best-fit model's images (point_solver.png)? Re-solves with NumPy at the best fit only, so it is off by default.
   subplot_fit_combined: true               # Multi-dataset (e.g. cluster) fits: plot every source's fit in one panel, each source's critical curves at its own redshift, in the top-level image folder (fit.png)?
-  fit_per_image_combined: true             # Multi-dataset (e.g. cluster) fits: plot fit_per_image.png for every source, the ranking range shared across sources (one file per source in fit_per_image/ beyond 8 sources)?
+  fit_per_image_combined: true             # Write <family>/fit.png with per-image contributions and fitted-plane zooms (six zooms per page).
+  family_fit_single_panel: false           # Show all fitted-plane positions on shared angular axes instead of individual zooms.
   fit_image_with_points_combined: true     # Multi-dataset (e.g. cluster) fits: plot the observed image with every source's observed and model positions and critical curves over it (fit_image_with_points.png)?
 
 weak_dataset:                              # Settings for plots of weak lensing shear catalogues (e.g. PlotterWeak).

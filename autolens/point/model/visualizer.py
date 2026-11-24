@@ -1,6 +1,9 @@
+from copy import copy
+
 import autofit as af
 
 from autolens.point.model.plotter import PlotterPoint
+from autolens.point.fit.positions.image.abstract import AbstractFitPositionsImagePair
 from autolens.lens.plot.critical_curves import critical_curve_grid_from
 from autolens.point.plot import point_sources as ps
 
@@ -11,6 +14,7 @@ class VisualizerPoint(af.Visualizer):
         analysis,
         paths: af.AbstractPaths,
         model: af.AbstractPriorModel,
+        family_index=None,
     ):
         """
         PyAutoFit calls this function immediately before the non-linear search begins.
@@ -25,6 +29,8 @@ class VisualizerPoint(af.Visualizer):
         model
             The model object, which includes model components representing the galaxies that are fitted to
             the imaging data.
+        family_index
+            The zero-based family index when this analysis is being visualized as part of a cluster.
         """
 
         plotter = PlotterPoint(
@@ -32,12 +38,18 @@ class VisualizerPoint(af.Visualizer):
         )
 
         plotter.dataset_point(
-            dataset=analysis.dataset, solver=getattr(analysis, "solver", None)
+            dataset=analysis.dataset,
+            solver=getattr(analysis, "solver", None),
+            family_index=family_index,
         )
 
         if getattr(analysis, "image", None) is not None:
             # Dataset-only figure (observed positions, no model): `image_with_points.png`.
-            plotter.image_with_points(image=analysis.image, dataset=analysis.dataset)
+            plotter.image_with_points(
+                image=analysis.image,
+                dataset=analysis.dataset,
+                family_index=family_index,
+            )
 
     @staticmethod
     def visualize(
@@ -46,6 +58,7 @@ class VisualizerPoint(af.Visualizer):
         instance: af.ModelInstance,
         during_analysis: bool,
         quick_update: bool = False,
+        family_index=None,
     ):
         """
         Output images of the maximum log likelihood model inferred by the model-fit. This function is called throughout
@@ -69,6 +82,8 @@ class VisualizerPoint(af.Visualizer):
         instance
             An instance of the model that is being fitted to the data by this analysis (whose parameters have been set
             via a non-linear search).
+        family_index
+            The zero-based family index when this analysis is being visualized as part of a cluster.
         """
         fit = analysis.fit_for_visualization(instance=instance)
 
@@ -87,7 +102,9 @@ class VisualizerPoint(af.Visualizer):
         curves = curves_for_point_fits(fits=[fit], solver=solver)
         ip_lines, ip_colors, sp_lines, sp_colors = last_plane_lines_from(tracer, curves)
 
-        plotter.fit_point(fit=fit, quick_update=quick_update, curves=curves)
+        plotter.fit_point(
+            fit=fit, quick_update=quick_update, curves=curves, family_index=family_index
+        )
 
         # Output even on `quick_update`, so the observed image with model positions updates on-the-fly. Saved as
         # `fit_image_with_points.png`, so the dataset-only `image_with_points.png` from before the fit is kept.
@@ -99,12 +116,15 @@ class VisualizerPoint(af.Visualizer):
                 image_plane_lines=ip_lines,
                 image_plane_line_colors=ip_colors,
                 curves=curves,
+                family_index=family_index,
             )
 
         if quick_update:
             return
 
-        plotter.fit_per_image(fit_list=[fit], curves=curves, solver=solver)
+        plotter.fit_per_image(
+            fit_list=[fit], curves=curves, solver=solver, family_index=family_index
+        )
 
         plotter.tracer(
             tracer=tracer,
@@ -122,7 +142,7 @@ class VisualizerPoint(af.Visualizer):
         # Off by default (`fit_point_dataset: subplot_point_solver`): re-solves the best-fit model with NumPy to show
         # the solver's refinement steps, so it is output only for the full (not quick-update) visualization. The
         # figure computes the critical curves of the source's own plane on its own (per-source) extent.
-        plotter.point_solver(fit=fit)
+        plotter.point_solver(fit=fit, family_index=family_index)
 
     @staticmethod
     def visualize_before_fit_combined(
@@ -160,8 +180,8 @@ class VisualizerPoint(af.Visualizer):
 
         - ``fit.png``: every source's observed and model positions and its critical curves at its own redshift
           (also output on a quick update);
-        - ``fit_per_image.png``: one row per source, with the residual ranking range shared by every source
-          (``fit_per_image/<name>.png`` beyond 8 sources);
+        - ``<family>/fit.png``: the cluster overview, per-image contributions, fitted-plane details and the
+          complete source-plane view. Additional groups of six zooms use ``fit_page_02.png``, etc.;
         - ``fit_image_with_points.png`` if an observed image was passed to an ``AnalysisPoint``;
         - the dataset figures of ``visualize_before_fit_combined`` (``dataset_point.png``,
           ``image_with_points.png``), as a factor-graph fit does not call that function.
@@ -182,7 +202,7 @@ class VisualizerPoint(af.Visualizer):
         )
 
         fit_list = [
-            analysis.fit_for_visualization(instance=single_instance)
+            _combined_plot_fit(analysis.fit_for_visualization(instance=single_instance))
             for analysis, single_instance in pairs
         ]
         solver = getattr(analyses[0], "solver", None) or getattr(
@@ -190,11 +210,15 @@ class VisualizerPoint(af.Visualizer):
         )
         curves = curves_for_point_fits(fits=fit_list, solver=solver)
 
+        image = _image_from(analyses)
         plotter.fit_point_combined(
-            fit_list=fit_list, curves=curves, solver=solver, quick_update=quick_update
+            fit_list=fit_list,
+            curves=curves,
+            solver=solver,
+            quick_update=quick_update,
+            image_extent=image.geometry.extent if image is not None else None,
         )
 
-        image = _image_from(analyses)
         if image is not None:
             plotter.image_with_points_combined(
                 image=image,
@@ -208,9 +232,22 @@ class VisualizerPoint(af.Visualizer):
             return
 
         plotter.fit_per_image(
-            fit_list=fit_list, curves=curves, solver=solver, combined=True
+            fit_list=fit_list, curves=curves, solver=solver, combined=True, image=image
         )
         _visualize_datasets_combined(plotter, analyses)
+
+
+def _combined_plot_fit(fit):
+    """Share a fixed image-plane solution across all panels of this visualization call."""
+    positions = fit.positions
+    if not isinstance(positions, AbstractFitPositionsImagePair):
+        return fit
+    if type(positions).model_data is not AbstractFitPositionsImagePair.model_data:
+        return fit
+    result = copy(fit)
+    result.positions = copy(positions)
+    result.positions._plot_model_data = positions.model_data
+    return result
 
 
 def _is_point_analysis(analysis) -> bool:
@@ -236,8 +273,11 @@ def _image_from(analyses):
 def _visualize_datasets_combined(plotter, analyses):
     solver = getattr(analyses[0], "solver", None)
     dataset_list = [analysis.dataset for analysis in analyses]
-    plotter.dataset_point_combined(dataset_list=dataset_list, solver=solver)
     image = _image_from(analyses)
+    plotter.dataset_point_combined(
+        dataset_list=dataset_list, solver=solver,
+        image_extent=image.geometry.extent if image is not None else None,
+    )
     if image is not None:
         plotter.image_with_points_combined(
             image=image, dataset_list=dataset_list, solver=solver

@@ -23,7 +23,7 @@ def _setting(section, name: str, default: bool = True) -> bool:
 
 
 class PlotterPoint(Plotter):
-    def dataset_point(self, dataset: PointDataset, solver=None):
+    def dataset_point(self, dataset: PointDataset, solver=None, family_index=None):
         """
         Output visualization of a `PointDataset` dataset.
 
@@ -49,6 +49,7 @@ class PlotterPoint(Plotter):
                 output_format=fmt,
                 title_prefix=self.title_prefix,
                 solver=solver,
+                family_index=family_index,
             )
 
     def image_with_points(
@@ -59,6 +60,7 @@ class PlotterPoint(Plotter):
         image_plane_lines=None,
         image_plane_line_colors=None,
         curves=None,
+        family_index=None,
     ):
         """
         Output an observed image of the lensed point source with the point-source positions overlaid.
@@ -102,6 +104,7 @@ class PlotterPoint(Plotter):
             image_plane_line_colors=image_plane_line_colors,
             title_prefix=self.title_prefix,
             curves=curves,
+            family_index=family_index,
         )
 
     def fit_point(
@@ -113,6 +116,7 @@ class PlotterPoint(Plotter):
         source_plane_lines=None,
         source_plane_line_colors=None,
         curves=None,
+        family_index=None,
     ):
         """
         Visualizes a `FitPointDataset` object: ``fit.png`` (controlled by ``fit: subplot_fit``, also output on a
@@ -147,20 +151,38 @@ class PlotterPoint(Plotter):
             source_plane_line_colors=source_plane_line_colors,
             title_prefix=self.title_prefix,
             curves=curves,
+            family_index=family_index,
         )
 
-    def fit_per_image(self, fit_list, curves=None, solver=None, combined: bool = False):
+    def fit_per_image(
+        self,
+        fit_list,
+        curves=None,
+        solver=None,
+        combined: bool = False,
+        image=None,
+        family_index=None,
+    ):
         """
-        Output ``fit_per_image.png``: one row per source of its residual ranking, image-plane zoom and source-plane
-        panel (beyond 8 sources, one file per source in ``fit_per_image/``).
-
-        Controlled by ``fit_point_dataset: fit_per_image`` for a single dataset and
-        ``fit_point_dataset: fit_per_image_combined`` for the all-sources figure of a multi-dataset (e.g. cluster)
-        fit, whose ranking range is shared by every source.
+        Output a cluster diagnostic per family for a combined fit, or the single dataset's
+        residual ranking, image-plane zoom and source-plane panel in ``fit_per_image.png``.
         """
         name = "fit_per_image_combined" if combined else "fit_per_image"
         if not _setting(["fit", "fit_point_dataset"], name):
             return
+        if combined:
+            from autolens.point.plot.family_fit_plots import plot_family_fits
+
+            return plot_family_fits(
+                fit_list,
+                image=image,
+                single_panel=_setting(
+                    ["fit", "fit_point_dataset"], "family_fit_single_panel", default=False
+                ),
+                output_path=str(self.image_path),
+                output_format=self.fmt,
+                title_prefix=self.title_prefix,
+            )
         multi_source_plots.subplot_fit_per_image(
             fit_list,
             curves=curves,
@@ -168,9 +190,10 @@ class PlotterPoint(Plotter):
             output_path=str(self.image_path),
             output_format=self.fmt,
             title_prefix=self.title_prefix,
+            family_index=family_index,
         )
 
-    def dataset_point_combined(self, dataset_list, solver=None):
+    def dataset_point_combined(self, dataset_list, solver=None, image_extent=None):
         """
         Output ``dataset_point.png`` of every point dataset of a multi-dataset (e.g. cluster) fit in one panel,
         controlled by ``point_dataset: subplot_dataset_combined``.
@@ -180,12 +203,20 @@ class PlotterPoint(Plotter):
         multi_source_plots.plot_dataset_positions(
             dataset_list,
             solver=solver,
+            image_extent=image_extent,
             output_path=str(self.image_path),
             output_format=self.fmt,
             title_prefix=self.title_prefix,
         )
 
-    def fit_point_combined(self, fit_list, curves=None, solver=None, quick_update: bool = False):
+    def fit_point_combined(
+        self,
+        fit_list,
+        curves=None,
+        solver=None,
+        quick_update: bool = False,
+        image_extent=None,
+    ):
         """
         Output ``fit.png`` of every point dataset of a multi-dataset (e.g. cluster) fit in one panel ("Fit
         Positions", each source's curves at its own redshift), controlled by
@@ -197,6 +228,7 @@ class PlotterPoint(Plotter):
             return
         multi_source_plots.plot_fit_positions(
             fit_list,
+            image_extent=image_extent,
             solver=solver,
             curves=curves,
             output_path=str(self.image_path),
@@ -227,7 +259,7 @@ class PlotterPoint(Plotter):
             title_prefix=self.title_prefix,
         )
 
-    def point_solver(self, fit: FitPointDataset, image_plane_lines=None):
+    def point_solver(self, fit: FitPointDataset, image_plane_lines=None, family_index=None):
         """
         Output `point_solver.png`: how the `PointSolver` refines its triangles onto the images of the fit's model.
 
@@ -275,4 +307,5 @@ class PlotterPoint(Plotter):
             output_path=str(self.image_path),
             output_format=self.fmt,
             title_prefix=self.title_prefix,
+            family_index=family_index,
         )

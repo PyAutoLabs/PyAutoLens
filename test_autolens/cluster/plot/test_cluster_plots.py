@@ -373,3 +373,102 @@ def test__zero_contour_without_dependency__falls_back_to_marching_squares(
     ]
     # Read once per plot call, so one warning each.
     assert len(fallback_warnings) == 2
+
+
+def test_overlay_preserves_image_origin_and_uses_family_metadata():
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import AsinhNorm, to_hex
+
+    fig, ax = plt.subplots()
+    image = aa.Array2D.no_mask(
+        values=np.arange(24).reshape(4, 6),
+        pixel_scales=(0.3, 0.2),
+        origin=(12.0, -7.0),
+    )
+    datasets = [
+        al.PointDataset(
+            name="Arc A",
+            positions=[(12.1, -7.2)],
+            positions_noise_map=0.2,
+            redshift=1.1,
+        ),
+        al.PointDataset(
+            name="Arc B",
+            positions=[(11.8, -6.9)],
+            positions_noise_map=0.2,
+            redshift=2.3,
+        ),
+    ]
+    plot_positions_overlay(
+        [dataset.positions for dataset in datasets],
+        image=image,
+        ax=ax,
+        datasets=datasets,
+    )
+
+    raster = ax.images[0]
+    assert raster.get_extent() == pytest.approx(image.geometry.extent)
+    assert raster.origin == "upper"
+    assert isinstance(raster.norm, AsinhNorm)
+    assert np.asarray(
+        [artist.get_offsets()[0] for artist in ax.collections]
+    ) == pytest.approx(np.asarray([(-7.2, 12.1), (-6.9, 11.8)]))
+    assert [to_hex(artist.get_edgecolors()[0]) for artist in ax.collections] == [
+        "#ffbc53",
+        "#5fe3ee",
+    ]
+    legend = ax.get_legend()
+    assert legend.get_bbox_to_anchor().y0 > ax.bbox.y1
+    assert [label.get_text() for label in legend.get_texts()] == [
+        "Arc A · 1 image · z=1.10",
+        "Arc B · 1 image · z=2.30",
+    ]
+    plt.close(fig)
+
+
+def test_zooms_start_each_family_on_its_own_row(positions_list, image, monkeypatch):
+    import matplotlib.pyplot as plt
+
+    figures = []
+    monkeypatch.setattr(
+        cluster_plots, "save_figure", lambda fig, **kwargs: figures.append(fig)
+    )
+    plot_image_group_zooms(positions_list, image=image, max_cols=2, zoom_arcsec=0.4)
+
+    fig = figures[0]
+    assert [ax.get_title() for ax in fig.axes] == [
+        "Source 0 · Image 1",
+        "Source 0 · Image 2",
+        "Source 0 · Image 3",
+        "",
+        "Source 1 · Image 1",
+        "Source 1 · Image 2",
+    ]
+    assert not fig.axes[3].axison
+    # Geometric image 2 is the third position in the dataset input.
+    assert fig.axes[1].get_xlim() == pytest.approx((1.4, 1.8))
+    assert fig.axes[1].get_ylim() == pytest.approx((0.0, 0.4))
+    assert fig.axes[4].get_xlim() == pytest.approx((0.2, 0.6))
+    assert fig.axes[4].get_ylim() == pytest.approx((1.9, 2.3))
+    plt.close(fig)
+
+
+def test_dense_overlay_groups_legend_in_five_columns():
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import to_hex
+
+    fig, ax = plt.subplots(figsize=(10, 7))
+    legend_positions = [[(0.0, float(index))] for index in range(20)]
+    plot_positions_overlay(legend_positions, ax=ax)
+
+    colours = [to_hex(artist.get_edgecolors()[0]) for artist in ax.collections]
+    assert len(set(colours)) == len(legend_positions)
+    assert colours[0] != "#a15b0c"
+    assert colours[1] != "#00778a"
+
+    fig.canvas.draw()
+    labels = ax.get_legend().get_texts()
+    y_positions = {round(label.get_window_extent().y0, 3) for label in labels}
+    assert len(labels) == len(legend_positions)
+    assert len(y_positions) == 4
+    plt.close(fig)
