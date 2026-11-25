@@ -75,6 +75,13 @@ from autolens.point.plot.fit_point_plots import (
     subplot_fit as subplot_fit_point,
     plot_image_with_points,
 )
+from autolens.point.plot.family_fit_plots import (
+    plot_family_contributions,
+    plot_family_image_detail,
+    plot_family_overview,
+    plot_family_source_plane,
+    subplot_fit_family,
+)
 from autolens.point.plot.point_dataset_plots import subplot_dataset as subplot_point_dataset
 from autolens.point.plot.point_solver_plots import plot_point_solver
 

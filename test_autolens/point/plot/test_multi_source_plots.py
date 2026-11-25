@@ -717,3 +717,79 @@ def test__plot_family_fits__image_tiles_keep_absolute_centres_and_full_rankings(
     assert all(ranking == rankings[0] for ranking in rankings)
     assert np.asarray(spans) == pytest.approx(np.broadcast_to(spans[0], (n_images, 2)))
     assert np.asarray(sizes) == pytest.approx(np.broadcast_to(sizes[0], (n_images, 2)))
+
+
+@pytest.mark.parametrize(
+    "likelihood",
+    ["FitPositionsSource", "FitPositionsImagePair", "FitPositionsImagePairAll"],
+)
+def test__public_family_panels_match_selected_subplot(
+    cluster, family_figures, tmp_path, likelihood
+):
+    import matplotlib.pyplot as plt
+    import autolens.plot as aplt
+
+    fits = cluster.fits[likelihood]
+    fit = fits[1]
+    output = dict(output_path=tmp_path, output_format="png")
+    aplt.subplot_fit_family(fit, fits=fits, **output)
+    combined = {
+        ax.get_title(): ax for ax in family_figures[tmp_path / "fit_family.png"].axes
+    }
+
+    fig, axes = plt.subplots(2, 2)
+    try:
+        for ax, plot, options in zip(
+            axes.flat,
+            [
+                aplt.plot_family_overview,
+                aplt.plot_family_contributions,
+                aplt.plot_family_image_detail,
+                aplt.plot_family_source_plane,
+            ],
+            [{}, {}, {"image_number": 2}, {}],
+        ):
+            plot(fit, fits=fits, ax=ax, **options, **output)
+            reference = combined[ax.get_title()]
+            assert [t.get_text() for t in ax.texts] == [
+                t.get_text() for t in reference.texts
+            ]
+            assert ax.get_xlabel() == reference.get_xlabel()
+            assert len(ax.collections) == len(reference.collections)
+            for actual, expected in zip(ax.collections, reference.collections):
+                np.testing.assert_allclose(actual.get_offsets(), expected.get_offsets())
+                np.testing.assert_allclose(
+                    actual.get_edgecolors(), expected.get_edgecolors()
+                )
+        assert _legend_labels(axes[0, 0]) == _legend_labels(
+            combined["Cluster fit overview"]
+        )
+        assert axes[1, 0].get_xlim() == pytest.approx(combined["Image 2"].get_xlim())
+        assert plt.fignum_exists(fig.number)
+        assert len(family_figures) == 1
+    finally:
+        plt.close(fig)
+
+    aplt.plot_family_image_detail(fit, **output)
+    shared = family_figures[tmp_path / "family_image_detail.png"].axes[0]
+    assert shared.get_title() == (
+        "Source-plane detail"
+        if likelihood == "FitPositionsSource"
+        else "All images in the image plane"
+    )
+    with pytest.raises(ValueError, match="Unknown image number 0"):
+        aplt.plot_family_image_detail(fit, image_number=0)
+    with pytest.raises(ValueError, match="include the selected fit"):
+        aplt.plot_family_overview(fit, fits=[fits[0]])
+
+
+def test__family_panels_use_tracer_redshifts_for_older_datasets(cluster, monkeypatch):
+    from autolens.point.plot.family_fit_plots import _select_family
+
+    low_z, high_z = cluster.fits["FitPositionsSource"]
+    monkeypatch.setattr(low_z.dataset, "redshift", None)
+    monkeypatch.setattr(high_z.dataset, "redshift", None)
+    fits = [low_z, high_z] + [low_z] * (ps.MAX_QUALITATIVE - 1)
+    selected, _ = _select_family(high_z, fits)
+    combined, _ = _select_family(high_z, fits, overview=True)
+    assert selected.ink == combined.ink
