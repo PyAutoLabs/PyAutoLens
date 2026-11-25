@@ -5,6 +5,7 @@ one-line `Estimate:` format and the two PyAutoFit hooks on the lens analyses (`r
 `resources_per_eval`).
 """
 
+import importlib.util
 import logging
 import re
 from types import SimpleNamespace
@@ -23,6 +24,25 @@ from autolens.analysis import wall_model
 def unset_setup_env(monkeypatch):
     monkeypatch.delenv("PYAUTO_SETUP", raising=False)
     monkeypatch.delenv("PYAUTO_DISABLE_JAX", raising=False)
+
+
+_real_find_spec = importlib.util.find_spec
+
+
+@pytest.fixture(autouse=True)
+def jax_installed(monkeypatch):
+    """
+    Price JAX setups as if JAX were installed, so these tests behave the same on the no-JAX CI leg.
+    A JAX setup on a machine without JAX runs on numpy and is not priced by the JAX rows
+    (`test__jax_setup_with_jax_not_installed__not_priced_by_jax_rows` covers that).
+    """
+    monkeypatch.setattr(
+        importlib.util,
+        "find_spec",
+        lambda name, *args, **kwargs: (
+            object() if name == "jax" else _real_find_spec(name, *args, **kwargs)
+        ),
+    )
 
 
 class Nautilus:
@@ -734,5 +754,31 @@ def test__jax_setup_with_jax_disabled__not_priced_by_jax_rows(monkeypatch):
     assert estimate.wall_seconds is None
     assert estimate.line() == (
         "Estimate: no estimate for jax_gpu_dense_fp64 (designated JAX; JAX disabled, "
+        "the numpy fallback has no profiling cell)"
+    )
+
+
+def test__jax_setup_with_jax_not_installed__not_priced_by_jax_rows(monkeypatch):
+    monkeypatch.setattr(
+        importlib.util,
+        "find_spec",
+        lambda name, *args, **kwargs: (
+            None if name == "jax" else _real_find_spec(name, *args, **kwargs)
+        ),
+    )
+
+    with pytest.warns(UserWarning, match="JAX is not installed"):
+        estimate = al.estimate_runtime(
+            dataset=_sized_imaging(_row(setup_id="jax_gpu_dense_fp64")["n_pixels_masked"]),
+            model=_rectangular_model(),
+            search=Nautilus(),
+            setup="jax_gpu_dense_fp64",
+            likelihood=_row(setup_id="jax_gpu_dense_fp64")["likelihood"],
+        )
+
+    assert estimate.has_profiling_cell is False
+    assert estimate.backend == "numpy"
+    assert estimate.line() == (
+        "Estimate: no estimate for jax_gpu_dense_fp64 (designated JAX; JAX not installed, "
         "the numpy fallback has no profiling cell)"
     )
