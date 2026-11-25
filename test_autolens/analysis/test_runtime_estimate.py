@@ -6,6 +6,7 @@ one-line `Estimate:` format and the two PyAutoFit hooks on the lens analyses (`r
 """
 
 import logging
+import re
 from types import SimpleNamespace
 
 import pytest
@@ -169,7 +170,10 @@ def test__interferometer__matched_by_visibilities__uncalibrated(n_vis, instrumen
     assert estimate.matched_by == "size"
     assert estimate.instrument == instrument
     assert estimate.calibrated is False
-    assert estimate.line().endswith(" · uncalibrated (held-out 0.2–0.5×)")
+    line = estimate.line()
+    assert line.startswith("Estimate: ~")
+    assert " on this hardware   (" in line
+    assert line.endswith(" · uncalibrated (held-out 0.2–0.5×))")
 
 
 def test__interferometer__real_dataset__size_from_visibilities(interferometer_7):
@@ -190,7 +194,13 @@ def test__no_size__several_instruments__band():
     assert estimate.wall_seconds is None
     low, high = estimate.wall_band
     assert low < high
-    assert "(no size match; range across instruments)" in estimate.line()
+    line = estimate.line()
+    assert re.match(
+        r"Estimate: ~[0-9.]+–[0-9.]+ \w+ \(no size match; range across instruments\)   "
+        r"\([0-9.]+–[0-9.]+ ms/eval · Nautilus n_live=\d+ ≈ [0-9.e–]+ evals, "
+        r"heuristic · η=[0-9.]+\)$",
+        line,
+    ), line
 
 
 def test__point__unknown_positions_fit__band_across_likelihoods(point_dataset):
@@ -278,8 +288,8 @@ def test__non_nautilus__no_estimate_line():
     assert estimate.wall_seconds is None
     assert estimate.expected_evals is None
     assert estimate.line() == (
-        "Estimate: ~697 ms/eval (hst cell) · no estimate for Emcee "
-        "(run-time model covers Nautilus only)"
+        "Estimate: none for Emcee (the run-time model covers Nautilus only)   "
+        "(697 ms/eval, hst cell)"
     )
 
 
@@ -316,7 +326,8 @@ def test__numba__efficiency_applied__wall_model():
     assert estimate.parallel_efficiency == pytest.approx(0.55)
     assert estimate.number_of_cores == 8
     assert estimate.wall_seconds == pytest.approx(30 + evals * (0.014 + per_call))
-    assert "η=0.55 on 8 cores" in estimate.line()
+    assert "· η=0.55)" in estimate.line()
+    assert "cores" not in estimate.line()
 
 
 def test__numba__efficiency_between_sweep_points__next_lower():
@@ -348,7 +359,7 @@ def test__jax__per_call_as_is__one_worker():
     assert estimate.parallel_efficiency is None
     assert estimate.number_of_cores == 1
     assert estimate.wall_seconds == pytest.approx(30 + evals * (0.014 + 0.0246826))
-    assert "1 worker (JAX)" in estimate.line()
+    assert estimate.line().endswith(" · 1 worker (JAX))")
     assert "η=" not in estimate.line()
 
 
@@ -363,9 +374,84 @@ def test__line__one_line_format():
     ).line()
 
     assert "\n" not in line
-    assert line.startswith("Estimate: ~697 ms/eval (hst cell) · Nautilus n_live=150 ≈ ")
-    assert "evals (heuristic) · η=0.55 on 8 cores · ~" in line
-    assert line.endswith(" on this hardware")
+    assert re.match(
+        r"Estimate: ~[0-9.]+ (s|min|h|d) on this hardware   \(697 ms/eval, hst cell · "
+        r"Nautilus n_live=150 ≈ [0-9.]+e\d+ evals, heuristic · η=0\.55\)$",
+        line,
+    ), line
+
+
+def _estimate(**kwargs):
+    defaults = dict(
+        ms_per_eval=283.0,
+        record_id="r",
+        instrument="euclid",
+        matched_by="size",
+        expected_evals=4600,
+        evals_model="nautilus-heuristic",
+        parallel_efficiency=0.55,
+        number_of_cores=8,
+        wall_seconds=6.4 * 60,
+        wall_band=None,
+        calibrated=True,
+        n_live=50,
+        search_name="Nautilus",
+    )
+    defaults.update(kwargs)
+    return re_mod.RuntimeEstimate(**defaults)
+
+
+def test__line__variants():
+    assert _estimate().line() == (
+        "Estimate: ~6.4 min on this hardware   (283 ms/eval, euclid cell · "
+        "Nautilus n_live=50 ≈ 4.6e3 evals, heuristic · η=0.55)"
+    )
+
+    assert _estimate(
+        ms_per_eval=0.065,
+        instrument="simple",
+        parallel_efficiency=None,
+        number_of_cores=1,
+        backend="jax",
+        wall_seconds=45.0,
+    ).line() == (
+        "Estimate: ~45 s on this hardware   (0.065 ms/eval, simple cell · "
+        "Nautilus n_live=50 ≈ 4.6e3 evals, heuristic · 1 worker (JAX))"
+    )
+
+    assert _estimate(
+        ms_per_eval=231.0,
+        instrument="sma",
+        calibrated=False,
+        note="uncalibrated (held-out 0.2–0.5×)",
+    ).line() == (
+        "Estimate: ~6.4 min on this hardware   (231 ms/eval, sma cell · "
+        "Nautilus n_live=50 ≈ 4.6e3 evals, heuristic · η=0.55 · "
+        "uncalibrated (held-out 0.2–0.5×))"
+    )
+
+    assert _estimate(
+        instrument=None,
+        matched_by="band",
+        wall_seconds=None,
+        wall_band=(4 * 60, 11 * 60),
+        ms_per_eval_band=(28.0, 697.0),
+        expected_evals=None,
+        expected_evals_band=(4600, 4600),
+    ).line() == (
+        "Estimate: ~4–11 min (no size match; range across instruments)   "
+        "(28–697 ms/eval · Nautilus n_live=50 ≈ 4.6e3–4.6e3 evals, heuristic · η=0.55)"
+    )
+
+    assert _estimate(
+        supported_search=False,
+        search_name="Emcee",
+        expected_evals=None,
+        wall_seconds=None,
+    ).line() == (
+        "Estimate: none for Emcee (the run-time model covers Nautilus only)   "
+        "(283 ms/eval, euclid cell)"
+    )
 
 
 # Analysis hooks
@@ -440,9 +526,10 @@ def test__analysis__interferometer__estimate_line(interferometer_7):
         search=Nautilus(), model=_rectangular_model(), number_of_cores=4
     )
 
-    assert line.startswith("Estimate: ~231 ms/eval (sma cell)")
-    assert "η=0.62 on 4 cores" in line
-    assert line.endswith("uncalibrated (held-out 0.2–0.5×)")
+    assert line.startswith("Estimate: ~")
+    assert "   (231 ms/eval, sma cell · " in line
+    assert "· η=0.62 · " in line
+    assert line.endswith("uncalibrated (held-out 0.2–0.5×))")
 
 
 def test__analysis__point__estimate_line_from_positions_fit(point_dataset):
@@ -457,8 +544,8 @@ def test__analysis__point__estimate_line_from_positions_fit(point_dataset):
         search=Nautilus(), model=_rectangular_model(), number_of_cores=1
     )
 
-    assert line.startswith("Estimate: ~0.065 ms/eval (simple cell)")
-    assert "1 worker (JAX)" in line
+    assert " on this hardware   (0.065 ms/eval, simple cell · " in line
+    assert line.endswith(" · 1 worker (JAX))")
     assert analysis.resources_per_eval()["peak_rss_gb"] == pytest.approx(0.5467)
 
 
@@ -482,8 +569,9 @@ def test__hook__resolve_fit_parallel_logs_estimate(masked_imaging_7x7, caplog):
     assert resolution.number_of_cores == 8
     estimates = [r.message for r in caplog.records if r.message.startswith("Estimate:")]
     assert len(estimates) == 1
-    assert estimates[0].startswith("Estimate: ~283 ms/eval (euclid cell)")
-    assert "η=0.55 on 8 cores" in estimates[0]
+    assert estimates[0].startswith("Estimate: ~")
+    assert " on this hardware   (283 ms/eval, euclid cell · " in estimates[0]
+    assert estimates[0].endswith(" · η=0.55)")
 
 
 def test__hook__auto_cores_capped_by_peak_rss(masked_imaging_7x7, monkeypatch):

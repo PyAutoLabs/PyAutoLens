@@ -170,9 +170,8 @@ def test__setup_auto__weak_isothermal__jax_dense__banner_and_setup_json(
     assert analysis._use_jax is True
     assert analysis._xp is jnp
 
-    banners = [r.message for r in caplog.records if r.message.startswith("Setup: ")]
-    assert len(banners) == 1
-    assert banners[0].startswith("Setup: jax/cpu/dense/fp64 (64 CPU cores) · rule weak-isothermal")
+    banners = [r.message for r in caplog.records if r.message.startswith("Setup:")]
+    assert banners == ["Setup:    JAX · CPU · dense · fp64   (rule weak/isothermal)"]
 
     paths = af.DirectoryPaths(name="weak_setup", path_prefix=str(tmp_path))
     analysis.save_attributes(paths=paths)
@@ -209,10 +208,9 @@ def test__no_setup__weak_unchanged(detect_many_core, caplog, tmp_path):
     assert analysis._use_jax is False
     assert analysis.dataset is dataset
 
-    lines = [r.message for r in caplog.records if r.message.startswith("Setup: ")]
+    lines = [r.message for r in caplog.records if "ompute setup" in r.message]
     assert lines == [
-        "Setup: auto would choose jax_cpu_dense_fp64 (rule "
-        'weak-isothermal-standard-cpu-many-core); pass setup="auto" to use it'
+        'Compute setup: not set (auto would choose JAX · CPU · dense · fp64; pass setup="auto")'
     ]
 
     paths = af.DirectoryPaths(name="weak_no_setup", path_prefix=str(tmp_path))

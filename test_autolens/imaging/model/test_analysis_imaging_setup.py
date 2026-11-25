@@ -118,9 +118,10 @@ def test__setup_auto__cpu_many_core_rectangular__numba_sparse_operator__numpy_xp
     assert analysis.dataset.setup == analysis.setup
     assert isinstance(analysis.dataset.sparse_operator, SparseLinAlgImagingNumba)
 
-    banners = [r.message for r in caplog.records if r.message.startswith("Setup: ")]
-    assert len(banners) == 1
-    assert banners[0].startswith("Setup: numba/cpu/sparse/fp64")
+    banners = [r.message for r in caplog.records if r.message.startswith("Setup:")]
+    assert banners == [
+        "Setup:    numba · CPU · sparse operator · fp64   (rule imaging/rectangular)"
+    ]
 
 
 def test__setup_auto__a100_rectangular__jax_dense__jax_xp(
@@ -150,9 +151,9 @@ def test__modify_before_fit__resolves_setup_once(masked_imaging_7x7, monkeypatch
 
     original = al.AnalysisImaging.resolve_setup
 
-    def counting(self, model):
+    def counting(self, model, **kwargs):
         calls["n"] += 1
-        return original(self, model=model)
+        return original(self, model=model, **kwargs)
 
     monkeypatch.setattr(al.AnalysisImaging, "resolve_setup", counting)
 
@@ -201,10 +202,10 @@ def test__no_setup__dataset_and_backend_unchanged(
     assert analysis._use_jax is False
     assert analysis.setup is None
 
-    lines = [r.message for r in caplog.records if r.message.startswith("Setup: ")]
+    lines = [r.message for r in caplog.records if "ompute setup" in r.message]
     assert lines == [
-        "Setup: auto would choose numba_cpu_sparse_fp64 (rule "
-        'imaging-rectangular-standard-cpu-many-core); pass setup="auto" to use it'
+        "Compute setup: not set (auto would choose numba · CPU · sparse operator · fp64; "
+        'pass setup="auto")'
     ]
 
     paths = af.DirectoryPaths(name="no_setup", path_prefix=str(tmp_path))

@@ -110,11 +110,9 @@ def test__setup_auto__image_plane__jax_na__banner_and_setup_json(
     assert analysis._use_jax is True
     assert analysis._xp is jnp
 
-    banners = [r.message for r in caplog.records if r.message.startswith("Setup: ")]
+    banners = [r.message for r in caplog.records if r.message.startswith("Setup:")]
     assert banners == [
-        "Setup: jax/cpu/na/fp64 (64 CPU cores) · rule "
-        "point-source-image-image-plane-standard-cpu-many-core · optimal (decision "
-        "point-source-image-image-plane-standard-cpu-many-core) · override: PYAUTO_SETUP"
+        "Setup:    JAX · CPU · no operator · fp64   (rule point_source_image/image_plane)"
     ]
 
     paths = af.DirectoryPaths(name="point_setup", path_prefix=str(tmp_path))
@@ -187,10 +185,10 @@ def test__no_setup__unchanged__would_choose_logged(
     assert analysis.setup is None
     assert analysis._use_jax is False
 
-    lines = [r.message for r in caplog.records if r.message.startswith("Setup: ")]
+    lines = [r.message for r in caplog.records if "ompute setup" in r.message]
     assert lines == [
-        "Setup: auto would choose jax_cpu_na_fp64 (rule "
-        'point-source-image-image-plane-standard-cpu-many-core); pass setup="auto" to use it'
+        "Compute setup: not set (auto would choose JAX · CPU · no operator · fp64; "
+        'pass setup="auto")'
     ]
 
     paths = af.DirectoryPaths(name="point_no_setup", path_prefix=str(tmp_path))
