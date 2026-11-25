@@ -47,6 +47,7 @@ class PointDataset:
             Union[float, aa.ArrayIrregular, List[float]]
         ] = None,
         redshift: Optional[float] = None,
+        image_ids: Optional[List[str]] = None,
     ):
         """
         A collection of the data component that can be used for point-source model-fitting, for example fitting the
@@ -85,6 +86,9 @@ class PointDataset:
         redshift
             The redshift of the source. Optional; when provided it is carried through CSV round-trips alongside
             the positions so cluster-scale workflows can encode per-source redshifts in a single spreadsheet.
+        image_ids
+            Catalogue identifiers in observed position order, unique within this family. Family fit
+            figures use these labels when supplied. The optional CSV column is ``image_id``.
         """
 
         self.name = name
@@ -95,6 +99,18 @@ class PointDataset:
             if isinstance(positions, aa.Grid2DIrregular)
             else aa.Grid2DIrregular(values=positions)
         )
+
+        if image_ids is not None:
+            if isinstance(image_ids, str):
+                raise ValueError("Supply image_ids as a sequence of catalogue strings.")
+            image_ids = list(image_ids)
+            if len(image_ids) != len(self.positions) or not all(
+                isinstance(value, str) and value.strip() for value in image_ids
+            ):
+                raise ValueError("Supply one non-empty catalogue ID per observed position.")
+            if len(set(image_ids)) != len(image_ids):
+                raise ValueError("Catalogue image IDs must be unique within a family.")
+        self.image_ids = image_ids
 
         # Ensure positions_noise_map is an ArrayIrregular
         if isinstance(positions_noise_map, float):
@@ -217,7 +233,7 @@ def output_to_csv(datasets: List[PointDataset], file_path: str):
     image.
 
     The base columns (``name, y, x, positions_noise``) are always written.  The
-    optional ``flux``/``flux_noise``, ``time_delay``/``time_delay_noise`` and
+    optional ``image_id``, ``flux``/``flux_noise``, ``time_delay``/``time_delay_noise`` and
     ``redshift`` columns are included when *any* dataset in ``datasets`` carries
     those values; datasets that do not carry them leave those cells blank.
 
@@ -233,6 +249,9 @@ def output_to_csv(datasets: List[PointDataset], file_path: str):
     include_redshift = any(d.redshift is not None for d in datasets)
 
     headers = list(_BASE_HEADERS)
+    include_ids = any(d.image_ids is not None for d in datasets)
+    if include_ids:
+        headers.append("image_id")
     if include_flux:
         headers += _FLUX_HEADERS
     if include_time_delay:
@@ -256,6 +275,8 @@ def output_to_csv(datasets: List[PointDataset], file_path: str):
                 "x": float(positions[i][1]),
                 "positions_noise": positions_noise[i],
             }
+            if include_ids:
+                row["image_id"] = dataset.image_ids[i] if dataset.image_ids is not None else ""
             if include_flux:
                 row["flux"] = "" if fluxes is None else fluxes[i]
                 row["flux_noise"] = (
@@ -328,7 +349,7 @@ def list_from_csv(file_path: str) -> List[PointDataset]:
 
     Rows are grouped by their ``name`` column — one ``PointDataset`` per distinct
     name, preserving the order of first appearance.  Optional per-image columns
-    (``flux``/``flux_noise``, ``time_delay``/``time_delay_noise``) are carried through
+    (``image_id``, ``flux``/``flux_noise``, ``time_delay``/``time_delay_noise``) are carried through
     per-group: if every row in a group populates the column the values are loaded,
     if every row leaves it blank the corresponding attribute is set to ``None``, and
     any partial-population is rejected with a ``ValueError``.
@@ -394,6 +415,7 @@ def list_from_csv(file_path: str) -> List[PointDataset]:
             else None
         )
 
+        ids = [row.get("image_id", "") for row in group_rows]
         datasets.append(
             PointDataset(
                 name=name,
@@ -404,6 +426,7 @@ def list_from_csv(file_path: str) -> List[PointDataset]:
                 time_delays=time_delays,
                 time_delays_noise_map=time_delays_noise_map,
                 redshift=redshift,
+                image_ids=ids if any(ids) else None,
             )
         )
 

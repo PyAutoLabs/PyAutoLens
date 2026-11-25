@@ -222,3 +222,17 @@ def test__from_csv__multiple_groups_requires_name(tmp_path):
 
     picked = al.PointDataset.from_csv(file_path, name="source_1")
     assert picked.name == "source_1"
+
+
+def test__catalogue_image_ids_round_trip_with_unlabelled_family(tmp_path):
+    positions = [(0, 1), (2, 3)]
+    named = al.PointDataset("A", positions, 0.1, image_ids=["001b", "001a"])
+    plain = al.PointDataset("B", positions, 0.1)
+    path = tmp_path / "positions.csv"
+    al.output_to_csv([named, plain], path)
+    a, b = al.list_from_csv(path)
+    assert a.image_ids == ["001b", "001a"]
+    assert b.image_ids is None
+    for ids in [["001a"], ["001a", ""], ["001a", "001a"]]:
+        with pytest.raises(ValueError):
+            al.PointDataset("A", positions, 0.1, image_ids=ids)
