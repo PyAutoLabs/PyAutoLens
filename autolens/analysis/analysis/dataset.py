@@ -108,9 +108,10 @@ class AnalysisDataset(AnalysisRuntimeEstimate, AgAnalysisDataset, AnalysisLens):
             The compute setup of the likelihood: `None` (the default, nothing changes), `"auto"` (the designated
             setup for the likelihood and hardware, chosen at fit start from the model), an `aa.Setup` or a
             setup_id string such as `"numba_cpu_sparse_fp64"`. It is resolved first in `modify_before_fit` by the
-            **PyAutoGalaxy** base class (see `autogalaxy.analysis.analysis.dataset.AnalysisDataset`). A setup is
-            not supported inside a factor graph, which does not call `modify_before_fit`: the likelihood raises
-            an `exc.SetupException` instead of fitting with the setup silently ignored.
+            **PyAutoGalaxy** base class (see `autogalaxy.analysis.analysis.dataset.AnalysisDataset`), or before
+            the fit by `prepare_for_model(model)` (e.g. via `print_vram_use(model=...)`). Evaluating the
+            likelihood before the setup is resolved raises an `exc.SetupException` instead of fitting with the
+            setup silently ignored.
         """
 
         super().__init__(

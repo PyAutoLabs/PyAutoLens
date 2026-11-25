@@ -5,6 +5,7 @@ one-line `Estimate:` format and the two PyAutoFit hooks on the lens analyses (`r
 `resources_per_eval`).
 """
 
+import importlib.util
 import logging
 import re
 from types import SimpleNamespace
@@ -23,6 +24,25 @@ from autolens.analysis import wall_model
 def unset_setup_env(monkeypatch):
     monkeypatch.delenv("PYAUTO_SETUP", raising=False)
     monkeypatch.delenv("PYAUTO_DISABLE_JAX", raising=False)
+
+
+_real_find_spec = importlib.util.find_spec
+
+
+@pytest.fixture(autouse=True)
+def jax_installed(monkeypatch):
+    """
+    Price JAX setups as if JAX were installed, so these tests behave the same on the no-JAX CI leg.
+    A JAX setup on a machine without JAX runs on numpy and is not priced by the JAX rows
+    (`test__jax_setup_with_jax_not_installed__not_priced_by_jax_rows` covers that).
+    """
+    monkeypatch.setattr(
+        importlib.util,
+        "find_spec",
+        lambda name, *args, **kwargs: (
+            object() if name == "jax" else _real_find_spec(name, *args, **kwargs)
+        ),
+    )
 
 
 class Nautilus:
@@ -254,23 +274,138 @@ def test__weak__single__uncalibrated():
     assert estimate.note == "uncalibrated (held-out 0.2–0.5×)"
 
 
-def test__no_setup__or_no_row__none():
+def test__no_setup__none__no_row__no_profiling_cell_line():
     assert (
         al.estimate_runtime(
             dataset=None, model=None, search=Nautilus(), setup=None
         )
         is None
     )
-    assert (
-        al.estimate_runtime(
-            dataset=None,
-            model=None,
-            search=Nautilus(),
-            setup="numba_cpu_dense_fp32",
-            likelihood="imaging/rectangular",
-        )
-        is None
+
+    estimate = al.estimate_runtime(
+        dataset=None,
+        model=None,
+        search=Nautilus(),
+        setup="numba_cpu_dense_fp32",
+        likelihood="imaging/rectangular",
     )
+
+    assert estimate.has_profiling_cell is False
+    assert estimate.wall_seconds is None
+    assert estimate.ms_per_eval is None
+    assert estimate.line() == (
+        "Estimate: no estimate for numba_cpu_dense_fp32 (no profiling cell)"
+    )
+
+
+def _many_core(monkeypatch, cores=64, gpu=False):
+    from autonerves.environment import Environment
+
+    environment = Environment(
+        gpu=gpu,
+        gpu_name="NVIDIA A100-SXM4-80GB" if gpu else None,
+        gpu_memory_gb=None,
+        cores=cores,
+        ram_gb=None,
+        numba=True,
+        nufftax=True,
+        site="local",
+    )
+    monkeypatch.setattr(Environment, "detect", classmethod(lambda cls: environment))
+
+
+def test__setup_auto__resolves_as_the_analysis_does(masked_imaging_7x7, monkeypatch):
+    from autogalaxy.analysis import setup_util
+
+    _many_core(monkeypatch)
+
+    model = _rectangular_model()
+
+    estimate = al.estimate_runtime(
+        dataset=masked_imaging_7x7, model=model, search=Nautilus(), setup="auto"
+    )
+
+    key, _ = setup_util.setup_key_and_note_from(dataset=masked_imaging_7x7, model=model)
+    expected = al.Setup.auto(*key, environment=setup_util.setup_environment())
+
+    assert estimate.setup_id == expected.setup_id
+
+    analysis = al.AnalysisImaging(dataset=masked_imaging_7x7, setup="auto", use_jax=False)
+    analysis.resolve_setup(model=model, log_banner=False)
+
+    assert estimate.setup_id == analysis.setup.setup_id
+
+
+def test__setup_auto__pyauto_setup_overrides(masked_imaging_7x7, monkeypatch):
+    _many_core(monkeypatch)
+    monkeypatch.setenv("PYAUTO_SETUP", "numba_cpu_dense_fp64")
+
+    estimate = al.estimate_runtime(
+        dataset=masked_imaging_7x7,
+        model=_rectangular_model(),
+        search=Nautilus(),
+        setup="auto",
+    )
+
+    assert estimate.setup_id == "numba_cpu_dense_fp64"
+    assert estimate.line() == (
+        "Estimate: no estimate for numba_cpu_dense_fp64 (no profiling cell)"
+    )
+
+
+def test__setup_auto__point_dataset_needs_likelihood(point_dataset, monkeypatch):
+    _many_core(monkeypatch)
+
+    with pytest.raises(ValueError, match="likelihood="):
+        al.estimate_runtime(
+            dataset=point_dataset, model=None, search=Nautilus(), setup="auto"
+        )
+
+
+def test__number_of_cores_auto__jax_is_one_worker():
+    estimate = al.estimate_runtime(
+        dataset=_sized_imaging(_row(setup_id="jax_gpu_dense_fp64")["n_pixels_masked"]),
+        model=_rectangular_model(),
+        search=Nautilus(),
+        setup="jax_gpu_dense_fp64",
+        number_of_cores="auto",
+        likelihood=_row(setup_id="jax_gpu_dense_fp64")["likelihood"],
+    )
+
+    assert estimate.number_of_cores == 1
+
+
+def test__number_of_cores_auto__numba_resolved_as_a_fit(monkeypatch):
+    from autofit.non_linear.parallel import pool
+
+    monkeypatch.setattr(pool, "detected_cores", lambda: 12)
+
+    row = _row(setup_id="numba_cpu_sparse_fp64", likelihood="imaging/rectangular")
+
+    estimate = al.estimate_runtime(
+        dataset=_sized_imaging(row["n_pixels_masked"]),
+        model=_rectangular_model(),
+        search=Nautilus(),
+        setup="numba_cpu_sparse_fp64",
+        number_of_cores="auto",
+        likelihood="imaging/rectangular",
+    )
+
+    resources = re_mod.resources_per_eval_from([row], "size")
+    expected = pool.resolve_number_of_cores(
+        "auto",
+        analysis=SimpleNamespace(resources_per_eval=lambda: resources),
+        is_jax=False,
+    ).number_of_cores
+
+    assert estimate.number_of_cores == expected
+    assert 1 <= estimate.number_of_cores <= 12
+
+
+def test__analysis__no_profiling_cell__fit_time_estimate_stays_silent(masked_imaging_7x7):
+    analysis = _imaging_analysis(masked_imaging_7x7, "numba_cpu_dense_fp32")
+
+    assert analysis.runtime_estimate(search=Nautilus(), model=_rectangular_model()) is None
 
 
 # Heuristic, efficiency and line
@@ -599,3 +734,51 @@ def test__hook__auto_cores_capped_by_peak_rss(masked_imaging_7x7, monkeypatch):
 
     assert resolution.number_of_cores == 9  # floor(10 / 1.024)
     assert resolution.reason == "memory"
+
+
+def test__jax_setup_with_jax_disabled__not_priced_by_jax_rows(monkeypatch):
+    monkeypatch.setenv("PYAUTO_DISABLE_JAX", "1")
+
+    estimate = al.estimate_runtime(
+        dataset=_sized_imaging(_row(setup_id="jax_gpu_dense_fp64")["n_pixels_masked"]),
+        model=_rectangular_model(),
+        search=Nautilus(),
+        setup="jax_gpu_dense_fp64",
+        number_of_cores=4,
+        likelihood=_row(setup_id="jax_gpu_dense_fp64")["likelihood"],
+    )
+
+    assert estimate.has_profiling_cell is False
+    assert estimate.backend == "numpy"
+    assert estimate.number_of_cores == 4
+    assert estimate.wall_seconds is None
+    assert estimate.line() == (
+        "Estimate: no estimate for jax_gpu_dense_fp64 (designated JAX; JAX disabled, "
+        "the numpy fallback has no profiling cell)"
+    )
+
+
+def test__jax_setup_with_jax_not_installed__not_priced_by_jax_rows(monkeypatch):
+    monkeypatch.setattr(
+        importlib.util,
+        "find_spec",
+        lambda name, *args, **kwargs: (
+            None if name == "jax" else _real_find_spec(name, *args, **kwargs)
+        ),
+    )
+
+    with pytest.warns(UserWarning, match="JAX is not installed"):
+        estimate = al.estimate_runtime(
+            dataset=_sized_imaging(_row(setup_id="jax_gpu_dense_fp64")["n_pixels_masked"]),
+            model=_rectangular_model(),
+            search=Nautilus(),
+            setup="jax_gpu_dense_fp64",
+            likelihood=_row(setup_id="jax_gpu_dense_fp64")["likelihood"],
+        )
+
+    assert estimate.has_profiling_cell is False
+    assert estimate.backend == "numpy"
+    assert estimate.line() == (
+        "Estimate: no estimate for jax_gpu_dense_fp64 (designated JAX; JAX not installed, "
+        "the numpy fallback has no profiling cell)"
+    )

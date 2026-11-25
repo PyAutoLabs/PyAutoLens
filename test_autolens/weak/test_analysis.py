@@ -228,5 +228,5 @@ def test__factor_graph__setup_raises_setup_exception__weak():
     )
     instance = factor_graph.global_prior_model.instance_from_unit_vector([])
 
-    with pytest.raises(exc.SetupException, match="factor graph"):
+    with pytest.raises(exc.SetupException, match="evaluated before the setup"):
         factor_graph.log_likelihood_function(instance)

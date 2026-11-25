@@ -40,7 +40,6 @@ from typing import Dict, List, Optional, Tuple
 import yaml
 
 import autoarray as aa
-from autoarray.setup.setup import setup_from
 
 from autolens.analysis import wall_model
 
@@ -146,6 +145,45 @@ class RuntimeEstimate:
     expected_evals_band: Optional[Tuple[int, int]] = None
     band_across: Optional[str] = None
     supported_search: bool = True
+    has_profiling_cell: bool = True
+    fallback_reason: Optional[str] = None
+
+    @classmethod
+    def no_profiling_cell(
+        cls,
+        setup_id: str,
+        backend: Optional[str],
+        number_of_cores: int,
+        search=None,
+        fallback_reason: Optional[str] = None,
+    ) -> "RuntimeEstimate":
+        """
+        The estimate of a setup the run-time table has no row for (e.g. `numba_cpu_dense_fp64`): every
+        number is `None` and `line()` reads `Estimate: no estimate for <setup_id> (no profiling cell)`.
+
+        `fallback_reason` (e.g. `"JAX disabled"`) marks a `jax` setup that runs on numpy instead: the
+        table has rows for the JAX designation only, so the fit that actually runs is not priced, and
+        `line()` says why.
+        """
+        return cls(
+            ms_per_eval=None,
+            record_id=None,
+            instrument=None,
+            matched_by="none",
+            expected_evals=None,
+            evals_model="none",
+            parallel_efficiency=None,
+            number_of_cores=number_of_cores,
+            wall_seconds=None,
+            wall_band=None,
+            calibrated=False,
+            note="no profiling cell",
+            setup_id=setup_id,
+            backend=backend,
+            search_name=None if search is None else type(search).__name__,
+            has_profiling_cell=False,
+            fallback_reason=fallback_reason,
+        )
 
     def line(self) -> str:
         """
@@ -158,8 +196,21 @@ class RuntimeEstimate:
         fit has `1 worker (JAX)` in place of `η`; an uncalibrated estimate ends its details with
         `uncalibrated (held-out 0.2–0.5×)`; a search other than Nautilus reads
         `Estimate: none for Emcee (the run-time model covers Nautilus only)   (697 ms/eval, hst cell)`.
-        The worker count is not repeated (the fit's `Parallel:` line reports it).
+        The worker count is not repeated (the fit's `Parallel:` line reports it). A setup with no row in
+        the run-time table reads `Estimate: no estimate for numba_cpu_dense_fp64 (no profiling cell)`.
         """
+        if not self.has_profiling_cell and self.fallback_reason is not None:
+            return _estimate_line(
+                f"no estimate for {self.setup_id} (designated JAX; {self.fallback_reason}, "
+                f"the numpy fallback has no profiling cell)",
+                [],
+            )
+
+        if not self.has_profiling_cell:
+            return _estimate_line(
+                f"no estimate for {self.setup_id} (no profiling cell)", []
+            )
+
         details = []
 
         if self.ms_per_eval_band is not None:
@@ -478,12 +529,67 @@ def matched_rows_for(
     return candidates, matched, matched_by
 
 
+def _rule_key_from(dataset, model, likelihood: Optional[str]) -> Tuple[str, str]:
+    """
+    The `(dataset_type, variant)` rule key of `aa.Setup.auto` for `setup="auto"`: the one the analyses
+    use (`autogalaxy.analysis.setup_util.setup_key_and_note_from` for imaging and interferometer,
+    `weak/isothermal` for weak lensing), or the `likelihood` the caller gives.
+
+    Raises
+    ------
+    ValueError
+        When the key cannot be worked out (a point dataset needs `likelihood=`, as its rule depends on
+        the analysis's positions fit).
+    """
+    if likelihood is not None:
+        dataset_type, _, variant = likelihood.partition("/")
+        return dataset_type, variant
+
+    dataset_type = dataset_type_from(dataset)
+
+    if dataset_type in ("imaging", "interferometer"):
+        from autogalaxy.analysis import setup_util
+
+        key, _ = setup_util.setup_key_and_note_from(dataset=dataset, model=model)
+        return key
+
+    if dataset_type == "weak":
+        return "weak", "isothermal"
+
+    raise ValueError(
+        "setup='auto' cannot work out the setup rule for this dataset"
+        + (
+            ": a point dataset's rule depends on its positions fit, so pass likelihood="
+            "'point_source_image/image_plane' or 'point_source_source/source_plane'."
+            if dataset_type == POINT_DATASET_TYPE
+            else f" ({type(dataset).__name__}); pass likelihood='<dataset_type>/<variant>'."
+        )
+    )
+
+
+def resolve_setup_from(dataset, model, setup, likelihood: Optional[str] = None):
+    """
+    The compute setup of `estimate_runtime`: `None`, an `aa.Setup` or setup_id string as given, or for
+    `"auto"` the setup a fit's `setup="auto"` resolves to, `aa.Setup.auto` with the analyses' rule key
+    (`_rule_key_from`) on the detected hardware (`PYAUTO_SETUP` overrides it, as in a fit).
+    """
+    from autogalaxy.analysis import setup_util
+
+    setup = setup_util.setup_input_from(setup)
+
+    if setup != setup_util.SETUP_AUTO:
+        return setup
+
+    key = _rule_key_from(dataset=dataset, model=model, likelihood=likelihood)
+    return aa.Setup.auto(*key, environment=setup_util.setup_environment())
+
+
 def estimate_runtime(
     dataset,
     model,
     search,
     setup,
-    number_of_cores: int = 1,
+    number_of_cores=1,
     likelihood: Optional[str] = None,
 ) -> Optional[RuntimeEstimate]:
     """
@@ -501,9 +607,13 @@ def estimate_runtime(
         The non-linear search: only `af.Nautilus` gets an estimate (its `n_live`); any other search gets
         an estimate whose line says there is none.
     setup
-        The compute setup, an `al.Setup` or a setup_id string (e.g. `"numba_cpu_sparse_fp64"`).
+        The compute setup: an `al.Setup`, a setup_id string (e.g. `"numba_cpu_sparse_fp64"`) or `"auto"`,
+        resolved as a fit's `setup="auto"` is (`aa.Setup.auto` with the analyses' rule key for the dataset
+        and model on the detected hardware; `PYAUTO_SETUP` overrides it).
     number_of_cores
-        The worker count of the fit. For a numba setup the per-call is divided by
+        The worker count of the fit, an int or `"auto"` (resolved as a fit resolves it, by PyAutoFit's
+        `resolve_number_of_cores`: 1 for a JAX backend, else the detected cores capped by the matched row's
+        `cpus_per_eval` / `peak_rss_gb`). For a numba setup the per-call is divided by
         `cores * efficiency(cores)`; a JAX setup runs one worker and uses its per-call as is.
     likelihood
         The `<dataset_type>/<variant>` likelihood, when the caller knows it (the analyses pass their setup
@@ -511,9 +621,12 @@ def estimate_runtime(
 
     Returns
     -------
-    A `RuntimeEstimate`, or `None` when there is no setup or the table has no row for it.
+    A `RuntimeEstimate`, or `None` when there is no setup. A setup the table has no row for gives an
+    estimate whose `line()` reads `no estimate for <setup_id> (no profiling cell)`.
     """
-    setup = setup_from(setup)
+    setup = resolve_setup_from(
+        dataset=dataset, model=model, setup=setup, likelihood=likelihood
+    )
     if setup is None:
         return None
 
@@ -527,12 +640,37 @@ def estimate_runtime(
         likelihood=likelihood,
         rows=table["rows"],
     )
-    if not candidates:
-        return None
 
     backend = setup.backend
-    is_jax = backend == "jax"
-    cores = 1 if is_jax else max(1, int(number_of_cores or 1))
+    cores = _number_of_cores_from(
+        number_of_cores=number_of_cores,
+        setup=setup,
+        resources=resources_per_eval_from(matched, matched_by),
+    )
+
+    from autogalaxy.analysis import setup_util
+
+    # A `jax` setup run on numpy (`PYAUTO_DISABLE_JAX=1` or JAX not installed) is not what the JAX
+    # rows measured, so it is not priced by them (the `Setup:` line reports the same fallback).
+    fallback_reason = setup_util.jax_fallback_reason_from(
+        setup=setup, use_jax=setup_util.use_jax_from(backend == "jax")
+    )
+    if fallback_reason is not None:
+        return RuntimeEstimate.no_profiling_cell(
+            setup_id=setup.setup_id,
+            backend="numpy",
+            number_of_cores=cores,
+            search=search,
+            fallback_reason=fallback_reason,
+        )
+
+    if not candidates:
+        return RuntimeEstimate.no_profiling_cell(
+            setup_id=setup.setup_id,
+            backend=backend,
+            number_of_cores=cores,
+            search=search,
+        )
 
     efficiency = (
         wall_model.parallel_efficiency(cores, curve=curve)
@@ -617,6 +755,39 @@ def estimate_runtime(
     return estimate
 
 
+def _number_of_cores_from(number_of_cores, setup: aa.Setup, resources: Optional[dict]) -> int:
+    """
+    The worker count `estimate_runtime` prices a fit by: 1 for a setup whose backend resolves to JAX
+    (after `PYAUTO_DISABLE_JAX` and a missing JAX install, as in a fit), else the request, with `"auto"`
+    resolved by PyAutoFit's `resolve_number_of_cores` exactly as a fit resolves it (the detected cores,
+    capped by the matched row's `cpus_per_eval` / `peak_rss_gb`).
+    """
+    from types import SimpleNamespace
+
+    from autofit.non_linear.parallel.pool import resolve_number_of_cores
+    from autofit.non_linear.parallel.resources import is_auto
+    from autogalaxy.analysis import setup_util
+
+    is_jax = setup_util.use_jax_from(setup.backend == "jax")
+
+    if is_auto(number_of_cores):
+        # A stand-in analysis carrying what `resolve_number_of_cores` duck-types: the setup and the
+        # matched row's resources.
+        analysis = SimpleNamespace(
+            setup=setup, is_jax=is_jax, resources_per_eval=lambda: resources
+        )
+        return resolve_number_of_cores(
+            requested=number_of_cores,
+            analysis=analysis,
+            is_jax=is_jax,
+            where="estimate_runtime",
+        ).number_of_cores
+
+    if is_jax:
+        return 1
+    return max(1, int(number_of_cores or 1))
+
+
 def resources_per_eval_from(rows: List[dict], matched_by: str) -> Optional[dict]:
     """
     `{"cpus_per_eval", "peak_rss_gb"}` of the matched row, or for a band the largest of each across the
@@ -699,7 +870,11 @@ class AnalysisRuntimeEstimate:
         except Exception as e:
             logger.debug(f"Run-time estimate failed and was ignored: {e!r}")
             return None
-        return None if estimate is None else estimate.line()
+        # A setup with no profiling cell logs nothing at fit time (as before); only a direct
+        # `al.estimate_runtime` call reports "no estimate for <setup_id> (no profiling cell)".
+        if estimate is None or not estimate.has_profiling_cell:
+            return None
+        return estimate.line()
 
     def resources_per_eval(self) -> Optional[dict]:
         """
@@ -709,6 +884,9 @@ class AnalysisRuntimeEstimate:
         try:
             setup = getattr(self, "setup", None)
             if setup is None:
+                return None
+            # A `jax` setup run on numpy is not what the JAX rows measured (see `estimate_runtime`).
+            if setup.backend == "jax" and not self.is_jax:
                 return None
             model = getattr(self, "_runtime_estimate_model", None)
             _, matched, matched_by = matched_rows_for(
