@@ -81,8 +81,8 @@ class AnalysisWeak(
             or a setup_id string such as `"jax_cpu_dense_fp64"`. It is resolved in `modify_before_fit`; with
             `"auto"` the rule key is `weak/isothermal` (see `setup_key_from`). A resolved setup sets the backend,
             pins the thread pools, is logged as a banner line and is written to `files/setup.json`; a shear
-            catalogue has no operator to attach. A setup is not supported inside a factor graph: the likelihood
-            raises an `exc.SetupException` instead.
+            catalogue has no operator to attach. Evaluating the likelihood before the setup is resolved (by the
+            fit or `prepare_for_model(model)`) raises an `exc.SetupException`.
         """
         super().__init__(cosmology=cosmology, use_jax=use_jax, **kwargs)
 

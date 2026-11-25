@@ -1,7 +1,7 @@
 """
 The compute `setup` of `al.AnalysisPoint` (likelihood lifecycle 5C-2): the rule key follows the positions
 fit (image plane or source plane), a resolved setup sets the backend, logs the banner and writes
-`files/setup.json`, and a setup inside a factor graph raises instead of being silently ignored.
+`files/setup.json`, and a likelihood evaluated before the setup resolves raises instead of ignoring it.
 """
 
 import json
@@ -214,7 +214,7 @@ def test__factor_graph__setup_raises_setup_exception(point_dataset):
     factor_graph = af.FactorGraphModel(*factors)
     instance = factor_graph.global_prior_model.instance_from_unit_vector([])
 
-    with pytest.raises(exc.SetupException, match="factor graph") as e:
+    with pytest.raises(exc.SetupException, match="evaluated before the setup") as e:
         factor_graph.log_likelihood_function(instance)
 
     assert not isinstance(e.value, af.exc.FitException)

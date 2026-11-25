@@ -1,6 +1,6 @@
 """
 The compute `setup` of the lens analyses that have no dataset operator (point-source and weak lensing),
-and the guard that stops a setup being silently ignored inside a factor graph.
+and the guard that stops a likelihood being evaluated before its setup has been resolved.
 
 The imaging and interferometer analyses resolve their setup through the **PyAutoGalaxy** base class
 (`autogalaxy.analysis.analysis.dataset.AnalysisDataset.resolve_setup`), which also applies it to the
@@ -10,9 +10,11 @@ dataset (attaching the sparse operator it names). `AnalysisPoint` and `AnalysisW
 `files/setup.json`) through PyAutoGalaxy's shared `AnalysisSetupMixin`
 (`autogalaxy.analysis.analysis.setup`).
 
-`raise_if_setup_unresolved` is called at the top of every lens `log_likelihood_function`. A setup is
-resolved in `modify_before_fit`, which a `FactorGraphModel` does not call on its factors, so a setup
-given to an analysis fitted inside a factor graph would otherwise never be applied.
+`raise_if_setup_unresolved` is called at the top of every lens `log_likelihood_function`. A setup
+resolves when the fit starts (`modify_before_fit`, which a search calls on the analysis and a
+`FactorGraphModel` forwards to each factor) or on a pre-fit call that receives a model
+(`analysis.prepare_for_model(model)`, called by e.g. `print_vram_use(model=...)`). A likelihood evaluated
+before either would otherwise run with the constructor backend and the setup silently ignored.
 """
 
 import logging
@@ -32,15 +34,17 @@ logger.setLevel(level="INFO")
 
 
 SETUP_UNRESOLVED_MESSAGE = """
-The {cls} was given `setup={setup_input!r}`, but the setup was never resolved, because
-`modify_before_fit` was not called before the likelihood was evaluated.
+The {cls} was given `setup={setup_input!r}`, but its likelihood was evaluated before the setup was
+resolved.
 
-This happens when the analysis is fitted inside a factor graph (`af.FactorGraphModel` of
-`af.AnalysisFactor`s): the factor graph does not call each factor's `modify_before_fit`, so the
-setup would silently not be applied. Setups are not yet supported inside factor graphs (this is
-planned for the PyAutoFit phase of the likelihood lifecycle, 5D).
+The setup resolves when the fit starts (`search.fit` calls `modify_before_fit`, which a factor graph
+forwards to each factor's analysis) or on a pre-fit call that receives a model, e.g.
+`analysis.print_vram_use(model=model, batch_size=...)`. The likelihood was evaluated before the fit
+started and before either.
 
-Instead, apply the setup to each dataset yourself and choose the backend explicitly, e.g.
+Call `analysis.prepare_for_model(model)` first (it resolves the setup from the model you will fit),
+or run the fit. Alternatively, apply the setup to the dataset yourself and choose the backend
+explicitly, e.g.
 
     dataset = dataset.apply_setup("numba_cpu_sparse_fp64")
     analysis = al.AnalysisImaging(dataset=dataset, use_jax=False)
@@ -53,9 +57,10 @@ def raise_if_setup_unresolved(analysis):
     """
     Raise an `exc.SetupException` when an analysis was given a `setup` that was never resolved.
 
-    A setup is resolved in `modify_before_fit`, which a non-linear search calls before sampling. A
-    `FactorGraphModel` does not call it on its factors, so a factor given `setup=` would otherwise be
-    fitted with its constructor backend and the setup silently ignored.
+    A setup is resolved in `modify_before_fit`, which a non-linear search calls before sampling (and a
+    `FactorGraphModel` forwards to each factor), or by `prepare_for_model(model)` on pre-fit calls that
+    receive a model (e.g. `print_vram_use`). A likelihood evaluated before either would otherwise use the
+    constructor backend with the setup silently ignored.
 
     This is a cheap Python attribute check, safe under JAX tracing. It is called at the top of each
     `log_likelihood_function`, outside the `raise_fit_exception` wrapper, so it stops the fit instead of

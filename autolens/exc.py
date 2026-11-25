@@ -68,9 +68,9 @@ class PointProfileMismatchException(Exception):
 
 class SetupException(AnalysisException):
     """
-    Raised when the compute `setup` of an analysis cannot be honoured, for example when an analysis given
-    `setup=` is fitted inside a factor graph, where its `modify_before_fit` (which resolves and applies the
-    setup) is never called.
+    Raised when the compute `setup` of an analysis cannot be honoured, for example when the likelihood of an
+    analysis given `setup=` is evaluated before the setup was resolved (by `modify_before_fit` when the fit
+    starts, or by `prepare_for_model(model)` before it).
 
     Deliberately NOT a subclass of `af.exc.FitException`: it is a configuration error, so it must stop the
     model-fit with a clear message rather than be swallowed into a resample on every likelihood call.

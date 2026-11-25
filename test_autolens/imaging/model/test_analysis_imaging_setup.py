@@ -249,7 +249,7 @@ def test__factor_graph__setup_raises_setup_exception(masked_imaging_7x7):
     factor_graph = af.FactorGraphModel(*factors)
     instance = factor_graph.global_prior_model.instance_from_unit_vector([])
 
-    with pytest.raises(exc.SetupException, match="factor graph") as e:
+    with pytest.raises(exc.SetupException, match="evaluated before the setup") as e:
         factor_graph.log_likelihood_function(instance)
 
     assert not isinstance(e.value, af.exc.FitException)
