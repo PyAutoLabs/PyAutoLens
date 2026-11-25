@@ -1,5 +1,6 @@
 """Cluster position-fit diagnostics, one figure per multiply imaged source."""
 
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 import re
@@ -9,7 +10,7 @@ from matplotlib import patheffects
 from matplotlib.lines import Line2D
 from matplotlib.patches import Ellipse
 
-from autoarray.plot.utils import save_figure
+from autoarray.plot.utils import save_figure, subplots
 from autolens.point.plot.cluster_sky import (
     angular_axes,
     cluster_field,
@@ -68,7 +69,11 @@ class Family:
             data,
             predictions,
             np.asarray(footprints).reshape(-1, 3),
-            *((record.color, record.color, record.marker) if by_redshift else family_style(record)),
+            *(
+                (record.color, record.color, record.marker)
+                if by_redshift
+                else family_style(record)
+            ),
         )
 
     @property
@@ -220,6 +225,114 @@ def _detail(ax, family, i):
         )
 
 
+def _source_plane(ax, family, highlight):
+    rec = family.record
+    source = family.source
+    bounds = ax.get_window_extent()
+    aspect = bounds.width / bounds.height
+    _frame(ax, np.vstack([source.traced, source.centre]), aspect)
+    colors = np.full(len(rec.numbers), "#718493", dtype=object)
+    colors[highlight] = family.ink
+    ax.scatter(*source.traced.T[::-1], c=colors, s=28)
+    ax.scatter(*source.centre[::-1], marker="+", s=96, color="#172f49")
+    _numbers(ax, source.traced, rec.numbers, colors)
+    ax.set_title("All images in the source plane", weight="bold")
+
+
+def _zoom_half_width(family):
+    radius = np.where(np.isfinite(family.footprints[:, 0]), family.footprints[:, 0], 0)
+    delta = np.abs(family.predictions - family.data)
+    return (
+        max(
+            np.max(np.where(np.isfinite(delta), delta, 0), initial=0),
+            np.max(radius, initial=0),
+            0.0005,
+        )
+        * 1.40
+    )
+
+
+def _image_detail(ax, family, i, half):
+    rec = family.record
+    if not np.isfinite(family.data[i]).all():
+        ax.set_axis_off()
+        ax.text(
+            0.5,
+            0.5,
+            f"Image {rec.numbers[i]}\nPosition unavailable",
+            transform=ax.transAxes,
+            ha="center",
+        )
+        return
+    angular_axes(ax, family.data[i], half, small=True)
+    _detail(ax, family, i)
+    ax.set_title(f"Image {rec.numbers[i]}", size=10, weight="bold")
+
+
+def _detail_key(family):
+    is_source = family.source.presentation.is_source_plane
+    keys = [
+        Line2D(
+            [],
+            [],
+            ls="",
+            marker=family.marker,
+            color=family.ink,
+            mfc=family.ink if is_source else "none",
+        ),
+        Line2D([], [], ls="", marker="+" if is_source else "x", color="#172f49"),
+        Line2D([], [], ls=":", color=family.ink),
+    ]
+    model_label = "Nearest model (mixture)" if family.record.mixture else "Paired model"
+    labels = (
+        ["Back-traced image", "Source centre", "1σ source uncertainty"]
+        if is_source
+        else ["Observed", model_label, "1σ position error"]
+    )
+    return keys, labels
+
+
+def _shared_detail(ax, family, indices):
+    rec = family.record
+    source = family.source
+    radius = np.nan_to_num(family.footprints[:, 0], nan=0, posinf=0, neginf=0)
+    _frame(
+        ax,
+        np.vstack(
+            [
+                family.data - radius[:, None],
+                family.data + radius[:, None],
+                family.predictions,
+                (
+                    rec.model
+                    if not source.presentation.is_source_plane
+                    else source.traced
+                ),
+            ]
+        ),
+    )
+    for i in indices:
+        _detail(ax, family, i)
+    if not source.presentation.is_source_plane and np.any(rec.unmatched):
+        unmatched = rec.model[rec.unmatched]
+        ax.scatter(
+            *unmatched.T[::-1],
+            marker="x",
+            color="#718493",
+            s=36,
+            label="Unpaired model",
+        )
+    _numbers(ax, family.data, rec.numbers, [family.ink] * len(indices))
+    ax.set_title(
+        (
+            "Source-plane detail"
+            if source.presentation.is_source_plane
+            else "All images in the image plane"
+        ),
+        weight="bold",
+    )
+
+
 def _page(families, family, image, indices, page, pages, shared, title_prefix):
     import matplotlib.pyplot as plt
 
@@ -249,64 +362,15 @@ def _page(families, family, image, indices, page, pages, shared, title_prefix):
     bar = fig.add_axes([0.085, 0.095, 0.383, 0.23])
     _ranking(bar, family, highlight)
     summary = fig.add_axes([0.55, 0.095, 0.383, 0.23])
-    aspect = 0.383 * 16.2 / (0.23 * height)
-    _frame(summary, np.vstack([source.traced, source.centre]), aspect)
-    colors = np.full(len(rec.numbers), "#718493", dtype=object)
-    colors[highlight] = family.ink
-    summary.scatter(*source.traced.T[::-1], c=colors, s=28)
-    summary.scatter(*source.centre[::-1], marker="+", s=96, color="#172f49")
-    _numbers(summary, source.traced, rec.numbers, colors)
-    summary.set_title("All images in the source plane", weight="bold")
+    _source_plane(summary, family, highlight)
     fig.text(0.55, 0.025, "+  fitted source centre", fontsize=10)
 
-    radius = np.where(np.isfinite(family.footprints[:, 0]), family.footprints[:, 0], 0)
-    delta = np.abs(family.predictions - family.data)
-    half = (
-        max(
-            np.max(np.where(np.isfinite(delta), delta, 0), initial=0),
-            np.max(radius, initial=0),
-            0.0005,
-        )
-        * 1.40
-    )
+    half = _zoom_half_width(family)
     if shared:
         ax = fig.add_axes([0.55, 0.475, 0.383, 0.36])
-        _frame(
-            ax,
-            np.vstack(
-                [
-                    family.data - radius[:, None],
-                    family.data + radius[:, None],
-                    family.predictions,
-                    (
-                        rec.model
-                        if not source.presentation.is_source_plane
-                        else source.traced
-                    ),
-                ]
-            ),
-        )
-        for i in indices:
-            _detail(ax, family, i)
-        if not source.presentation.is_source_plane and np.any(rec.unmatched):
-            unmatched = rec.model[rec.unmatched]
-            ax.scatter(
-                *unmatched.T[::-1],
-                marker="x",
-                color="#718493",
-                s=36,
-                label="Unpaired model",
-            )
+        _shared_detail(ax, family, indices)
+        if ax.get_legend_handles_labels()[0]:
             ax.legend(loc="best", fontsize=8)
-        _numbers(ax, family.data, rec.numbers, [family.ink] * len(indices))
-        ax.set_title(
-            (
-                "Source-plane detail"
-                if source.presentation.is_source_plane
-                else "All images in the image plane"
-            ),
-            weight="bold",
-        )
     else:
         columns = min(3, len(rec.numbers))
         rows = (min(6, len(rec.numbers)) + columns - 1) // columns
@@ -323,38 +387,8 @@ def _page(families, family, image, indices, page, pages, shared, title_prefix):
         fig.text(0.54, 0.881, f"{plane}-plane detail by image", size=14, weight="bold")
         for slot, i in enumerate(indices):
             ax = fig.add_subplot(grid[slot // columns, slot % columns])
-            if not np.isfinite(family.data[i]).all():
-                ax.set_axis_off()
-                ax.text(
-                    0.5,
-                    0.5,
-                    f"Image {rec.numbers[i]}\nPosition unavailable",
-                    transform=ax.transAxes,
-                    ha="center",
-                )
-                continue
-            angular_axes(ax, family.data[i], half, small=True)
-            _detail(ax, family, i)
-            ax.set_title(f"Image {rec.numbers[i]}", size=10, weight="bold")
-    is_source = source.presentation.is_source_plane
-    keys = [
-        Line2D(
-            [],
-            [],
-            ls="",
-            marker=family.marker,
-            color=family.ink,
-            mfc=family.ink if is_source else "none",
-        ),
-        Line2D([], [], ls="", marker="+" if is_source else "x", color="#172f49"),
-        Line2D([], [], ls=":", color=family.ink),
-    ]
-    model_label = "Nearest model (mixture)" if rec.mixture else "Paired model"
-    labels = (
-        ["Back-traced image", "Source centre", "1σ source uncertainty"]
-        if is_source
-        else ["Observed", model_label, "1σ position error"]
-    )
+            _image_detail(ax, family, i, half)
+    keys, labels = _detail_key(family)
     fig.legend(
         keys,
         labels,
@@ -376,12 +410,7 @@ def plot_family_fits(
     title_prefix=None,
 ):
     """Write each family's fit.png and, for more than six zooms, fit_page_02.png etc."""
-    records = ps.records_from_fits(fits)
-    colormap = ps.assign_styles(records)
-    families = [
-        Family.from_record(record, by_redshift=colormap is not None)
-        for record in records if len(record.observed)
-    ]
+    families = _families_from(fits)
     used = set()
     for family in families:
         rec = family.record
@@ -392,22 +421,222 @@ def plot_family_fits(
                 name += "_"
         used.add(name.casefold())
         path = str(Path(output_path) / name) if output_path else None
-        order = np.argsort(rec.numbers)
-        pages = (
-            [order]
-            if single_panel or len(order) <= 6
-            else np.array_split(family.ranked, np.arange(6, len(order), 6))
+        _subplot(
+            families,
+            family,
+            image,
+            single_panel,
+            path,
+            "fit",
+            output_format,
+            title_prefix,
         )
-        for page, indices in enumerate(pages, 1):
-            fig = _page(
-                families,
-                family,
-                image,
-                indices,
-                page,
-                len(pages),
-                single_panel,
-                title_prefix,
+
+
+def _families_from(fits):
+    records = ps.records_from_fits(fits)
+    colormap = ps.assign_styles(records)
+    return [
+        Family.from_record(record, by_redshift=colormap is not None)
+        for record in records
+        if len(record.observed)
+    ]
+
+
+def _subplot(
+    families,
+    family,
+    image,
+    single_panel,
+    output_path,
+    output_filename,
+    output_format,
+    title_prefix,
+):
+    order = np.argsort(family.record.numbers)
+    pages = (
+        [order]
+        if single_panel or len(order) <= 6
+        else np.array_split(family.ranked, np.arange(6, len(order), 6))
+    )
+    for page, indices in enumerate(pages, 1):
+        fig = _page(
+            families,
+            family,
+            image,
+            indices,
+            page,
+            len(pages),
+            single_panel,
+            title_prefix,
+        )
+        filename = output_filename if page == 1 else f"{output_filename}_page_{page:02}"
+        save_figure(fig, path=output_path, filename=filename, format=output_format)
+
+
+def _select_family(fit, fits, overview=False):
+    """Use the cluster ordering for colours, even when drawing only one family."""
+    fits = [fit] if fits is None else list(fits)
+    index = next((i for i, other in enumerate(fits) if other is fit), None)
+    if index is None:
+        raise ValueError("fits must include the selected fit.")
+    if not len(fit.dataset.positions):
+        raise ValueError("The selected family has no observed positions.")
+    if overview:
+        families = _families_from(fits)
+        return next(f for f in families if f.record.fit is fit), families
+
+    # Only the selected fit needs ray tracing for the three single-family panels.
+    records = ps.records_from_datasets([other.dataset for other in fits])
+    for context, other in zip(records, fits):
+        if context.redshift is None:
+            plane = ps.plane_index_of(other.positions, other.tracer)
+            context.redshift = float(other.tracer.planes[plane].redshift)
+    record = ps.source_record_from_fit(index, fit)
+    records[index] = record
+    colormap = ps.assign_styles(records)
+    return Family.from_record(record, by_redshift=colormap is not None), None
+
+
+@contextmanager
+def _panel_axes(ax, output_path, output_filename, output_format):
+    if ax is not None:
+        yield ax
+        return
+    fig, panel = subplots(1, 1, figsize=(7, 6))
+    yield panel
+    fig.tight_layout()
+    save_figure(fig, path=output_path, filename=output_filename, format=output_format)
+
+
+def plot_family_overview(
+    fit,
+    *,
+    fits=None,
+    image=None,
+    ax=None,
+    output_path=None,
+    output_filename="family_overview",
+    output_format=None,
+):
+    """Show all families on the sky and number the selected fit's observed images.
+
+    Pass the cluster's sequence of FitPointDataset objects as fits, including fit.
+    With fit alone the overview shows one family. image is an optional Array2D.
+    Supply ax to compose a figure, or use output_path and output_format to save it.
+    """
+    family, families = _select_family(fit, fits, overview=True)
+    with _panel_axes(ax, output_path, output_filename, output_format) as panel:
+        _overview(panel, families, family, image, np.arange(len(family.record.numbers)))
+
+
+def plot_family_contributions(
+    fit,
+    *,
+    fits=None,
+    ax=None,
+    output_path=None,
+    output_filename="family_contributions",
+    output_format=None,
+):
+    """Rank contributions to the positions fit's own statistic, including any unmatched-model penalty.
+
+    fit is a FitPointDataset. Optional fits preserves the cluster's colours.
+    Supply ax to draw into an existing figure or output_path and output_format to save.
+    """
+    family, _ = _select_family(fit, fits)
+    with _panel_axes(ax, output_path, output_filename, output_format) as panel:
+        _ranking(panel, family, family.ranked[:1])
+
+
+def plot_family_image_detail(
+    fit,
+    image_number=None,
+    *,
+    fits=None,
+    ax=None,
+    output_path=None,
+    output_filename="family_image_detail",
+    output_format=None,
+):
+    """Zoom in on the labelled image_number (one-based) in the plane used by the likelihood.
+
+    For a source-plane fit compare the back-traced position and source centre.
+    For an image-plane fit compare the observed and predicted positions.
+    Each numbered zoom uses the same angular scale as the others in this family.
+    Omit image_number to show all images and predictions on shared axes.
+    Optional fits preserves the cluster's colours. Supply ax to compose a figure.
+    """
+    family, _ = _select_family(fit, fits)
+    numbers = family.record.numbers
+    if image_number is not None:
+        matches = np.flatnonzero(numbers == image_number)
+        if len(matches) != 1:
+            raise ValueError(
+                f"Unknown image number {image_number!r} for {fit.dataset.name}."
             )
-            filename = "fit" if page == 1 else f"fit_page_{page:02}"
-            save_figure(fig, path=path, filename=filename, format=output_format)
+    with _panel_axes(ax, output_path, output_filename, output_format) as panel:
+        if image_number is None:
+            _shared_detail(panel, family, np.argsort(numbers))
+        else:
+            _image_detail(panel, family, matches[0], _zoom_half_width(family))
+        if panel.axison:
+            handles, labels = _detail_key(family)
+            extra_handles, extra_labels = panel.get_legend_handles_labels()
+            panel.legend(handles + extra_handles, labels + extra_labels, fontsize=8)
+
+
+def plot_family_source_plane(
+    fit,
+    *,
+    fits=None,
+    ax=None,
+    output_path=None,
+    output_filename="family_source_plane",
+    output_format=None,
+):
+    """Show every observed image of one family back-traced to its source plane.
+
+    Works for both source- and image-plane positions likelihoods. Numbers match
+    the overview and contributions. The plus marks the fitted source centre.
+    Optional fits preserves the cluster's colours. Supply ax to compose a figure.
+    """
+    family, _ = _select_family(fit, fits)
+    with _panel_axes(ax, output_path, output_filename, output_format) as panel:
+        _source_plane(panel, family, family.ranked[:1])
+        panel.legend(
+            [Line2D([], [], ls="", marker="+", color="#172f49")],
+            ["Fitted source centre"],
+            fontsize=8,
+        )
+
+
+def subplot_fit_family(
+    fit,
+    *,
+    fits=None,
+    image=None,
+    single_panel=False,
+    output_path=None,
+    output_filename="fit_family",
+    output_format=None,
+    title_prefix=None,
+):
+    """Draw one selected family's overview, ranking, image details and source plane.
+
+    fit is a FitPointDataset. Pass fits (including fit) for the full cluster sky
+    and its colours, and image for an optional Array2D background. Families with
+    more than six images have paginated zooms. single_panel=True combines their
+    detail in a shared coordinate frame. Saved pages go directly into output_path.
+    """
+    family, families = _select_family(fit, fits, overview=True)
+    _subplot(
+        families,
+        family,
+        image,
+        single_panel,
+        output_path,
+        output_filename,
+        output_format,
+        title_prefix,
+    )
