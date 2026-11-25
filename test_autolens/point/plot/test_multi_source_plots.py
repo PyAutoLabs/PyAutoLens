@@ -617,7 +617,7 @@ def test__plot_family_fits__one_shared_detail_panel(
         axes = {ax.get_title(): ax for ax in fig.axes}
         assert "Cluster fit overview" in axes
         ranking = axes["Per-image contribution"].get_window_extent()
-        source_plane = axes["All images in the source plane"].get_window_extent()
+        source_plane = axes["All back-traced images"].get_window_extent()
         assert (ranking.width, ranking.height) == pytest.approx(
             (source_plane.width, source_plane.height)
         )
@@ -793,3 +793,28 @@ def test__family_panels_use_tracer_redshifts_for_older_datasets(cluster, monkeyp
     selected, _ = _select_family(high_z, fits)
     combined, _ = _select_family(high_z, fits, overview=True)
     assert selected.ink == combined.ink
+
+
+@pytest.mark.parametrize("likelihood", ["FitPositionsSource", "FitPositionsImagePair"])
+def test__catalogue_ids_follow_positions_across_all_panels(
+    cluster, family_figures, tmp_path, monkeypatch, likelihood
+):
+    import autolens.plot as aplt
+
+    fit = cluster.fits[likelihood][0]
+    ids = [f"101{chr(97+i)}" for i in range(len(fit.dataset.positions))]
+    monkeypatch.setattr(fit.dataset, "image_ids", ids)
+    output = dict(output_path=tmp_path, output_format="png")
+    aplt.subplot_fit_family(fit, **output)
+    axes = {ax.get_title(): ax for ax in family_figures[tmp_path / "fit_family.png"].axes}
+    for name in ["Cluster fit overview", "All back-traced images"]:
+        assert [t.get_text() for t in axes[name].texts] == ids
+    assert {t.get_text() for t in axes["Per-image contribution"].get_yticklabels()} >= set(ids)
+    assert set(ids) <= axes.keys()
+
+    aplt.plot_family_image_detail(fit, image_id=ids[-1], **output)
+    zoom = family_figures[tmp_path / "family_image_detail.png"].axes[0]
+    assert zoom.get_title() == ids[-1]
+    np.testing.assert_allclose(zoom.get_xlim(), axes[ids[-1]].get_xlim())
+    with pytest.raises(ValueError, match="Unknown image ID"):
+        aplt.plot_family_image_detail(fit, image_id="missing")

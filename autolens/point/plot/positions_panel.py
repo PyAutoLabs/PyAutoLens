@@ -475,13 +475,15 @@ def adjacent_number_placements_from(
     width: float,
     height: float,
     fontsize: float,
+    *,
+    placements_to_try=NUMBER_PLACEMENTS,
 ) -> List[Tuple[float, float, str, str]]:
     """
     Returns, for each of the first ``len(labels)`` markers, the ``(dx, dy, ha, va)`` offset (points) of its label.
 
     Each label sits a few points off its own marker (one of ``NUMBER_PLACEMENTS``): the first placement which stays
     inside the panel and overlaps neither another marker nor an already-placed label, else the one overlapping
-    least. A label is therefore never moved away from its marker to find space.
+    least. Catalogue plots can supply further offsets for crowded labels.
 
     Parameters
     ----------
@@ -502,7 +504,7 @@ def adjacent_number_placements_from(
         text_height = fontsize + 2.0
         others = np.delete(markers, index, axis=0)
         best, best_score, best_box = NUMBER_PLACEMENTS[0], np.inf, None
-        for dx, dy, ha, va in NUMBER_PLACEMENTS:
+        for dx, dy, ha, va in placements_to_try:
             x0 = x + dx - (text_width if ha == "right" else 0.0)
             y0 = y + dy - (text_height if va == "top" else 0.0)
             box = (x0, y0, x0 + text_width, y0 + text_height)

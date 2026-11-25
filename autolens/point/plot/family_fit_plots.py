@@ -77,6 +77,16 @@ class Family:
         )
 
     @property
+    def labels(self):
+        ids = self.record.fit.dataset.image_ids
+        return self.record.numbers if ids is None else np.asarray(ids)
+
+    def image_title(self, index):
+        if self.record.fit.dataset.image_ids is None:
+            return f"Image {self.record.numbers[index]}"
+        return self.record.fit.dataset.image_ids[index]
+
+    @property
     def ranked(self):
         return np.lexsort((self.record.numbers, -self.terms))
 
@@ -103,8 +113,16 @@ def _numbers(ax, positions, numbers, colors):
     width, height, scale = pp._panel_size_points(ax, extent)
     markers = (positions[:, ::-1] - [extent[0], extent[2]]) * scale
     labels = [str(n) for n in numbers]
+    # Longer catalogue IDs may need a leader in a crowded cluster core.
+    placements = pp.NUMBER_PLACEMENTS
+    if numbers.dtype.kind in ("U", "O"):
+        placements += tuple(
+            (dx * radius, dy * radius, ha, va)
+            for radius in (2, 3, 4)
+            for dx, dy, ha, va in pp.NUMBER_PLACEMENTS
+        )
     offsets = pp.adjacent_number_placements_from(
-        markers, labels, width, height, fontsize=9
+        markers, labels, width, height, fontsize=9, placements_to_try=placements
     )
     for (y, x), number, color, (dx, dy, ha, va) in zip(
         positions, labels, colors, offsets
@@ -114,6 +132,11 @@ def _numbers(ax, positions, numbers, colors):
             (x, y),
             xytext=(dx, dy),
             textcoords="offset points",
+            arrowprops=(
+                dict(arrowstyle="-", color=color, lw=0.7, shrinkB=4)
+                if (dx, dy, ha, va) not in pp.NUMBER_PLACEMENTS
+                else None
+            ),
             ha=ha,
             va=va,
             color=color,
@@ -160,7 +183,7 @@ def _overview(ax, families, family, image, indices):
         if other is family:
             colors = np.full(len(y), "#9ba5ae", dtype=object)
             colors[indices] = color
-            _numbers(ax, record.observed, record.numbers, colors)
+            _numbers(ax, record.observed, family.labels, colors)
     ax.set_title("Cluster fit overview", weight="bold")
     ax.legend(
         loc="best",
@@ -174,7 +197,7 @@ def _overview(ax, families, family, image, indices):
 def _ranking(ax, family, highlight):
     order = family.ranked
     values = family.terms[order].tolist()
-    labels = [f"Image {family.record.numbers[i]}" for i in order]
+    labels = [family.image_title(i) for i in order]
     colors = [family.ink if i in highlight else "#c4cfd6" for i in order]
     if family.penalty:
         values.append(family.penalty)
@@ -235,8 +258,8 @@ def _source_plane(ax, family, highlight):
     colors[highlight] = family.ink
     ax.scatter(*source.traced.T[::-1], c=colors, s=28)
     ax.scatter(*source.centre[::-1], marker="+", s=96, color="#172f49")
-    _numbers(ax, source.traced, rec.numbers, colors)
-    ax.set_title("All images in the source plane", weight="bold")
+    _numbers(ax, source.traced, family.labels, colors)
+    ax.set_title("All back-traced images", weight="bold")
 
 
 def _zoom_half_width(family):
@@ -253,20 +276,19 @@ def _zoom_half_width(family):
 
 
 def _image_detail(ax, family, i, half):
-    rec = family.record
     if not np.isfinite(family.data[i]).all():
         ax.set_axis_off()
         ax.text(
             0.5,
             0.5,
-            f"Image {rec.numbers[i]}\nPosition unavailable",
+            f"{family.image_title(i)}\nPosition unavailable",
             transform=ax.transAxes,
             ha="center",
         )
         return
     angular_axes(ax, family.data[i], half, small=True)
     _detail(ax, family, i)
-    ax.set_title(f"Image {rec.numbers[i]}", size=10, weight="bold")
+    ax.set_title(family.image_title(i), size=10, weight="bold")
 
 
 def _detail_key(family):
@@ -322,7 +344,7 @@ def _shared_detail(ax, family, indices):
             s=36,
             label="Unpaired model",
         )
-    _numbers(ax, family.data, rec.numbers, [family.ink] * len(indices))
+    _numbers(ax, family.data, family.labels, [family.ink] * len(indices))
     ax.set_title(
         (
             "Source-plane detail"
@@ -340,8 +362,10 @@ def _page(families, family, image, indices, page, pages, shared, title_prefix):
     source = family.source
     plane = "Source" if source.presentation.is_source_plane else "Image"
     # More ranking rows need extra space, including on subsequent pages.
-    height = 11.2 + max(0, len(rec.numbers) - 8) * 0.25
-    fig = plt.figure(figsize=(16.2, height))
+    height = (8.1 if len(rec.numbers) <= 3 else 10.0) + max(
+        0, len(rec.numbers) - 8
+    ) * 0.25
+    fig = plt.figure(figsize=(14.0, height))
     title = f"{rec.name}  /  {plane}-plane fit"
     fig.text(
         0.08,
@@ -366,6 +390,7 @@ def _page(families, family, image, indices, page, pages, shared, title_prefix):
     fig.text(0.55, 0.025, "+  fitted source centre", fontsize=10)
 
     half = _zoom_half_width(family)
+    legend_y = 0.383
     if shared:
         ax = fig.add_axes([0.55, 0.475, 0.383, 0.36])
         _shared_detail(ax, family, indices)
@@ -381,19 +406,29 @@ def _page(families, family, image, indices, page, pages, shared, title_prefix):
             right=0.96,
             bottom=0.475,
             top=0.837,
-            wspace=0.5,
-            hspace=0.74,
+            wspace=0.22,
+            hspace=0.42,
         )
-        fig.text(0.54, 0.881, f"{plane}-plane detail by image", size=14, weight="bold")
+        tiles = []
         for slot, i in enumerate(indices):
             ax = fig.add_subplot(grid[slot // columns, slot % columns])
             _image_detail(ax, family, i, half)
+            tiles.append(ax.get_position())
+        # Anchor the heading and key to the square tiles even when the grid has spare height.
+        fig.text(
+            tiles[0].x0,
+            tiles[0].y1 + 0.37 / height,
+            f"{plane}-plane detail by image",
+            size=14,
+            weight="bold",
+        )
+        legend_y = min(tile.y0 for tile in tiles) - 0.42 / height
     keys, labels = _detail_key(family)
     fig.legend(
         keys,
         labels,
-        loc="lower center",
-        bbox_to_anchor=(0.745, 0.383),
+        loc="upper center" if not shared else "lower center",
+        bbox_to_anchor=(0.745, legend_y),
         ncol=3,
         frameon=False,
         fontsize=9,
@@ -453,7 +488,11 @@ def _subplot(
     output_format,
     title_prefix,
 ):
-    order = np.argsort(family.record.numbers)
+    order = (
+        np.argsort(family.record.numbers)
+        if family.record.fit.dataset.image_ids is None
+        else np.arange(len(family.record.numbers))
+    )
     pages = (
         [order]
         if single_panel or len(order) <= 6
@@ -553,6 +592,7 @@ def plot_family_image_detail(
     fit,
     image_number=None,
     *,
+    image_id=None,
     fits=None,
     ax=None,
     output_path=None,
@@ -564,11 +604,18 @@ def plot_family_image_detail(
     For a source-plane fit compare the back-traced position and source centre.
     For an image-plane fit compare the observed and predicted positions.
     Each numbered zoom uses the same angular scale as the others in this family.
-    Omit image_number to show all images and predictions on shared axes.
+    Pass image_id to select by catalogue identifier, or omit both selectors for shared axes.
     Optional fits preserves the cluster's colours. Supply ax to compose a figure.
     """
     family, _ = _select_family(fit, fits)
     numbers = family.record.numbers
+    if image_id is not None:
+        if image_number is not None:
+            raise ValueError("Choose either image_id or image_number.")
+        ids = fit.dataset.image_ids
+        if ids is None or image_id not in ids:
+            raise ValueError(f"Unknown image ID {image_id!r} for {fit.dataset.name}.")
+        image_number = numbers[ids.index(image_id)]
     if image_number is not None:
         matches = np.flatnonzero(numbers == image_number)
         if len(matches) != 1:
@@ -597,7 +644,7 @@ def plot_family_source_plane(
 ):
     """Show every observed image of one family back-traced to its source plane.
 
-    Works for both source- and image-plane positions likelihoods. Numbers match
+    Works for both source- and image-plane positions likelihoods. Image labels match
     the overview and contributions. The plus marks the fitted source centre.
     Optional fits preserves the cluster's colours. Supply ax to compose a figure.
     """
