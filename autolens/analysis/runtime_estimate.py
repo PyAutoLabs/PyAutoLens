@@ -149,57 +149,76 @@ class RuntimeEstimate:
 
     def line(self) -> str:
         """
-        The estimate as one log line, e.g.
+        The estimate as one log line, wall time first and the details in parentheses, e.g.
 
-        `Estimate: ~1.9 ms/eval (hst cell) · Nautilus n_live=150 ≈ 2.1e5 evals (heuristic) · η=0.55 on
-        8 cores · ~7 min on this hardware`
+        `Estimate: ~6.4 min on this hardware   (283 ms/eval, euclid cell · Nautilus n_live=50 ≈ 4.6e3
+        evals, heuristic · η=0.55)`
+
+        A band reads `Estimate: ~4–11 min (no size match; range across instruments)   (...)`; a JAX
+        fit has `1 worker (JAX)` in place of `η`; an uncalibrated estimate ends its details with
+        `uncalibrated (held-out 0.2–0.5×)`; a search other than Nautilus reads
+        `Estimate: none for Emcee (the run-time model covers Nautilus only)   (697 ms/eval, hst cell)`.
+        The worker count is not repeated (the fit's `Parallel:` line reports it).
         """
-        parts = []
+        details = []
 
         if self.ms_per_eval_band is not None:
             low, high = self.ms_per_eval_band
-            parts.append(f"~{_ms(low)}–{_ms(high)} ms/eval")
+            details.append(f"{_ms(low)}–{_ms(high)} ms/eval")
         elif self.ms_per_eval is not None:
-            parts.append(f"~{_ms(self.ms_per_eval)} ms/eval ({self.instrument} cell)")
+            details.append(f"{_ms(self.ms_per_eval)} ms/eval, {self.instrument} cell")
 
         if not self.supported_search:
-            parts.append(
-                f"no estimate for {self.search_name} (run-time model covers Nautilus only)"
+            head = (
+                f"none for {self.search_name} (the run-time model covers Nautilus only)"
             )
-            return "Estimate: " + " · ".join(parts)
+            return _estimate_line(head, details)
 
         if self.expected_evals_band is not None:
             low, high = self.expected_evals_band
-            parts.append(
-                f"Nautilus n_live={self.n_live} ≈ {_evals(low)}–{_evals(high)} evals "
-                f"(heuristic)"
+            details.append(
+                f"Nautilus n_live={self.n_live} ≈ {_evals(low)}–{_evals(high)} evals, "
+                f"heuristic"
             )
         elif self.expected_evals is not None:
-            parts.append(
-                f"Nautilus n_live={self.n_live} ≈ {_evals(self.expected_evals)} evals (heuristic)"
+            details.append(
+                f"Nautilus n_live={self.n_live} ≈ {_evals(self.expected_evals)} evals, heuristic"
             )
 
         if self.parallel_efficiency is not None:
-            cores = "core" if self.number_of_cores == 1 else "cores"
-            parts.append(
-                f"η={self.parallel_efficiency:.2f} on {self.number_of_cores} {cores}"
-            )
+            details.append(f"η={self.parallel_efficiency:.2f}")
         elif self.backend == "jax":
-            parts.append("1 worker (JAX)")
+            details.append("1 worker (JAX)")
+
+        if not self.calibrated:
+            details.append(self.note or UNCALIBRATED_NOTE)
 
         if self.wall_seconds is not None:
-            parts.append(f"~{_duration(self.wall_seconds)} on this hardware")
+            head = f"~{_duration(self.wall_seconds)} on this hardware"
         elif self.wall_band is not None:
             low, high = self.wall_band
-            parts.append(
+            head = (
                 f"~{_duration_band(low, high)} (no size match; range across "
                 f"{self.band_across or 'instruments'})"
             )
+        elif details:
+            # No wall time (the evaluation count is unknown): the per-evaluation cost leads.
+            head, details = details[0], details[1:]
+        else:
+            head = "none"
 
-        if not self.calibrated:
-            parts.append(self.note or UNCALIBRATED_NOTE)
+        return _estimate_line(head, details)
 
-        return "Estimate: " + " · ".join(parts)
+
+def _estimate_line(head: str, details) -> str:
+    """
+    `Estimate: <head>   (<detail> · <detail> ...)`, the label padded to the width of the fit's
+    `Setup:` / `Parallel:` labels; no parentheses when there are no details.
+    """
+    line = f"Estimate: {head}"
+    if details:
+        line += f"   ({' · '.join(details)})"
+    return line
 
 
 def _evals(value: int) -> str:
@@ -635,9 +654,9 @@ class AnalysisRuntimeEstimate:
     wraps PyAutoGalaxy's `AnalysisSetupMixin.resolve_setup`.
     """
 
-    def resolve_setup(self, model):
+    def resolve_setup(self, model, log_banner: bool = True):
         self._runtime_estimate_model = model
-        return super().resolve_setup(model=model)
+        return super().resolve_setup(model=model, log_banner=log_banner)
 
     def _runtime_likelihood_from(self, model) -> Optional[str]:
         """
