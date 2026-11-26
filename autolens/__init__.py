@@ -55,6 +55,8 @@ from autogalaxy import cosmology as cosmo
 from autogalaxy.analysis.adapt_images.adapt_images import AdaptImages
 from autogalaxy.analysis.adapt_images.adapt_images import (
     galaxy_name_image_dict_via_result_from,
+    galaxy_snr_maps_from,
+    soft_snr_maps_from,
 )
 from autogalaxy.gui.clicker import Clicker
 from autogalaxy.gui.scribbler import Scribbler
