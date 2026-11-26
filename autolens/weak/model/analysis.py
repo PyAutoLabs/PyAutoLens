@@ -15,6 +15,8 @@ It also manages result output (``ResultWeak``) and on-the-fly visualisation
 """
 from typing import Optional
 
+import numpy as np
+
 import autofit as af
 import autogalaxy as ag
 
@@ -186,6 +188,24 @@ class AnalysisWeak(
             tracer=tracer,
             xp=self._xp,
         )
+
+    def fit_for_visualization(self, instance) -> FitWeak:
+        """
+        Build the `FitWeak` used by the visualizer, always on the NumPy path.
+
+        On the JAX path `FitWeak.model_shear` is a raw `(N, 2)` array (`ShearYX2DIrregular` is not a
+        registered pytree), which the shear-field plotters cannot draw. Visualization runs once per
+        update on the max-likelihood instance, so it is computed with NumPy whatever the likelihood's
+        backend: the model shear is then a `ShearYX2DIrregular` and the log likelihood is the same.
+
+        Parameters
+        ----------
+        instance
+            The maximum log likelihood model instance being visualized.
+        """
+        tracer = self.tracer_via_instance_from(instance=instance)
+
+        return FitWeak(dataset=self.dataset, tracer=tracer, xp=np)
 
     @staticmethod
     def _register_fit_weak_pytrees() -> None:
