@@ -435,8 +435,10 @@ def _light_model():
 
 
 def test__setup_kwarg__threaded_to_galaxy_base(interferometer_7, unset_setup_env):
+    assert al.AnalysisInterferometer(dataset=interferometer_7).setup_input == "auto"
     assert (
-        al.AnalysisInterferometer(dataset=interferometer_7).setup_input is None
+        al.AnalysisInterferometer(dataset=interferometer_7, use_jax=False).setup_input
+        is None
     )
 
     analysis = al.AnalysisInterferometer(

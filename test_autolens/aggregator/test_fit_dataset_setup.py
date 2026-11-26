@@ -79,8 +79,9 @@ def test__fit_imaging_from__setup_json__reapplied(masked_imaging_7x7, monkeypatc
 
     fit_reloaded_no_setup = _fit_imaging_from(fit=_fake_fit({"dataset": hdu_list}))[0]
 
+    # With no setup.json nothing is attached; the lazy sparse operator (on by default) is built on use.
     assert fit_reloaded_no_setup.dataset.setup is None
-    assert fit_reloaded_no_setup.sparse_operator is None
+    assert fit_reloaded_no_setup.dataset.sparse_operator is None
 
     fit_reloaded = _fit_imaging_from(
         fit=_fake_fit(
@@ -110,8 +111,9 @@ def test__fit_interferometer_from__setup_json__reapplied(interferometer_7):
 
     fit_reloaded_no_setup = _fit_interferometer_from(fit=_fake_fit(values))[0]
 
+    # With no setup.json nothing is attached; the lazy sparse operator (on by default) is built on use.
     assert fit_reloaded_no_setup.dataset.setup is None
-    assert fit_reloaded_no_setup.sparse_operator is None
+    assert fit_reloaded_no_setup.dataset.sparse_operator is None
 
     values["setup"] = _setup_dict("numba_cpu_sparse_fp64_wtilde")
 

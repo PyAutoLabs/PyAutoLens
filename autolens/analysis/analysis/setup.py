@@ -55,7 +55,11 @@ explicitly, e.g.
 
 def raise_if_setup_unresolved(analysis):
     """
-    Raise an `exc.SetupException` when an analysis was given a `setup` that was never resolved.
+    Raise an `exc.SetupException` when an analysis was explicitly given a `setup` that was never resolved.
+
+    The default `setup="auto"` (an analysis constructed with neither `setup` nor `use_jax`) does not raise:
+    before it resolves, the likelihood runs with the constructor backend, so direct pre-fit calls such as
+    `analysis.log_likelihood_function(instance)` keep working.
 
     A setup is resolved in `modify_before_fit`, which a non-linear search calls before sampling (and a
     `FactorGraphModel` forwards to each factor), or by `prepare_for_model(model)` on pre-fit calls that
@@ -70,6 +74,11 @@ def raise_if_setup_unresolved(analysis):
     setup_input = getattr(analysis, "setup_input", None)
 
     if setup_input is None or getattr(analysis, "setup", None) is not None:
+        return
+
+    # The default `setup="auto"` (neither `setup` nor `use_jax` passed) does not stop a pre-fit evaluation:
+    # it runs with the constructor backend, as the analyses did before `"auto"` became the default.
+    if getattr(analysis, "setup_defaulted", False):
         return
 
     if isinstance(setup_input, aa.Setup):

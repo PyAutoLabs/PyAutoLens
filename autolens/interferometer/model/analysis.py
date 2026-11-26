@@ -23,6 +23,8 @@ import autoarray as aa
 import autogalaxy as ag
 from autogalaxy.interferometer.model.analysis import interferometer_hdu_list_from
 
+from autogalaxy.analysis.setup_util import SETUP_DEFAULT
+
 from autolens.analysis.analysis.dataset import AnalysisDataset
 from autolens.analysis.analysis.setup import raise_if_setup_unresolved
 from autolens.analysis.exceptions import raise_fit_exception
@@ -52,9 +54,9 @@ class AnalysisInterferometer(AnalysisDataset):
         settings: aa.Settings = None,
         raise_inversion_positions_likelihood_exception: bool = True,
         title_prefix: str = None,
-        use_jax: bool = True,
+        use_jax: Optional[bool] = None,
         shared_preloads: bool = False,
-        setup=None,
+        setup=SETUP_DEFAULT,
         **kwargs,
     ):
         """
@@ -97,10 +99,13 @@ class AnalysisInterferometer(AnalysisDataset):
         title_prefix
             A string that is added before the title of all figures output by visualization, for example to
             put the name of the dataset and galaxy in the title.
+        use_jax
+            Whether the likelihood is evaluated with JAX. Passing it with no `setup` opts out of `"auto"` (the
+            manual backend, as `setup=None`); with a `setup`, the resolved setup sets the backend.
         setup
-            The compute setup of the likelihood: `None` (default, nothing changes), `"auto"` (the designated
-            setup for the likelihood and hardware, chosen at fit start from the model), an `aa.Setup` or a
-            setup_id string. See `AnalysisDataset`.
+            The compute setup of the likelihood: `"auto"` (the default: the designated setup for the likelihood
+            and hardware, chosen at fit start from the model), `None` (the manual opt-out, backend `use_jax`),
+            an `aa.Setup` or a setup_id string. See `AnalysisDataset`.
         shared_preloads
             Opts this analysis into the cross-factor shared-state mechanism of a `FactorGraphModel` (see
             `shared_state_from`). Set this to `True` only when this analysis is one of many datacube channels

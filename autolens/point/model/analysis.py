@@ -16,6 +16,7 @@ It also manages result output (``ResultPoint``) and on-the-fly visualisation
 """
 
 import logging
+from typing import Optional
 import os
 
 import numpy as np
@@ -27,6 +28,8 @@ import autogalaxy as ag
 from autogalaxy.analysis.analysis.analysis import Analysis as AgAnalysis
 
 from autolens.analysis.analysis.lens import AnalysisLens
+from autogalaxy.analysis.setup_util import SETUP_DEFAULT, setup_and_use_jax_from
+
 from autolens.analysis.analysis.setup import (
     AnalysisSetupNoOperator,
     raise_if_setup_unresolved,
@@ -70,10 +73,10 @@ class AnalysisPoint(
         image=None,
         cosmology: ag.cosmo.LensingCosmology = None,
         title_prefix: str = None,
-        use_jax: bool = True,
+        use_jax: Optional[bool] = None,
         fit_flux_cls=FitFluxes,
         fit_time_delays_cls=FitTimeDelays,
-        setup=None,
+        setup=SETUP_DEFAULT,
         **kwargs,
     ):
         """
@@ -121,18 +124,21 @@ class AnalysisPoint(
             A string that is added before the title of all figures output by visualization, for example to
             put the name of the dataset and galaxy in the title.
         use_jax
-            Whether the likelihood is evaluated with JAX. It is honoured as given when `setup` is `None`; a
-            resolved `setup` sets the backend instead.
+            Whether the likelihood is evaluated with JAX. Passing it with no `setup` opts out of `setup="auto"`:
+            the backend is `use_jax`, as with `setup=None`. With a `setup` the resolved setup sets the backend.
         setup
-            The compute setup of the likelihood: `None` (the default, nothing changes), `"auto"`, an `aa.Setup`
-            or a setup_id string such as `"jax_cpu_na_fp64"`. It is resolved in `modify_before_fit`. With
-            `"auto"` the rule key is `point_source_source/source_plane` when `fit_positions_cls` is a
-            source-plane fit (`FitPositionsSource` or a subclass) and `point_source_image/image_plane` otherwise
-            (see `setup_key_from`). A resolved setup sets the backend, pins the thread pools, is logged as a
-            banner line and is written to `files/setup.json`; a point dataset has no operator to attach.
-            Evaluating the likelihood before the setup is resolved (by the fit or `prepare_for_model(model)`)
-            raises an `exc.SetupException`.
+            The compute setup of the likelihood: `"auto"` (the default when neither `setup` nor `use_jax` is
+            passed), `None` (the manual opt-out: backend `use_jax`, default `True`, plus one log line
+            saying what `"auto"` would choose), an `aa.Setup` or a setup_id string. It is resolved in
+            `modify_before_fit`; with `"auto"` the rule key is `point_source_source/source_plane` when `fit_positions_cls` is a source-plane fit (`FitPositionsSource` or a subclass) and `point_source_image/image_plane` otherwise (see `setup_key_from`). A resolved setup sets the backend, pins the thread pools, is
+            logged as a banner line and is written to `files/setup.json`. Evaluating the likelihood before
+            an explicitly passed setup is resolved (by the fit or `prepare_for_model(model)`) raises an
+            `exc.SetupException`; before the default `"auto"` is resolved it runs with the constructor backend.
         """
+        setup, use_jax, setup_defaulted = setup_and_use_jax_from(
+            setup=setup, use_jax=use_jax, default_use_jax=True
+        )
+
         super().__init__(cosmology=cosmology, use_jax=use_jax, **kwargs)
 
         # `super().__init__` (af.Analysis) is the single reader of the
@@ -148,7 +154,7 @@ class AnalysisPoint(
         self.fit_flux_cls = fit_flux_cls
         self.fit_time_delays_cls = fit_time_delays_cls
         self.title_prefix = title_prefix
-        self._init_setup(setup)
+        self._init_setup(setup, setup_defaulted=setup_defaulted)
         self._check_solver_extent()
 
     def setup_key_from(self, model: af.Collection = None):

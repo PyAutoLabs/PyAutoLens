@@ -25,6 +25,7 @@ import autofit as af
 import autoarray as aa
 import autogalaxy as ag
 
+from autogalaxy.analysis.setup_util import SETUP_DEFAULT
 from autogalaxy.analysis.analysis.dataset import AnalysisDataset as AgAnalysisDataset
 
 from autolens.analysis.analysis.lens import AnalysisLens
@@ -66,8 +67,8 @@ class AnalysisDataset(AnalysisRuntimeEstimate, AgAnalysisDataset, AnalysisLens):
         settings: aa.Settings = None,
         raise_inversion_positions_likelihood_exception: bool = True,
         title_prefix: str = None,
-        use_jax: bool = True,
-        setup=None,
+        use_jax: Optional[bool] = None,
+        setup=SETUP_DEFAULT,
         **kwargs,
     ):
         """
@@ -102,16 +103,18 @@ class AnalysisDataset(AnalysisRuntimeEstimate, AgAnalysisDataset, AnalysisLens):
             of this. This exception is not raised if this input is False, allowing the user to perform the model-fit
             anyway.
         use_jax
-            Whether the likelihood is evaluated with JAX. It is honoured as given when `setup` is `None`; a
-            resolved `setup` sets the backend instead.
+            Whether the likelihood is evaluated with JAX. Passing it with no `setup` opts out of `setup="auto"`:
+            the backend is `use_jax`, as with `setup=None`. With a `setup` the resolved setup sets the backend.
         setup
-            The compute setup of the likelihood: `None` (the default, nothing changes), `"auto"` (the designated
-            setup for the likelihood and hardware, chosen at fit start from the model), an `aa.Setup` or a
-            setup_id string such as `"numba_cpu_sparse_fp64"`. It is resolved first in `modify_before_fit` by the
-            **PyAutoGalaxy** base class (see `autogalaxy.analysis.analysis.dataset.AnalysisDataset`), or before
-            the fit by `prepare_for_model(model)` (e.g. via `print_vram_use(model=...)`). Evaluating the
-            likelihood before the setup is resolved raises an `exc.SetupException` instead of fitting with the
-            setup silently ignored.
+            The compute setup of the likelihood: `"auto"` (the default when neither `setup` nor `use_jax` is
+            passed: the designated setup for the likelihood and hardware, chosen at fit start from the model),
+            `None` (the manual opt-out: backend `use_jax`, plus one log line saying what `"auto"` would
+            choose), an `aa.Setup` or a setup_id string such as `"numba_cpu_sparse_fp64"`. It is resolved first
+            in `modify_before_fit` by the **PyAutoGalaxy** base class (see
+            `autogalaxy.analysis.analysis.dataset.AnalysisDataset`), or before the fit by
+            `prepare_for_model(model)` (e.g. via `print_vram_use(model=...)`). Evaluating the likelihood before
+            an explicitly passed setup is resolved raises an `exc.SetupException`; before the default `"auto"`
+            is resolved it runs with the constructor backend.
         """
 
         super().__init__(

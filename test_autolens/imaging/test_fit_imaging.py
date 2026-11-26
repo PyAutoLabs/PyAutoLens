@@ -1220,6 +1220,7 @@ def test__galaxy_image_dicts__add_ordinary_and_linear_light(masked_imaging_7x7):
 # which the lens fit's `tracer_to_inversion` passes to every per-plane `DatasetInterface`.
 
 LAZY_ON = aa.Settings(lazy_sparse_operator="auto")
+LAZY_OFF = aa.Settings(lazy_sparse_operator="off")
 
 
 @pytest.fixture(name="no_ambient_setup")
@@ -1251,7 +1252,9 @@ def test__sparse_operator__lazy_policy_on__pixelized_source__matches_dense_built
 
     tracer = _lens_pixelized_source_tracer()
 
-    fit_dense = al.FitImaging(dataset=masked_imaging_7x7, tracer=tracer)
+    fit_dense = al.FitImaging(
+        dataset=masked_imaging_7x7, tracer=tracer, settings=LAZY_OFF
+    )
 
     assert fit_dense.sparse_operator is None
     assert isinstance(fit_dense.inversion, aa.InversionImagingMapping)
@@ -1396,3 +1399,36 @@ def test__sparse_operator__linear_light_only__attached_operator_unchanged(
         assert fit.figure_of_merit == pytest.approx(
             fit_dense.figure_of_merit, rel=1.0e-6
         )
+
+
+def test__sparse_operator__lazy_default__two_pixelized_sources_match_dense(
+    masked_imaging_7x7, no_ambient_setup
+):
+    """
+    The lazy sparse operator is on by default, so a NumPy fit with two pixelized source planes takes the
+    numba multi-mapper route (`InversionImagingSparseNumba._data_vector_multi_mapper`), which must match the
+    dense mapping-matrix route.
+    """
+    pytest.importorskip("numba")
+
+    pixelization = al.Pixelization(
+        mesh=al.mesh.RectangularUniform(shape=(3, 3)),
+        regularization=al.reg.Constant(coefficient=1.0),
+    )
+
+    tracer = al.Tracer(
+        galaxies=[
+            al.Galaxy(redshift=0.5, mass=al.mp.IsothermalSph(einstein_radius=0.2)),
+            al.Galaxy(redshift=1.0, pixelization=pixelization),
+            al.Galaxy(redshift=2.0, pixelization=pixelization),
+        ]
+    )
+
+    masked_imaging_7x7._lazy_sparse_operator = None
+
+    fit = al.FitImaging(dataset=masked_imaging_7x7, tracer=tracer)
+    fit_dense = al.FitImaging(dataset=masked_imaging_7x7, tracer=tracer, settings=LAZY_OFF)
+
+    assert fit.sparse_operator is not None
+    assert isinstance(fit_dense.inversion, aa.InversionImagingMapping)
+    assert fit.figure_of_merit == pytest.approx(fit_dense.figure_of_merit, rel=1.0e-8)

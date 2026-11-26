@@ -13,12 +13,15 @@ It also manages result output (``ResultImaging``), on-the-fly visualisation
 (``VisualizerImaging``), and position-based priors via ``PositionLikelihood``.
 """
 import logging
+from typing import Optional
 
 import autoarray as aa
 import autofit as af
 import autogalaxy as ag
 
 from autonerves.fitsable import hdu_list_for_output_from
+
+from autogalaxy.analysis.setup_util import SETUP_DEFAULT
 
 from autolens.analysis.analysis.dataset import AnalysisDataset
 from autolens.analysis.analysis.setup import raise_if_setup_unresolved
@@ -51,9 +54,9 @@ class AnalysisImaging(AnalysisDataset):
         settings=None,
         raise_inversion_positions_likelihood_exception: bool = True,
         title_prefix: str = None,
-        use_jax: bool = True,
+        use_jax: Optional[bool] = None,
         shared_preloads: bool = False,
-        setup=None,
+        setup=SETUP_DEFAULT,
         **kwargs,
     ):
         """
@@ -62,10 +65,13 @@ class AnalysisImaging(AnalysisDataset):
 
         Parameters
         ----------
+        use_jax
+            Whether the likelihood is evaluated with JAX. Passing it with no `setup` opts out of `"auto"` (the
+            manual backend, as `setup=None`); with a `setup`, the resolved setup sets the backend.
         setup
-            The compute setup of the likelihood: `None` (default, nothing changes), `"auto"` (the designated
-            setup for the likelihood and hardware, chosen at fit start from the model), an `aa.Setup` or a
-            setup_id string. See `AnalysisDataset`.
+            The compute setup of the likelihood: `"auto"` (the default: the designated setup for the likelihood
+            and hardware, chosen at fit start from the model), `None` (the manual opt-out, backend `use_jax`),
+            an `aa.Setup` or a setup_id string. See `AnalysisDataset`.
         shared_preloads
             Opts this analysis into the cross-factor shared-state mechanism of a `FactorGraphModel`
             (see `shared_state_from`). Set this to `True` only when this analysis is one of many
