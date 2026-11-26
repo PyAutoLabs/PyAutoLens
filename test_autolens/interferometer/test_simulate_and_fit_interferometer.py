@@ -1,13 +1,9 @@
-import os
-from pathlib import Path
-import shutil
-
 import autolens as al
 import numpy as np
 import pytest
 
 
-def test__perfect_fit__chi_squared_0():
+def test__perfect_fit__chi_squared_0(tmp_path):
     grid = al.Grid2D.uniform(
         shape_native=(51, 51), pixel_scales=0.1, over_sample_size=1
     )
@@ -34,15 +30,8 @@ def test__perfect_fit__chi_squared_0():
 
     dataset = simulator.via_tracer_from(tracer=tracer, grid=grid)
 
-    file_path = Path(__file__).resolve().parent / "data_temp" / "simulate_and_fit"
-
-    try:
-        shutil.rmtree(file_path)
-    except FileNotFoundError:
-        pass
-
-    if not file_path.exists():
-        os.makedirs(file_path)
+    file_path = tmp_path / "simulate_and_fit"
+    file_path.mkdir()
 
     from autoarray.dataset.plot.interferometer_plots import fits_interferometer
 
@@ -96,11 +85,6 @@ def test__perfect_fit__chi_squared_0():
         tracer=tracer,
     )
     assert abs(fit.chi_squared) < 1.0e-4
-
-    file_path = Path(__file__).resolve().parent / "data_temp"
-
-    if file_path.exists():
-        shutil.rmtree(file_path)
 
 
 def test__simulate_interferometer_data_and_fit__known_likelihood():

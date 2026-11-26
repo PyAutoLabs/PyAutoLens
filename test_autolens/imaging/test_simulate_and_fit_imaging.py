@@ -1,13 +1,9 @@
-import os
-from pathlib import Path
-import shutil
-
 import autolens as al
 import numpy as np
 import pytest
 
 
-def test__perfect_fit__chi_squared_0():
+def test__perfect_fit__chi_squared_0(tmp_path):
 
     grid = al.Grid2D.uniform(shape_native=(11, 11), pixel_scales=0.2, over_sample_size=1)
 
@@ -32,15 +28,8 @@ def test__perfect_fit__chi_squared_0():
         shape_native=dataset.data.shape_native, pixel_scales=0.2
     )
 
-    file_path = Path(__file__).resolve().parent / "data_temp" / "simulate_and_fit"
-
-    try:
-        shutil.rmtree(file_path)
-    except FileNotFoundError:
-        pass
-
-    if not file_path.exists():
-        os.makedirs(file_path)
+    file_path = tmp_path / "simulate_and_fit"
+    file_path.mkdir()
 
     from autoarray.dataset.plot.imaging_plots import fits_imaging
 
@@ -71,11 +60,6 @@ def test__perfect_fit__chi_squared_0():
     fit = al.FitImaging(dataset=masked_dataset, tracer=tracer)
 
     assert fit.chi_squared == pytest.approx(0.0, 1e-4)
-
-    file_path = Path(__file__).resolve().parent / "data_temp"
-
-    if file_path.exists():
-        shutil.rmtree(file_path)
 
 
 def _perfect_lens_fit_dataset(tracer, grid):
@@ -813,7 +797,9 @@ def test__simulate_imaging_data_and_fit__linear_light_profiles_and_pixelization_
     assert fit_linear.figure_of_merit == pytest.approx(-181.2635462028, 1.0e-4)
 
 
-def test__fit_figure_of_merit__mge_mass_model(masked_imaging_7x7, masked_imaging_covariance_7x7):
+def test__fit_figure_of_merit__mge_mass_model(
+    masked_imaging_7x7, masked_imaging_covariance_7x7, tmp_path
+):
 
     grid = al.Grid2D.uniform(shape_native=(11, 11), pixel_scales=0.2,
                              over_sample_size=8)
@@ -841,15 +827,8 @@ def test__fit_figure_of_merit__mge_mass_model(masked_imaging_7x7, masked_imaging
         shape_native=dataset.data.shape_native, pixel_scales=0.2
     )
 
-    file_path = Path(__file__).resolve().parent / "data_temp" / "simulate_and_fit"
-
-    try:
-        shutil.rmtree(file_path)
-    except FileNotFoundError:
-        pass
-
-    if not file_path.exists():
-        os.makedirs(file_path)
+    file_path = tmp_path / "simulate_and_fit"
+    file_path.mkdir()
 
     from autoarray.dataset.plot.imaging_plots import fits_imaging
 
@@ -918,11 +897,6 @@ def test__fit_figure_of_merit__mge_mass_model(masked_imaging_7x7, masked_imaging
     # and does not use the iterative grid, which has a small impact on the chi-squared
 
     assert fit.chi_squared == pytest.approx(3.295535243634485e-05, 1e-4)
-
-    file_path = Path(__file__).resolve().parent / "data_temp"
-
-    if file_path.exists():
-        shutil.rmtree(file_path)
 
 def test__perfect_fit__chi_squared_0__oversampled_psf():
     # Simulate with an oversampled PSF (convolution at 2x the image resolution)
