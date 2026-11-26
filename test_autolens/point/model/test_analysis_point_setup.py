@@ -81,7 +81,10 @@ def test__setup_key_from__follows_fit_positions_cls(
 
 
 def test__setup_kwarg__stored(point_dataset):
-    assert _analysis(point_dataset).setup_input is None
+    assert _analysis(point_dataset).setup_input == "auto"
+    assert _analysis(point_dataset).setup_defaulted is True
+    assert _analysis(point_dataset, use_jax=True).setup_input is None
+    assert _analysis(point_dataset, setup=None).setup_input is None
     assert _analysis(point_dataset, setup="auto").setup_input == "auto"
 
     analysis = _analysis(point_dataset, setup="jax_cpu_na_fp64")

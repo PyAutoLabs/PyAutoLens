@@ -291,9 +291,13 @@ def test__simulate_interferometer_data_and_fit__linear_light_profiles_and_pixeli
 
     tracer_linear = al.Tracer(galaxies=[lens_galaxy_linear, source_galaxy_pix])
 
+    # The regression values are of the dense mapping-matrix route, so the lazy sparse operator (on by
+    # default) is switched off: on this near-degenerate 2-visibility dataset the positive-only
+    # reconstruction of the sparse route differs beyond the tolerance.
     fit_linear = al.FitInterferometer(
         dataset=dataset,
         tracer=tracer_linear,
+        settings=al.Settings(lazy_sparse_operator="off"),
     )
 
     assert fit_linear.inversion.reconstruction == pytest.approx(

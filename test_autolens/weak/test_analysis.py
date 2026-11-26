@@ -196,10 +196,13 @@ def test__setup_auto__pyauto_setup_env_wins__weak(detect_many_core, monkeypatch)
     assert analysis._xp is np
 
 
-def test__no_setup__weak_unchanged(detect_many_core, caplog, tmp_path):
+@pytest.mark.parametrize("kwargs", [{"setup": None}, {"use_jax": False}])
+def test__no_setup__weak_unchanged(detect_many_core, caplog, tmp_path, kwargs):
     dataset = _make_dataset()
 
-    analysis = al.AnalysisWeak(dataset=dataset)
+    # `setup=None` or an explicit `use_jax` opts out of the default `setup="auto"`; the manual
+    # backend keeps AnalysisWeak's old default, NumPy.
+    analysis = al.AnalysisWeak(dataset=dataset, **kwargs)
 
     with caplog.at_level(logging.INFO):
         analysis.modify_before_fit(paths=af.DirectoryPaths(), model=_lens_model())

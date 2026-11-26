@@ -80,8 +80,14 @@ def _analysis(dataset, **kwargs):
 
 
 def test__setup_kwarg__threaded_to_galaxy_base(masked_imaging_7x7):
-    assert _analysis(masked_imaging_7x7).setup_input is None
+    # Neither `setup` nor `use_jax`: the default `setup="auto"`.
+    assert _analysis(masked_imaging_7x7).setup_input == "auto"
+    assert _analysis(masked_imaging_7x7).setup_defaulted is True
+    # An explicit `use_jax` with no `setup`, or `setup=None`, opts out.
+    assert _analysis(masked_imaging_7x7, use_jax=False).setup_input is None
+    assert _analysis(masked_imaging_7x7, setup=None).setup_input is None
     assert _analysis(masked_imaging_7x7, setup="AUTO").setup_input == "auto"
+    assert _analysis(masked_imaging_7x7, setup="AUTO").setup_defaulted is False
 
     analysis = _analysis(masked_imaging_7x7, setup="numba_cpu_dense_fp64")
 
@@ -317,3 +323,98 @@ def test__mismatched_operator__numpy_path__raises_at_modify_before_fit(
 
     assert not isinstance(e.value, af.exc.FitException)
     assert analysis._use_jax is False
+
+
+# The default `setup="auto"` (likelihood-lifecycle R6).
+
+
+def test__default__resolves_auto_at_fit_start_with_banner(
+    masked_imaging_7x7, monkeypatch, caplog
+):
+    _detect(monkeypatch, MANY_CORE)
+
+    analysis = _analysis(masked_imaging_7x7)
+
+    assert analysis.setup_input == "auto"
+    assert analysis.setup_defaulted is True
+
+    with caplog.at_level(logging.INFO):
+        analysis.modify_before_fit(paths=af.DirectoryPaths(), model=_rectangular_model())
+
+    assert analysis.setup.setup_id == "numba_cpu_sparse_fp64"
+    assert analysis._use_jax is False
+    assert analysis._xp is np
+    assert any(
+        r.message.startswith("Automatic compute setup (") for r in caplog.records
+    )
+
+
+def test__default__explicit_use_jax_false__manual_numpy_would_choose_banner(
+    masked_imaging_7x7, monkeypatch, caplog
+):
+    _detect(monkeypatch, MANY_CORE)
+
+    analysis = _analysis(masked_imaging_7x7, use_jax=False)
+
+    with caplog.at_level(logging.INFO):
+        analysis.modify_before_fit(paths=af.DirectoryPaths(), model=_rectangular_model())
+
+    assert analysis.setup is None
+    assert analysis._use_jax is False
+    assert analysis.dataset is masked_imaging_7x7
+    assert any("auto would choose" in r.message for r in caplog.records)
+    assert not any(r.message.startswith("Automatic") for r in caplog.records)
+
+
+def test__default__pre_fit_likelihood_runs_without_setup_exception(masked_imaging_7x7):
+    instance = _light_model().instance_from_unit_vector([])
+
+    # The default `"auto"` does not stop a pre-fit evaluation: it runs on the constructor backend.
+    analysis = _analysis(masked_imaging_7x7)
+
+    assert np.isfinite(float(analysis.log_likelihood_function(instance=instance)))
+
+    # An explicitly passed setup still raises until it is resolved.
+    with pytest.raises(exc.SetupException):
+        _analysis(masked_imaging_7x7, setup="auto").log_likelihood_function(
+            instance=instance
+        )
+
+
+def test__default__factor_graph__unchanged(masked_imaging_7x7):
+    factors = [
+        af.AnalysisFactor(prior_model=_light_model(), analysis=_analysis(masked_imaging_7x7))
+        for _ in range(2)
+    ]
+
+    factor_graph = af.FactorGraphModel(*factors)
+    instance = factor_graph.global_prior_model.instance_from_unit_vector([])
+
+    assert np.isfinite(float(factor_graph.log_likelihood_function(instance)))
+
+
+def test__default__search_default_number_of_cores_auto_resolves_to_1_for_jax(
+    masked_imaging_7x7, monkeypatch
+):
+    pytest.importorskip("jax")
+
+    from autofit.non_linear.parallel.pool import resolve_number_of_cores
+
+    _detect(monkeypatch, MANY_CORE)
+
+    search = af.Nautilus(name="r6_default_cores")
+
+    assert search.number_of_cores == "auto"
+
+    analysis = _analysis(masked_imaging_7x7)
+    analysis.modify_before_fit(paths=af.DirectoryPaths(), model=_light_model())
+
+    # The imaging/mge rule on a many-core CPU designates JAX.
+    assert analysis.setup.backend == "jax"
+
+    resolution = resolve_number_of_cores(
+        requested=search.number_of_cores, analysis=analysis
+    )
+
+    assert resolution.number_of_cores == 1
+    assert resolution.reason == "jax"

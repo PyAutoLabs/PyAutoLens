@@ -13,12 +13,16 @@ non-linear search at each iteration.  It:
 It also manages result output (``ResultWeak``) and on-the-fly visualisation
 (``VisualizerWeak``).
 """
+from typing import Optional
+
 import autofit as af
 import autogalaxy as ag
 
 from autogalaxy.analysis.analysis.analysis import Analysis as AgAnalysis
+from autogalaxy.analysis.setup_util import SETUP_DEFAULT, setup_and_use_jax_from
 
 from autolens.analysis.analysis.lens import AnalysisLens
+
 from autolens.analysis.analysis.setup import (
     AnalysisSetupNoOperator,
     raise_if_setup_unresolved,
@@ -41,8 +45,8 @@ class AnalysisWeak(
         dataset: WeakDataset,
         cosmology: ag.cosmo.LensingCosmology = None,
         title_prefix: str = None,
-        use_jax: bool = False,
-        setup=None,
+        use_jax: Optional[bool] = None,
+        setup=SETUP_DEFAULT,
         **kwargs,
     ):
         """
@@ -59,9 +63,10 @@ class AnalysisWeak(
         contributes two independent shear measurements (gamma_1 and gamma_2), which `FitWeak` compares against
         the model shear field of the `Tracer`.
 
-        `use_jax` defaults to `False`, the conservative choice for the newest Analysis class; pass
-        `use_jax=True` to run the `xp`-threaded fit path with `FitWeak` pytree registration (validated by
-        the `autolens_workspace_test` weak vmap-parity script).
+        By default the compute setup is `setup="auto"`, resolved at fit start. On the manual opt-out
+        (`setup=None` or an explicit `use_jax`) the backend defaults to NumPy (`use_jax=False`), the
+        conservative choice for the newest Analysis class; `use_jax=True` runs the `xp`-threaded fit path with
+        `FitWeak` pytree registration (validated by the `autolens_workspace_test` weak vmap-parity script).
 
         Parameters
         ----------
@@ -74,16 +79,21 @@ class AnalysisWeak(
             A string that is added before the title of all figures output by visualization, for example to
             put the name of the dataset and galaxy in the title.
         use_jax
-            Whether the likelihood is evaluated with JAX. It is honoured as given when `setup` is `None`; a
-            resolved `setup` sets the backend instead.
+            Whether the likelihood is evaluated with JAX. Passing it with no `setup` opts out of `setup="auto"`:
+            the backend is `use_jax`, as with `setup=None`. With a `setup` the resolved setup sets the backend.
         setup
-            The compute setup of the likelihood: `None` (the default, nothing changes), `"auto"`, an `aa.Setup`
-            or a setup_id string such as `"jax_cpu_dense_fp64"`. It is resolved in `modify_before_fit`; with
-            `"auto"` the rule key is `weak/isothermal` (see `setup_key_from`). A resolved setup sets the backend,
-            pins the thread pools, is logged as a banner line and is written to `files/setup.json`; a shear
-            catalogue has no operator to attach. Evaluating the likelihood before the setup is resolved (by the
-            fit or `prepare_for_model(model)`) raises an `exc.SetupException`.
+            The compute setup of the likelihood: `"auto"` (the default when neither `setup` nor `use_jax` is
+            passed), `None` (the manual opt-out: backend `use_jax`, default `False`, plus one log line
+            saying what `"auto"` would choose), an `aa.Setup` or a setup_id string. It is resolved in
+            `modify_before_fit`; with `"auto"` the rule key is `weak/isothermal` (see `setup_key_from`). A shear catalogue has no operator to attach. A resolved setup sets the backend, pins the thread pools, is
+            logged as a banner line and is written to `files/setup.json`. Evaluating the likelihood before
+            an explicitly passed setup is resolved (by the fit or `prepare_for_model(model)`) raises an
+            `exc.SetupException`; before the default `"auto"` is resolved it runs with the constructor backend.
         """
+        setup, use_jax, setup_defaulted = setup_and_use_jax_from(
+            setup=setup, use_jax=use_jax, default_use_jax=False
+        )
+
         super().__init__(cosmology=cosmology, use_jax=use_jax, **kwargs)
 
         # `super().__init__` (af.Analysis) is the single reader of the
@@ -95,7 +105,7 @@ class AnalysisWeak(
 
         self.title_prefix = title_prefix
 
-        self._init_setup(setup)
+        self._init_setup(setup, setup_defaulted=setup_defaulted)
 
     def setup_key_from(self, model: af.Collection = None):
         """

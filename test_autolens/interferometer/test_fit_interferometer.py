@@ -4,6 +4,9 @@ import pytest
 import autoarray as aa
 import autolens as al
 
+# The dense mapping-matrix reference fits switch the lazy sparse operator (on by default) off.
+LAZY_OFF = aa.Settings(lazy_sparse_operator="off")
+
 
 def test__model_visibilities(interferometer_7):
     g0 = al.Galaxy(redshift=0.5, bulge=al.m.MockLightProfile(image_2d=np.ones(9)))
@@ -583,7 +586,7 @@ def test__fit_figure_of_merit__sparse_operator__pixelization_only__data_term_sca
 
     tracer = _pixelized_source_tracer()
 
-    fit = al.FitInterferometer(dataset=interferometer_7, tracer=tracer)
+    fit = al.FitInterferometer(dataset=interferometer_7, tracer=tracer, settings=LAZY_OFF)
     fit_sparse = al.FitInterferometer(dataset=dataset_sparse, tracer=tracer)
 
     assert isinstance(fit.inversion, aa.InversionInterferometerMapping)
@@ -868,7 +871,7 @@ def test__fit_figure_of_merit__array_free_dataset__lens_light_profile__matches_d
 
     tracer = _lens_light_tracer(source=source)
 
-    fit = al.FitInterferometer(dataset=interferometer_7, tracer=tracer)
+    fit = al.FitInterferometer(dataset=interferometer_7, tracer=tracer, settings=LAZY_OFF)
     fit_array_free = al.FitInterferometer(dataset=dataset_array_free, tracer=tracer)
 
     assert fit_array_free._uses_precomputed_data_term
@@ -1290,7 +1293,8 @@ def test__sparse_operator__lazy_policy_off__dense_and_nothing_built(
     interferometer_7, no_ambient_setup
 ):
     fit = al.FitInterferometer(
-        dataset=interferometer_7, tracer=_lens_pixelized_source_tracer(lens_light=False)
+        dataset=interferometer_7, tracer=_lens_pixelized_source_tracer(lens_light=False),
+        settings=LAZY_OFF,
     )
 
     assert fit.sparse_operator is None
@@ -1305,7 +1309,7 @@ def test__sparse_operator__lazy_policy_on__pixelized_source__matches_dense_built
 
     tracer = _lens_pixelized_source_tracer(lens_light=False)
 
-    fit_dense = al.FitInterferometer(dataset=interferometer_7, tracer=tracer)
+    fit_dense = al.FitInterferometer(dataset=interferometer_7, tracer=tracer, settings=LAZY_OFF)
 
     fit = al.FitInterferometer(
         dataset=interferometer_7, tracer=tracer, settings=LAZY_ON
@@ -1341,7 +1345,7 @@ def test__sparse_operator__lazy_policy_on__pixelized_source_and_lens_light__dirt
 
     tracer = _lens_pixelized_source_tracer(lens_light=True)
 
-    fit_dense = al.FitInterferometer(dataset=interferometer_7, tracer=tracer)
+    fit_dense = al.FitInterferometer(dataset=interferometer_7, tracer=tracer, settings=LAZY_OFF)
 
     fit = al.FitInterferometer(
         dataset=interferometer_7, tracer=tracer, settings=LAZY_ON
